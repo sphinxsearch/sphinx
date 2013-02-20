@@ -19052,8 +19052,8 @@ int CSphDictCRCTraits::InitMorph ( const char * szMorph, int iLength, bool bUseU
 
 		if ( !pStemmer )
 		{
-			sError.SetSprintf ( "unknown %s stemmer libstemmer_%s; skipped",
-				bUseUTF8 ? "UTF-8" : "SBCS", sAlgo.cstr(), );
+			sMessage.SetSprintf ( "unknown %s stemmer libstemmer_%s; skipped",
+				bUseUTF8 ? "UTF-8" : "SBCS", sAlgo.cstr() );
 			return ST_WARNING;
 		}
 
