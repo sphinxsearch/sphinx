@@ -124,7 +124,7 @@ are available by building third party <ulink url="http://snowball.tartarus.org/"
 <listitem><para><filename>spelldump</filename>: a simple command-line tool to extract the items from an <filename>ispell</filename> or <filename>MySpell</filename>
 (as bundled with OpenOffice) format dictionary to help customize your index, for use with <link linkend="conf-wordforms">wordforms</link>.</para></listitem>
 <listitem><para><filename>indextool</filename>: an utility to dump miscellaneous debug information about the index, added in version 0.9.9-rc2.</para></listitem>
-<listitem><para><filename>wordbreaker</filename>: an utility to break down compound words into separate words, added in version 2.1.1.</para></listitem>
+<listitem><para><filename>wordbreaker</filename>: an utility to break down compound words into separate words, added in version 2.1.1-beta.</para></listitem>
 </itemizedlist>
 </para>
 </sect1>
