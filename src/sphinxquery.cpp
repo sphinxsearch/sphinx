@@ -903,6 +903,12 @@ int XQParser_t::GetToken ( YYSTYPE * lvalp )
 				} else
 				{
 					// got stray '<', ignore
+					if ( m_iPendingNulls>0 )
+					{
+						m_iPendingNulls = 0;
+						lvalp->pNode = AddKeyword ( NULL );
+						return TOK_KEYWORD;
+					}
 					continue;
 				}
 			} else
