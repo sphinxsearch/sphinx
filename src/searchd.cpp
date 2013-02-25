@@ -18319,13 +18319,29 @@ void ReloadIndexSettings ( CSphConfigParser & tCP )
 
 			nChecked++;
 
-		} else if ( AddIndex ( sIndexName, hIndex )==ADD_LOCAL )
+		} else
 		{
-			ServedIndex_t * pIndex = g_pLocalIndexes->GetWlockedEntry ( sIndexName );
-			if ( pIndex )
+			ESphAddIndex eType = AddIndex ( sIndexName, hIndex );
+			if ( eType==ADD_LOCAL )
 			{
-				pIndex->m_bOnlyNew = true;
-				pIndex->Unlock();
+				ServedIndex_t * pIndex = g_pLocalIndexes->GetWlockedEntry ( sIndexName );
+
+				if ( pIndex )
+				{
+					pIndex->m_bOnlyNew = true;
+					pIndex->Unlock();
+				}
+			} else if ( eType==ADD_RT )
+			{
+				ServedIndex_t & tIndex = g_pLocalIndexes->GetUnlockedEntry ( sIndexName );
+
+				tIndex.m_bOnlyNew = false;
+				if ( PrereadNewIndex ( tIndex, hIndex, sIndexName ) )
+					tIndex.m_bEnabled = true;
+
+				CSphString sError;
+				if ( tIndex.m_bEnabled && !CheckIndex ( tIndex.m_pIndex, sError ) )
+					tIndex.m_bEnabled = false;
 			}
 		}
 	}
