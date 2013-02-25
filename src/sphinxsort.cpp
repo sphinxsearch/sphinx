@@ -4083,9 +4083,6 @@ ISphMatchSorter * sphCreateQueue ( const CSphQuery * pQuery, const CSphSchema & 
 			const CSphColumnInfo & tAttr = tSorterSchema.GetAttr ( iSortAttr );
 			tStateMatch.m_eKeypart[0] = Attr2Keypart ( tAttr.m_eAttrType );
 			tStateMatch.m_tLocator[0] = tAttr.m_tLocator;
-
-			int dAttrs [ CSphMatchComparatorState::MAX_ATTRS ];
-			dAttrs[0] = iSortAttr;
 		}
 
 		// find out what function to use and whether it needs attributes

@@ -1214,11 +1214,11 @@ class ExprParser_t
 public:
 	ExprParser_t ( CSphSchema * pExtra, ISphExprHook * pHook, CSphQueryProfile * pProfiler )
 		: m_pHook ( pHook )
+		, m_pProfiler ( pProfiler )
 		, m_pExtra ( pExtra )
 		, m_bHasZonespanlist ( false )
 		, m_bHasPackedFactors ( false )
 		, m_eEvalStage ( SPH_EVAL_FINAL )
-		, m_pProfiler ( pProfiler )
 	{}
 
 							~ExprParser_t ();
