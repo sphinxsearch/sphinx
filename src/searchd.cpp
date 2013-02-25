@@ -20786,15 +20786,15 @@ int WINAPI ServiceMain ( int argc, char **argv )
 	if ( !g_bOptNoDetach )
 		g_bLogStdout = false;
 
+	if ( g_bIOStats && !sphInitIOStats () )
+		sphWarning ( "unable to init IO statistics" );
+
 	// threads mode
 	// create optimize and flush threads, and load saved sphinxql state
 	if ( g_eWorkers==MPM_THREADS )
 	{
 		if ( !sphThreadCreate ( &g_tRtFlushThread, RtFlushThreadFunc, 0 ) )
 			sphDie ( "failed to create rt-flush thread" );
-
-	if ( g_bIOStats && !sphInitIOStats () )
-		sphWarning ( "unable to init IO statistics" );
 
 		if ( !sphThreadCreate ( &g_tOptimizeThread, OptimizeThreadFunc, 0 ) )
 			sphDie ( "failed to create optimize thread" );
