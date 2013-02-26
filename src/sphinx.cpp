@@ -27867,19 +27867,22 @@ void CSphSource_MSSQL::OdbcPostConnect ()
 	if ( sDriver.IsEmpty() )
 		sDriver = "SQL Server";
 
-	if ( m_bWinAuth && m_tParams.m_sUser.IsEmpty () )
+	if ( m_sOdbcDSN.IsEmpty() )
 	{
-		m_sOdbcDSN.SetSprintf ( "DRIVER={%s};SERVER={%s};Database={%s};Trusted_Connection=yes",
-			sDriver.cstr (), m_tParams.m_sHost.cstr (), m_tParams.m_sDB.cstr () );
+		if ( m_bWinAuth && m_tParams.m_sUser.IsEmpty () )
+		{
+			m_sOdbcDSN.SetSprintf ( "DRIVER={%s};SERVER={%s};Database={%s};Trusted_Connection=yes",
+				sDriver.cstr (), m_tParams.m_sHost.cstr (), m_tParams.m_sDB.cstr () );
 
-	} else if ( m_bWinAuth )
-	{
-		m_sOdbcDSN.SetSprintf ( "DRIVER={%s};SERVER={%s};UID={%s};PWD={%s};Database={%s};Trusted_Connection=yes",
-			sDriver.cstr (), m_tParams.m_sHost.cstr (), m_tParams.m_sUser.cstr (), m_tParams.m_sPass.cstr (), m_tParams.m_sDB.cstr () );
-	} else
-	{
-		m_sOdbcDSN.SetSprintf ( "DRIVER={%s};SERVER={%s};UID={%s};PWD={%s};Database={%s}",
-			sDriver.cstr (), m_tParams.m_sHost.cstr (), m_tParams.m_sUser.cstr (), m_tParams.m_sPass.cstr (), m_tParams.m_sDB.cstr () );
+		} else if ( m_bWinAuth )
+		{
+			m_sOdbcDSN.SetSprintf ( "DRIVER={%s};SERVER={%s};UID={%s};PWD={%s};Database={%s};Trusted_Connection=yes",
+				sDriver.cstr (), m_tParams.m_sHost.cstr (), m_tParams.m_sUser.cstr (), m_tParams.m_sPass.cstr (), m_tParams.m_sDB.cstr () );
+		} else
+		{
+			m_sOdbcDSN.SetSprintf ( "DRIVER={%s};SERVER={%s};UID={%s};PWD={%s};Database={%s}",
+				sDriver.cstr (), m_tParams.m_sHost.cstr (), m_tParams.m_sUser.cstr (), m_tParams.m_sPass.cstr (), m_tParams.m_sDB.cstr () );
+		}
 	}
 }
 
