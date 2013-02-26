@@ -1926,7 +1926,16 @@ protected:
 	static const char * const	MACRO_VALUES [ MACRO_COUNT ];
 
 protected:
-	bool					SetupRanges ( const char * sRangeQuery, const char * sQuery, const char * sPrefix, CSphString & sError );
+	/// by what reason the internal SetupRanges called
+	enum ERangesReason
+	{
+		SRE_DOCS,
+		SRE_MVA,
+		SRE_JOINEDHITS
+	};
+
+protected:
+	bool					SetupRanges ( const char * sRangeQuery, const char * sQuery, const char * sPrefix, CSphString & sError, ERangesReason iReason );
 	bool					RunQueryStep ( const char * sQuery, CSphString & sError );
 
 protected:

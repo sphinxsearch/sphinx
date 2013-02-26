@@ -24229,16 +24229,17 @@ bool CSphSource_SQL::RunQueryStep ( const char * sQuery, CSphString & sError )
 	return bRes;
 }
 
-static void HookConnect ( const char* szCommand )
+static bool HookConnect ( const char* szCommand )
 {
 	FILE * pPipe = popen ( szCommand, "r" );
 	if ( !pPipe )
-		return;
+		return false;
 
 	const int MAX_BUF_SIZE = 1024;
 	BYTE dBuf [MAX_BUF_SIZE];
 	fread ( dBuf, 1, MAX_BUF_SIZE, pPipe );
 	pclose ( pPipe );
+	return true;
 }
 
 inline static const char* skipspace ( const char* pBuf, const char* pBufEnd )
@@ -24267,11 +24268,11 @@ inline static const char* scannumber ( const char* pBuf, const char* pBufEnd, Sp
 	return pBuf;
 }
 
-static void HookQueryRange ( const char* szCommand, SphDocID_t* pMin, SphDocID_t* pMax )
+static bool HookQueryRange ( const char* szCommand, SphDocID_t* pMin, SphDocID_t* pMax )
 {
 	FILE * pPipe = popen ( szCommand, "r" );
 	if ( !pPipe )
-		return;
+		return false;
 
 	const int MAX_BUF_SIZE = 1024;
 	char dBuf [MAX_BUF_SIZE];
@@ -24285,9 +24286,10 @@ static void HookQueryRange ( const char* szCommand, SphDocID_t* pMin, SphDocID_t
 	// whitespace and 2-nd number
 	pStart = skipspace ( pStart, pEnd );
 	pStart = scannumber ( pStart, pEnd, pMax );
+	return true;
 }
 
-static void HookPostIndex ( const char* szCommand, SphDocID_t uLastIndexed )
+static bool HookPostIndex ( const char* szCommand, SphDocID_t uLastIndexed )
 {
 	const char * sMacro = "$maxid";
 	char sValue[32];
@@ -24299,12 +24301,13 @@ static void HookPostIndex ( const char* szCommand, SphDocID_t uLastIndexed )
 	FILE * pPipe = popen ( pCmd, "r" );
 	SafeDeleteArray ( pCmd );
 	if ( !pPipe )
-		return;
+		return false;
 
 	const int MAX_BUF_SIZE = 1024;
 	BYTE dBuf [MAX_BUF_SIZE];
 	fread ( dBuf, 1, MAX_BUF_SIZE, pPipe );
 	pclose ( pPipe );
+	return true;
 }
 
 /// connect to SQL server
@@ -24325,8 +24328,11 @@ bool CSphSource_SQL::Connect ( CSphString & sError )
 
 	// all good
 	m_bSqlConnected = true;
-	if ( !m_tParams.m_sHookConnect.IsEmpty() )
-		HookConnect ( m_tParams.m_sHookConnect.cstr() );
+	if ( !m_tParams.m_sHookConnect.IsEmpty() && !HookConnect ( m_tParams.m_sHookConnect.cstr() ) )
+	{
+		sError.SetSprintf ( "hook_connect: runtime error %s when running external hook", strerror(errno) );
+		return false;
+	}
 	return true;
 }
 
@@ -24335,7 +24341,7 @@ bool CSphSource_SQL::Connect ( CSphString & sError )
 #define LOC_ERROR2(_msg,_arg,_arg2)		{ sError.SetSprintf ( _msg, _arg, _arg2 ); return false; }
 
 /// setup them ranges (called both for document range-queries and MVA range-queries)
-bool CSphSource_SQL::SetupRanges ( const char * sRangeQuery, const char * sQuery, const char * sPrefix, CSphString & sError )
+bool CSphSource_SQL::SetupRanges ( const char * sRangeQuery, const char * sQuery, const char * sPrefix, CSphString & sError, ERangesReason iReason  )
 {
 	// check step
 	if ( m_tParams.m_iRangeStep<=0 )
@@ -24393,9 +24399,10 @@ bool CSphSource_SQL::SetupRanges ( const char * sRangeQuery, const char * sQuery
 
 	SqlDismissResult ();
 
-	if ( !m_tParams.m_sHookQueryRange.IsEmpty() )
+	if ( iReason==SRE_DOCS && ( !m_tParams.m_sHookQueryRange.IsEmpty()) )
 	{
-		HookQueryRange ( m_tParams.m_sHookQueryRange.cstr(), &m_uMinID, &m_uMaxID );
+		if ( !HookQueryRange ( m_tParams.m_sHookQueryRange.cstr(), &m_uMinID, &m_uMaxID ) )
+			LOC_ERROR ( "hook_query_range: runtime error %s when running external hook", strerror(errno) );
 		if ( m_uMinID<=0 )
 			LOC_ERROR ( "hook_query_range: min_id="DOCID_FMT": must be positive 32/64-bit unsigned integer", m_uMinID );
 		if ( m_uMaxID<=0 )
@@ -24437,7 +24444,7 @@ bool CSphSource_SQL::IterateStart ( CSphString & sError )
 		{
 			m_tParams.m_iRangeStep = m_tParams.m_iRefRangeStep;
 			// run range-query; setup ranges
-			if ( !SetupRanges ( m_tParams.m_sQueryRange.cstr(), m_tParams.m_sQuery.cstr(), "sql_query_range: ", sError ) )
+			if ( !SetupRanges ( m_tParams.m_sQueryRange.cstr(), m_tParams.m_sQuery.cstr(), "sql_query_range: ", sError, SRE_DOCS ) )
 				return false;
 
 			// issue query
@@ -24814,9 +24821,9 @@ void CSphSource_SQL::PostIndex ()
 
 		SqlDisconnect ();
 	}
-	if ( !m_tParams.m_sHookPostIndex.IsEmpty() )
+	if ( !m_tParams.m_sHookPostIndex.IsEmpty() && !HookPostIndex ( m_tParams.m_sHookPostIndex.cstr(), m_uMaxFetchedID ) )
 	{
-		HookPostIndex ( m_tParams.m_sHookPostIndex.cstr(), m_uMaxFetchedID );
+		sphWarn ( "hook_post_index: runtime error %s when running external hook", strerror(errno) );
 	}
 }
 
@@ -24852,7 +24859,7 @@ bool CSphSource_SQL::IterateMultivaluedStart ( int iAttr, CSphString & sError )
 
 			// setup ranges
 			sPrefix.SetSprintf ( "multi-valued attr '%s' ranged query: ", tAttr.m_sName.cstr() );
-			if ( !SetupRanges ( tAttr.m_sQueryRange.cstr(), tAttr.m_sQuery.cstr(), sPrefix.cstr(), sError ) )
+			if ( !SetupRanges ( tAttr.m_sQueryRange.cstr(), tAttr.m_sQuery.cstr(), sPrefix.cstr(), sError, SRE_MVA ) )
 				return false;
 
 			// run first step (in order to report errors)
@@ -25192,7 +25199,7 @@ ISphHits * CSphSource_SQL::IterateJoinedHits ( CSphString & sError )
 				{
 					CSphString sPrefix;
 					sPrefix.SetSprintf ( "joined field '%s' ranged query: ", tJoined.m_sName.cstr() );
-					if ( !SetupRanges ( tJoined.m_sQueryRange.cstr(), tJoined.m_sQuery.cstr(), sPrefix.cstr(), sError ) )
+					if ( !SetupRanges ( tJoined.m_sQueryRange.cstr(), tJoined.m_sQuery.cstr(), sPrefix.cstr(), sError, SRE_JOINEDHITS ) )
 						return NULL;
 
 					m_uCurrentID = m_uMinID;
