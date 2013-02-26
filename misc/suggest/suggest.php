@@ -89,7 +89,8 @@ function MakeSuggestion ( $keyword )
   	$cl->SetArrayResult ( true );
 
   	// pull top-N best trigram matches and run them through Levenshtein
-	$res = $cl->Query ( $query, "suggest", 0, TOP_COUNT );
+	$cl->SetLimits ( 0, TOP_COUNT );
+	$res = $cl->Query ( $query, "suggest" );
 
 	if ( !$res || !$res["matches"] )
 		return false;
@@ -104,7 +105,10 @@ function MakeSuggestion ( $keyword )
 			$myrank = @$match["attrs"]["myrank"];
 			if ( $myrank )
 				$myrank = ", myrank=$myrank";
-			$levdist = levenshtein ( $keyword, $w ); // FIXME? add weights?
+
+			// FIXME? add costs?
+			// FIXME! does not work with UTF-8.. THIS! IS!! PHP!!!
+			$levdist = levenshtein ( $keyword, $w );
 
 			print "id=$match[id], weight=$match[weight], freq={$match[attrs][freq]}{$myrank}, word=$w, levdist=$levdist\n";
 		}
