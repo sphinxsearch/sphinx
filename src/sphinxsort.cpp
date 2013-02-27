@@ -2005,6 +2005,7 @@ public:
 			pTo->m_iTag = iTag;
 
 		m_iTotal = 0;
+		m_bDataInitialized = false;
 
 		if ( DISTINCT )
 			m_dUniq.Resize(0);
