@@ -7486,7 +7486,7 @@ int CalcResultLength ( int iVer, const CSphQueryResult * pRes, const CSphVector<
 				{
 					// to client send as string
 					dJson.Resize ( 0 );
-					sphJsonFieldFormat ( dJson, pStrings+uOff, eJson );
+					sphJsonFieldFormat ( dJson, pStrings+uOff, eJson, false );
 					iRespLen += dJson.GetLength();
 				}
 			}
@@ -7746,7 +7746,7 @@ void SendResult ( int iVer, NetOutputBuffer_c & tOut, const CSphQueryResult * pR
 					{
 						// to client send data as string
 						dJson.Resize ( 0 );
-						sphJsonFieldFormat ( dJson, pStrings+uOff, eJson );
+						sphJsonFieldFormat ( dJson, pStrings+uOff, eJson, false );
 						tOut.SendDword ( dJson.GetLength() );
 						tOut.SendBytes ( dJson.Begin(), dJson.GetLength() );
 					}
@@ -15092,7 +15092,7 @@ void SendMysqlSelectResult ( SqlRowBuffer_c & dRows, const AggrResult_t & tRes, 
 						// send string to client
 						dTmp.Resize ( 0 );
 						const BYTE * pStrings = tRes.m_dTag2Pools [ tMatch.m_iTag ].m_pStrings;
-						sphJsonFieldFormat ( dTmp, pStrings+uOff, eJson );
+						sphJsonFieldFormat ( dTmp, pStrings+uOff, eJson, false );
 
 						// send length
 						int iLen = dTmp.GetLength();

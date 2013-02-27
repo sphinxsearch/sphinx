@@ -932,12 +932,18 @@ public:
 				return EvalValues ( (DWORD)sphJsonLoadInt ( &pValue ) );
 			case JSON_INT64:
 				return EvalValues ( sphJsonLoadBigint ( &pValue ) );
+			case JSON_DOUBLE:
+				return EvalValues ( (SphAttr_t)sphQW2D ( sphJsonLoadBigint ( &pValue ) ) );
 			default:
 				return false;
 		}
 	}
 };
 
+
+#if USE_WINDOWS
+#pragma warning(disable:4127) // conditional expr is const for MSVC
+#endif
 
 template < bool HAS_EQUALS >
 class JsonFilterRange_c : public JsonFilter_c<IFilter_Range>
@@ -957,8 +963,55 @@ public:
 				return EvalRange<HAS_EQUALS> ( sphJsonLoadInt ( &pValue ), m_iMinValue, m_iMaxValue );
 			case JSON_INT64:
 				return EvalRange<HAS_EQUALS> ( sphJsonLoadBigint ( &pValue ), m_iMinValue, m_iMaxValue );
+			case JSON_DOUBLE:
+			{
+				double fValue = sphQW2D ( sphJsonLoadBigint ( &pValue ) );
+				if ( HAS_EQUALS )
+					return fValue>=m_iMinValue && fValue<=m_iMaxValue;
+				else
+					return fValue>m_iMinValue && fValue<m_iMaxValue;
+			}
 			default:
 				return false;
+		}
+	}
+};
+
+
+template < bool HAS_EQUALS >
+class JsonFilterFloatRange_c : public JsonFilter_c<IFilter_Range>
+{
+public:
+	JsonFilterFloatRange_c ( const CSphAttrLocator & tLoc, const char * pInCol )
+		: JsonFilter_c<IFilter_Range> ( tLoc, pInCol )
+	{}
+
+	float m_fMinValue;
+	float m_fMaxValue;
+
+	virtual void SetRangeFloat ( float fMin, float fMax )
+	{
+		m_fMinValue = fMin;
+		m_fMaxValue = fMax;
+	}
+
+	virtual bool Eval ( const CSphMatch & tMatch ) const
+	{
+		const BYTE * pValue;
+		ESphJsonType eRes = GetKey ( &pValue, tMatch );
+		switch ( eRes )
+		{
+			case JSON_DOUBLE:
+			{
+				// convert to float (fails comparison tests otherwise, e.g. 1.010>1.010f)
+				float fValue = (float)sphQW2D ( sphJsonLoadBigint ( &pValue ) );
+				if ( HAS_EQUALS )
+					return fValue>=m_fMinValue && fValue<=m_fMaxValue;
+				else
+					return fValue>m_fMinValue && fValue<m_fMaxValue;
+			}
+		default:
+			return false;
 		}
 	}
 };
@@ -1009,6 +1062,11 @@ static ISphFilter * CreateFilterJson ( const CSphColumnInfo * pAttr, ESphFilter 
 	{
 		case SPH_FILTER_VALUES:
 			return new JsonFilterValues_c ( pAttr->m_tLocator, pInCol );
+		case SPH_FILTER_FLOATRANGE:
+			if ( bRangeEq )
+				return new JsonFilterFloatRange_c<true> ( pAttr->m_tLocator, pInCol );
+			else
+				return new JsonFilterFloatRange_c<false> ( pAttr->m_tLocator, pInCol );
 		case SPH_FILTER_RANGE:
 			if ( bRangeEq )
 				return new JsonFilterRange_c<true> ( pAttr->m_tLocator, pInCol );

@@ -350,9 +350,14 @@ where_item:
 			if ( !pParser->AddIntFilterLesser ( $1.m_sValue, $3.m_iValue, true ) )
 				YYERROR;
 		}
+	| expr_ident '=' const_float
+		{
+			if ( !pParser->AddFloatRangeFilter ( $1.m_sValue, $3.m_fValue, $3.m_fValue, true ) )
+				YYERROR;
+		}
 	| expr_float_unhandled
 		{
-			yyerror ( pParser, "EQ and NEQ filters on floats are not (yet?) supported" );
+			yyerror ( pParser, "NEQ filter on floats is not (yet?) supported" );
 			YYERROR;
 		}
 	| expr_ident TOK_BETWEEN const_float TOK_AND const_float
@@ -393,8 +398,7 @@ where_item:
 	;
 
 expr_float_unhandled:
-	expr_ident '=' const_float
-	| expr_ident TOK_NE const_float
+	expr_ident TOK_NE const_float
 	;
 
 expr_ident:

@@ -375,11 +375,12 @@ ESphJsonType sphJsonFindKey ( const BYTE ** ppValue, const BYTE * pData, const J
 
 //////////////////////////////////////////////////////////////////////////
 
-static const BYTE * JsonFormatStr ( CSphVector<BYTE> & dOut, const BYTE * p )
+static const BYTE * JsonFormatStr ( CSphVector<BYTE> & dOut, const BYTE * p, bool bQuote=true )
 {
 	int iLen = sphJsonUnpackInt ( &p );
 	dOut.Reserve ( dOut.GetLength()+iLen );
-	dOut.Add ( '"' );
+	if ( bQuote )
+		dOut.Add ( '"' );
 	while ( iLen-- )
 	{
 		if ( *p=='"' )
@@ -387,7 +388,8 @@ static const BYTE * JsonFormatStr ( CSphVector<BYTE> & dOut, const BYTE * p )
 		dOut.Add ( *p );
 		p++;
 	}
-	dOut.Add ( '"' );
+	if ( bQuote )
+		dOut.Add ( '"' );
 	return p;
 }
 
@@ -421,7 +423,7 @@ void sphJsonFormat ( CSphVector<BYTE> & dOut, const BYTE * pData )
 	}
 }
 
-const BYTE * sphJsonFieldFormat ( CSphVector<BYTE> & dOut, const BYTE * pData, ESphJsonType eType )
+const BYTE * sphJsonFieldFormat ( CSphVector<BYTE> & dOut, const BYTE * pData, ESphJsonType eType, bool bQuoteString )
 {
 	const BYTE * p = pData;
 
@@ -453,7 +455,7 @@ const BYTE * sphJsonFieldFormat ( CSphVector<BYTE> & dOut, const BYTE * pData, E
 		break;
 	}
 	case JSON_STRING:
-		p = JsonFormatStr ( dOut, p );
+		p = JsonFormatStr ( dOut, p, bQuoteString );
 		break;
 	case JSON_STRING_VECTOR:
 	{
