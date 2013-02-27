@@ -959,7 +959,7 @@ bool DoIndex ( const CSphConfigSection & hIndex, const char * sIndexName,
 
 		// aot filter
 		if ( tSettings.m_bAotFilter )
-			pTokenizer = sphAotCreateFilter ( pTokenizer, pDict );
+			pTokenizer = sphAotCreateFilter ( pTokenizer, pDict, tSettings.m_bIndexExactWords );
 	}
 
 	ISphFieldFilter * pFieldFilter = NULL;

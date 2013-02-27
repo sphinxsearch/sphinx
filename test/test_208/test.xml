@@ -44,6 +44,22 @@ index test2 : test1
 	morphology		= lemmatize_ru
 }
 
+source test3 : test1
+{
+	sql_field_string	= title
+}
+
+index test3 : test1
+{
+	source				= test3
+	path				= <data_path/>/test3
+	morphology			= lemmatize_ru_all
+	index_exact_words	= 1
+	dict				= keywords
+	min_prefix_len		= 1
+	enable_star			= 1
+}
+
 index testrt1
 {
 	type			= rt
@@ -132,7 +148,16 @@ CREATE TABLE test_table
 	( 16, 11, 'понюхал клея' ),
 	( 17, 11, 'Ё моё' ),
 	( 18, 11, 'я санктение люблю спб' ),
-	( 1000, 11, 'сталин начал курить' )
+
+	( 1000, 11, 'сталин начал курить' ),
+
+	( 2001, 12, 'пришла весна и распустились почки' ),
+	( 2002, 12, 'почки. выступление академика о.бутаковой' ),
+	( 2003, 12, 'устройство-работа-почки' ),
+	( 2004, 12, 'почка))' ),
+	( 2005, 12, 'почка для босса' ),
+	( 2006, 12, 'почку подарил директор школы ученице - лучший подарок на 200' ),
+	( 2007, 12, 'устройство работа почки' )
 </db_insert>
 
 <queries>
@@ -338,6 +363,16 @@ CREATE TABLE test_table
 <sphinxql>SELECT *, WEIGHT() FROM stalin_rt WHERE MATCH('стали')</sphinxql>
 <sphinxql>SELECT *, WEIGHT() FROM stalin_plain WHERE MATCH('стали')</sphinxql>
 <sphinxql>SELECT *, WEIGHT() FROM stalin_plain WHERE MATCH('стали') ORDER BY id ASC, gid ASC</sphinxql>
+
+<sphinxql>SELECT *, WEIGHT() FROM test3 WHERE MATCH('почка')</sphinxql>
+<sphinxql>SELECT *, WEIGHT() FROM test3 WHERE MATCH('почки')</sphinxql>
+<sphinxql>SELECT *, WEIGHT() FROM test3 WHERE MATCH('=почка')</sphinxql>
+<sphinxql>SELECT *, WEIGHT() FROM test3 WHERE MATCH('=почки')</sphinxql>
+<sphinxql>SELECT *, WEIGHT() FROM test3 WHERE MATCH('почка*')</sphinxql>
+<sphinxql>SELECT *, WEIGHT() FROM test3 WHERE MATCH('почки*')</sphinxql>
+<sphinxql>SELECT *, WEIGHT() FROM test3 WHERE MATCH('^почка*')</sphinxql>
+<sphinxql>SELECT *, WEIGHT() FROM test3 WHERE MATCH('^почки*')</sphinxql>
+<sphinxql>SELECT *, WEIGHT() FROM test3 WHERE MATCH('"распустились почки"')</sphinxql>
 </sphqueries>
 
 </test>

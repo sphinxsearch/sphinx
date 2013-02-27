@@ -3032,6 +3032,7 @@ ISphTokenizer::ISphTokenizer ()
 	, m_bBoundary ( false )
 	, m_bWasSpecial ( false )
 	, m_iOvershortCount ( 0 )
+	, m_eTokenMorph ( SPH_TOKEN_MORPH_RAW )
 	, m_bBlended ( false )
 	, m_bNonBlended ( true )
 	, m_bBlendedPart ( false )
@@ -16321,7 +16322,8 @@ static void BuildExpandedTree ( const XQKeyword_t & tRootWord, CSphVector<CSphNa
 			tWord.m_sWord = dWordSrc[i].m_sName;
 			tWord.m_iAtomPos = tRootWord.m_iAtomPos;
 			tWord.m_bExpanded = true;
-			// bFieldStart, bFieldEnd?
+			tWord.m_bFieldStart = tRootWord.m_bFieldStart;
+			tWord.m_bFieldEnd = tRootWord.m_bFieldEnd;
 		}
 
 		// if we created a new node, we have to propagate field/zone specs there
@@ -23843,13 +23845,20 @@ void CSphSource_Document::BuildRegularHits ( SphDocID_t uDocid, bool bPayload, b
 			m_tHits.AddHit ( uDocid, m_pDict->GetWordIDWithMarkers ( sBuf ), m_tState.m_iHitPos );
 		}
 
-		if ( m_bIndexExactWords )
+		ESphTokenMorph eMorph = m_pTokenizer->GetTokenMorph();
+		if ( m_bIndexExactWords && eMorph!=SPH_TOKEN_MORPH_GUESS )
 		{
 			int iBytes = strlen ( (const char*)sWord );
 			memcpy ( sBuf + 1, sWord, iBytes );
 			sBuf[0] = MAGIC_WORD_HEAD_NONSTEMMED;
 			sBuf[iBytes+1] = '\0';
 			m_tHits.AddHit ( uDocid, m_pDict->GetWordIDNonStemmed ( sBuf ), m_tState.m_iHitPos );
+		}
+
+		if ( m_bIndexExactWords && eMorph==SPH_TOKEN_MORPH_ORIGINAL )
+		{
+			m_tState.m_iBuildLastStep = m_pTokenizer->TokenIsBlended() ? 0 : 1;
+			continue;
 		}
 
 		SphWordID_t iWord = m_pDict->GetWordID ( sWord );
@@ -29655,14 +29664,11 @@ void sphShutdownGlobalIDFs ()
 	sphUpdateGlobalIDFs ( dEmptyFiles );
 }
 
-
 #if USE_WINDOWS
 #pragma warning(default:4127) // conditional expr is const for MSVC
 #endif
 
-
 //////////////////////////////////////////////////////////////////////////
-
 
 //
 // $Id$

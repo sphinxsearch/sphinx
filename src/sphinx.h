@@ -485,6 +485,14 @@ enum ESphTokenizerClone
 };
 
 
+enum ESphTokenMorph
+{
+	SPH_TOKEN_MORPH_RAW,			///< no morphology applied, tokenizer does not handle morphology
+	SPH_TOKEN_MORPH_ORIGINAL,		///< no morphology applied, but tokenizer handles morphology
+	SPH_TOKEN_MORPH_GUESS			///< morphology applied
+};
+
+
 struct CSphMultiformContainer;
 class CSphWriter;
 
@@ -593,6 +601,9 @@ public:
 	/// get original tokenized multiform (if any); NULL means there was none
 	virtual BYTE *					GetTokenizedMultiform () { return NULL; }
 
+	/// check whether this token is a generated morphological guess
+	ESphTokenMorph					GetTokenMorph() const { return m_eTokenMorph; }
+
 	virtual bool					TokenIsBlended () const { return m_bBlended; }
 	virtual bool					TokenIsBlendedPart () const { return m_bBlendedPart; }
 	virtual int						SkipBlended () { return 0; }
@@ -641,6 +652,7 @@ protected:
 	int								m_iBoundaryOffset;			///< boundary character offset (in bytes)
 	bool							m_bWasSpecial;				///< special token flag
 	int								m_iOvershortCount;			///< skipped overshort tokens count
+	ESphTokenMorph					m_eTokenMorph;				///< whether last token was a generated morphological guess
 
 	bool							m_bBlended;					///< whether last token (as in just returned from GetToken()) was blended
 	bool							m_bNonBlended;				///< internal, whether there were any normal chars in that blended token
