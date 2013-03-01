@@ -1636,6 +1636,12 @@ void ExtCached_c::PopulateCache ( const ISphQwordSetup & tSetup, bool bFillStat 
 
 				// FIXME!!! apply zone limits too
 
+				// apply field-start/field-end modifiers
+				if ( tWord.m_bFieldStart && HITMAN::GetPos(uHit)!=1 )
+					continue;
+				if ( tWord.m_bFieldEnd && HITMAN::IsEnd(uHit) )
+					continue;
+
 				// ok, this hit works, copy it
 				ExtCacheEntry_t & tEntry = m_dCache.Add ();
 				tEntry.m_uDocid = tMatch.m_iDocID;
