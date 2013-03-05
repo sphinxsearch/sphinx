@@ -7626,136 +7626,167 @@ void SendResult ( int iVer, NetOutputBuffer_c & tOut, const CSphQueryResult * pR
 			for ( int j=0; j<iAttrsCount; j++ )
 			{
 				const CSphColumnInfo & tAttr = pRes->m_tSchema.GetAttr(j);
-				if ( tAttr.m_eAttrType==SPH_ATTR_UINT32SET || tAttr.m_eAttrType==SPH_ATTR_INT64SET )
+				switch ( tAttr.m_eAttrType )
 				{
-					assert ( tMatch.GetAttr ( tAttr.m_tLocator )==0 || pMvaPool );
-					const DWORD * pValues = tMatch.GetAttrMVA ( tAttr.m_tLocator, pMvaPool );
-					if ( iVer<0x10C || !pValues )
+				case SPH_ATTR_UINT32SET:
+				case SPH_ATTR_INT64SET:
 					{
-						// for older clients, fixups column value to 0
-						// for newer clients, means that there are 0 values
-						tOut.SendDword ( 0 );
-					} else
-					{
-						// send MVA values
-						int iValues = *pValues++;
-						tOut.SendDword ( iValues );
-						if ( tAttr.m_eAttrType==SPH_ATTR_INT64SET )
+						assert ( tMatch.GetAttr ( tAttr.m_tLocator )==0 || pMvaPool );
+						const DWORD * pValues = tMatch.GetAttrMVA ( tAttr.m_tLocator, pMvaPool );
+						if ( iVer<0x10C || !pValues )
 						{
-							assert ( ( iValues%2 )==0 );
-							while ( iValues )
-							{
-								uint64_t uVal = (uint64_t)MVA_UPSIZE ( pValues );
-								tOut.SendUint64 ( uVal );
-								pValues += 2;
-								iValues -= 2;
-							}
+							// for older clients, fixups column value to 0
+							// for newer clients, means that there are 0 values
+							tOut.SendDword ( 0 );
 						} else
 						{
-							while ( iValues-- )
-								tOut.SendDword ( *pValues++ );
+							// send MVA values
+							int iValues = *pValues++;
+							tOut.SendDword ( iValues );
+							if ( tAttr.m_eAttrType==SPH_ATTR_INT64SET )
+							{
+								assert ( ( iValues%2 )==0 );
+								while ( iValues )
+								{
+									uint64_t uVal = (uint64_t)MVA_UPSIZE ( pValues );
+									tOut.SendUint64 ( uVal );
+									pValues += 2;
+									iValues -= 2;
+								}
+							} else
+							{
+								while ( iValues-- )
+									tOut.SendDword ( *pValues++ );
+							}
 						}
+						break;
 					}
-				} else if ( iVer<0x117 && ( tAttr.m_eAttrType==SPH_ATTR_STRING || tAttr.m_eAttrType==SPH_ATTR_STRINGPTR ||
-					tAttr.m_eAttrType==SPH_ATTR_JSON || tAttr.m_eAttrType==SPH_ATTR_JSON_FIELD ) )
-				{
-					// for older clients, just send int value of 0
-					tOut.SendDword ( 0 );
-
-				} else if ( tAttr.m_eAttrType==SPH_ATTR_STRING || ( tAttr.m_eAttrType==SPH_ATTR_JSON && bSendJson ) )
-				{
-					// for newer clients, send binary string either STRING or JSON attribute
-					DWORD uOffset = (DWORD) tMatch.GetAttr ( tAttr.m_tLocator );
-					if ( !uOffset ) // magic zero
+				case SPH_ATTR_JSON:
 					{
-						tOut.SendDword ( 0 ); // null string
-					} else
-					{
-						const BYTE * pStr;
-						assert ( pStrings );
-						int iLen = sphUnpackStr ( pStrings+uOffset, &pStr );
-						tOut.SendDword ( iLen );
-						tOut.SendBytes ( pStr, iLen );
-					}
-
-				} else if ( tAttr.m_eAttrType==SPH_ATTR_STRINGPTR )
-				{
-					// for newer clients, send binary string
-					const char* pString = (const char*) tMatch.GetAttr ( tAttr.m_tLocator );
-					if ( !pString ) // magic zero
-					{
-						tOut.SendDword ( 0 ); // null string
-					} else
-					{
-						int iLen = strlen ( pString );
-						tOut.SendDword ( iLen );
-						tOut.SendBytes ( pString, iLen );
-					}
-				} else if ( tAttr.m_eAttrType==SPH_ATTR_JSON )
-				{
-					// formatted string to client
-					DWORD uOffset = (DWORD) tMatch.GetAttr ( tAttr.m_tLocator );
-					assert ( !uOffset || pStrings );
-					if ( !uOffset ) // magic zero
-					{
-							tOut.SendDword ( sizeof(g_sJsonNull)-1 );
-							tOut.SendBytes ( g_sJsonNull, sizeof(g_sJsonNull)-1 );
-					} else
-					{
-						dJson.Resize ( 0 );
-						const BYTE * pStr = NULL;
-						sphUnpackStr ( pStrings + uOffset, &pStr );
-						sphJsonFormat ( dJson, pStr );
-
-						tOut.SendDword ( dJson.GetLength() );
-						tOut.SendBytes ( dJson.Begin(), dJson.GetLength() );
-					}
-
-				} else if ( tAttr.m_eAttrType==SPH_ATTR_JSON_FIELD )
-				{
-					uint64_t uTypeOffset = tMatch.GetAttr ( tAttr.m_tLocator );
-					ESphJsonType eJson = ESphJsonType ( uTypeOffset>>32 );
-					DWORD uOff = (DWORD)uTypeOffset;
-					assert ( !uOff || pStrings );
-					if ( !uOff )
-					{
-						// no key found - NULL value
-						if ( bSendJsonField )
-							tOut.SendByte ( JSON_EOF );
-						else
-							tOut.SendDword ( 0 );
-
-					} else if ( bSendJsonField )
-					{
-						// to master send packed data
-						tOut.SendByte ( (BYTE)eJson );
-
-						const BYTE * pData = pStrings+uOff;
-						int iLen = ( eJson==JSON_INT64 || eJson==JSON_DOUBLE ? 8 : 4 );
-
-						if ( eJson==JSON_STRING || eJson==JSON_STRING_VECTOR )
+						if ( iVer<0x117 )
 						{
-							const BYTE * pPacked = pData;
-							iLen = sphJsonUnpackInt ( &pPacked ); // string(s) data len
-							iLen += pPacked-pData; // packed length
+							tOut.SendDword ( 0 );
+							break;
+						}
+						if ( !bSendJson )
+						{
+							// formatted string to client
+							DWORD uOffset = (DWORD) tMatch.GetAttr ( tAttr.m_tLocator );
+							assert ( !uOffset || pStrings );
+							if ( !uOffset ) // magic zero
+							{
+								tOut.SendDword ( sizeof(g_sJsonNull)-1 );
+								tOut.SendBytes ( g_sJsonNull, sizeof(g_sJsonNull)-1 );
+							} else
+							{
+								dJson.Resize ( 0 );
+								const BYTE * pStr = NULL;
+								sphUnpackStr ( pStrings + uOffset, &pStr );
+								sphJsonFormat ( dJson, pStr );
+
+								tOut.SendDword ( dJson.GetLength() );
+								tOut.SendBytes ( dJson.Begin(), dJson.GetLength() );
+							}
+							break;
+						}
+						// no break at the end, pass to SPH_ATTR_STRING
+					}
+				case SPH_ATTR_STRING:
+					{
+						if ( iVer<0x117 )
+						{
+							tOut.SendDword ( 0 );
+							break;
+						}
+						// for newer clients, send binary string either STRING or JSON attribute
+						DWORD uOffset = (DWORD) tMatch.GetAttr ( tAttr.m_tLocator );
+						if ( !uOffset ) // magic zero
+						{
+							tOut.SendDword ( 0 ); // null string
+						} else
+						{
+							const BYTE * pStr;
+							assert ( pStrings );
+							int iLen = sphUnpackStr ( pStrings+uOffset, &pStr );
 							tOut.SendDword ( iLen );
+							tOut.SendBytes ( pStr, iLen );
+						}
+						break;
+					}
+				case SPH_ATTR_STRINGPTR:
+					{
+						if ( iVer<0x117 )
+						{
+							tOut.SendDword ( 0 );
+							break;
+						}
+						// for newer clients, send binary string
+						const char* pString = (const char*) tMatch.GetAttr ( tAttr.m_tLocator );
+						if ( !pString ) // magic zero
+						{
+							tOut.SendDword ( 0 ); // null string
+						} else
+						{
+							int iLen = strlen ( pString );
+							tOut.SendDword ( iLen );
+							tOut.SendBytes ( pString, iLen );
+						}
+						break;
+					}
+				case SPH_ATTR_JSON_FIELD:
+					{
+						if ( iVer<0x117 )
+						{
+							tOut.SendDword ( 0 );
+							break;
 						}
 
-						tOut.SendBytes ( pData, iLen );
-					} else
-					{
-						// to client send data as string
-						dJson.Resize ( 0 );
-						sphJsonFieldFormat ( dJson, pStrings+uOff, eJson, false );
-						tOut.SendDword ( dJson.GetLength() );
-						tOut.SendBytes ( dJson.Begin(), dJson.GetLength() );
+						uint64_t uTypeOffset = tMatch.GetAttr ( tAttr.m_tLocator );
+						ESphJsonType eJson = ESphJsonType ( uTypeOffset>>32 );
+						DWORD uOff = (DWORD)uTypeOffset;
+						assert ( !uOff || pStrings );
+						if ( !uOff )
+						{
+							// no key found - NULL value
+							if ( bSendJsonField )
+								tOut.SendByte ( JSON_EOF );
+							else
+								tOut.SendDword ( 0 );
+
+						} else if ( bSendJsonField )
+						{
+							// to master send packed data
+							tOut.SendByte ( (BYTE)eJson );
+
+							const BYTE * pData = pStrings+uOff;
+							int iLen = ( eJson==JSON_INT64 || eJson==JSON_DOUBLE ? 8 : 4 );
+
+							if ( eJson==JSON_STRING || eJson==JSON_STRING_VECTOR )
+							{
+								const BYTE * pPacked = pData;
+								iLen = sphJsonUnpackInt ( &pPacked ); // string(s) data len
+								iLen += pPacked-pData; // packed length
+								tOut.SendDword ( iLen );
+							}
+
+							tOut.SendBytes ( pData, iLen );
+						} else
+						{
+							// to client send data as string
+							dJson.Resize ( 0 );
+							sphJsonFieldFormat ( dJson, pStrings+uOff, eJson, false );
+							tOut.SendDword ( dJson.GetLength() );
+							tOut.SendBytes ( dJson.Begin(), dJson.GetLength() );
+						}
+						break;
 					}
-				} else if ( tAttr.m_eAttrType==SPH_ATTR_FACTORS )
-				{
-					if ( iVer<0x11C )
-						tOut.SendDword ( 0 );
-					else
+				case SPH_ATTR_FACTORS:
 					{
+						if ( iVer<0x11C )
+						{
+							tOut.SendDword ( 0 );
+							break;
+						}
 						BYTE * pData = (BYTE*) tMatch.GetAttr ( tAttr.m_tLocator );
 						if ( !pData )
 							tOut.SendDword ( 0 );
@@ -7765,20 +7796,25 @@ void SendResult ( int iVer, NetOutputBuffer_c & tOut, const CSphQueryResult * pR
 							tOut.SendDword ( uLength );
 							tOut.SendBytes ( pData+sizeof(DWORD), uLength-sizeof(DWORD) );
 						}
+						break;
 					}
-				} else
-				{
-					// send plain attr
-					if ( tAttr.m_eAttrType==SPH_ATTR_FLOAT )
-						tOut.SendFloat ( tMatch.GetAttrFloat ( tAttr.m_tLocator ) );
-					else if ( iVer>=0x114 && tAttr.m_eAttrType==SPH_ATTR_BIGINT )
+				case SPH_ATTR_FLOAT:
+					tOut.SendFloat ( tMatch.GetAttrFloat ( tAttr.m_tLocator ) );
+					break;
+				case SPH_ATTR_BIGINT:
+					if ( iVer>=0x114 )
+					{
 						tOut.SendUint64 ( tMatch.GetAttr ( tAttr.m_tLocator ) );
-					else
-						tOut.SendDword ( (DWORD)tMatch.GetAttr ( tAttr.m_tLocator ) );
-				}
-			}
-		}
-	}
+						break;
+					}
+					// no break here
+				default:
+					tOut.SendDword ( (DWORD)tMatch.GetAttr ( tAttr.m_tLocator ) );
+					break;
+				} /// end switch ( tAttr.m_eAttrType )
+			} /// end for ( int j=0; j<iAttrsCount; j++ )
+		} /// end else if ( iVer<=0x101 )
+	} /// end for ( int i=0; i<pRes->m_iCount; i++ )
 	if ( bLimitedMatches )
 		tOut.SendInt ( pRes->m_iCount );
 	else

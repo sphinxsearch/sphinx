@@ -360,14 +360,12 @@ ESphJsonType sphJsonFindKey ( const BYTE ** ppValue, const BYTE * pData, const J
 			p += 8;
 			break;
 		case JSON_STRING:
-			iSkip = sphJsonUnpackInt ( &p );
-			p += iSkip;
-			break;
 		case JSON_STRING_VECTOR:
 			iSkip = sphJsonUnpackInt ( &p );
 			p += iSkip;
 			break;
 		case JSON_EOF:
+		default:
 			break;
 		}
 	}
@@ -434,7 +432,7 @@ const BYTE * sphJsonFieldFormat ( CSphVector<BYTE> & dOut, const BYTE * pData, E
 	{
 		int iOff = dOut.GetLength();
 		dOut.Resize ( iOff+32 );
-		int iLen = snprintf ( (char *)dOut.Begin()+iOff, 32, "%d", sphJsonLoadInt ( &p ) );
+		int iLen = snprintf ( (char *)dOut.Begin()+iOff, 32, "%d", sphJsonLoadInt ( &p ) ); // NOLINT
 		dOut.Resize ( iOff+iLen );
 		break;
 	}
@@ -442,7 +440,7 @@ const BYTE * sphJsonFieldFormat ( CSphVector<BYTE> & dOut, const BYTE * pData, E
 	{
 		int iOff = dOut.GetLength();
 		dOut.Resize ( iOff+32 );
-		int iLen = snprintf ( (char *)dOut.Begin()+iOff, 32, INT64_FMT, sphJsonLoadBigint ( &p ) );
+		int iLen = snprintf ( (char *)dOut.Begin()+iOff, 32, INT64_FMT, sphJsonLoadBigint ( &p ) ); // NOLINT
 		dOut.Resize ( iOff+iLen );
 		break;
 	}
@@ -450,7 +448,7 @@ const BYTE * sphJsonFieldFormat ( CSphVector<BYTE> & dOut, const BYTE * pData, E
 	{
 		int iOff = dOut.GetLength();
 		dOut.Resize ( iOff+32 );
-		int iLen = snprintf ( (char *)dOut.Begin()+iOff, 32, "%f", sphQW2D ( sphJsonLoadBigint ( &p ) ) );
+		int iLen = snprintf ( (char *)dOut.Begin()+iOff, 32, "%f", sphQW2D ( sphJsonLoadBigint ( &p ) ) ); // NOLINT
 		dOut.Resize ( iOff+iLen );
 		break;
 	}

@@ -328,6 +328,7 @@ INSERT INTO json_attr ( id, gid, json ) VALUES
 <sphinxql>replace into rt (id, data) values (3, '{attr1:100, attr2:"replaced", new_attr:"text"}')</sphinxql>
 <sphinxql>select * from rt</sphinxql>
 <sphinxql>select * from rt group by data.new_attr</sphinxql>
+<sphinxql>select data.attr2 from rt group by data.new_attr</sphinxql>
 <!-- quoting check -->
 <sphinxql>select * from myindex</sphinxql>
 <sphinxql>select json.username from myindex where id=123</sphinxql>
