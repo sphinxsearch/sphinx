@@ -17453,6 +17453,21 @@ CSphIndexStatus CSphIndex_VLN::GetStatus () const
 // INDEX CHECKING
 //////////////////////////////////////////////////////////////////////////
 
+// no strnlen on some OSes (Mac OS)
+#if !HAVE_STRNLEN
+size_t strnlen ( const char * s, size_t iMaxLen )
+{
+	if ( !s )
+		return 0;
+
+	size_t iRes = 0;
+	while ( *s++ && iRes<iMaxLen )
+		++iRes;
+	return iRes;
+}
+#endif
+
+
 #define LOC_FAIL(_args) \
 	if ( ++iFails<=FAILS_THRESH ) \
 	{ \
