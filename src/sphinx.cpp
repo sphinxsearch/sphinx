@@ -3676,7 +3676,7 @@ void CSphTokenizerBase::CloneBase ( const CSphTokenizerBase * pFrom, ESphTokeniz
 
 			// lightweight tokenizer clone
 			// copy 3 KB of lowercaser chunk pointers, but do NOT copy the table data
-			SafeDelete ( m_tLC.m_pData );
+			SafeDeleteArray ( m_tLC.m_pData );
 			m_tLC.m_iChunks = 0;
 			m_tLC.m_pData = NULL;
 			for ( int i=0; i<CSphLowercaser::CHUNK_COUNT; i++ )
