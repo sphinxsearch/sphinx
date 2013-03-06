@@ -928,13 +928,6 @@ static CSphString					g_sSphinxqlState;
 
 #endif // USE_WINDOWS
 
-// FIXME! must be in sync with sphinx.cpp
-const int EXT_COUNT = 9;
-const int EXT_MVP = 9;
-const char * g_dNewExts[EXT_COUNT] = { ".new.sph", ".new.spa", ".new.spi", ".new.spd", ".new.spp", ".new.spm", ".new.spk", ".new.sps", ".new.spe" };
-const char * g_dOldExts[] = { ".old.sph", ".old.spa", ".old.spi", ".old.spd", ".old.spp", ".old.spm", ".old.spk", ".old.sps", ".old.spe", ".old.mvp" };
-const char * g_dCurExts[] = { ".sph", ".spa", ".spi", ".spd", ".spp", ".spm", ".spk", ".sps", ".spe", ".mvp" };
-
 /////////////////////////////////////////////////////////////////////////////
 // MISC
 /////////////////////////////////////////////////////////////////////////////
@@ -16454,7 +16447,7 @@ bool HasFiles ( const ServedIndex_t & tIndex, const char ** dExts )
 	char sFile [ SPH_MAX_FILENAME_LEN ];
 	const char * sPath = tIndex.m_sIndexPath.cstr();
 
-	for ( int i=0; i<EXT_COUNT; i++ )
+	for ( int i=0; i<sphGetExtCount(); i++ )
 	{
 		snprintf ( sFile, sizeof(sFile), "%s%s", sPath, dExts[i] );
 		if ( !sphIsReadable ( sFile ) )
@@ -16471,10 +16464,22 @@ bool RotateIndexGreedy ( ServedIndex_t & tIndex, const char * sIndex )
 	char sFile [ SPH_MAX_FILENAME_LEN ];
 	const char * sPath = tIndex.m_sIndexPath.cstr();
 
+	CSphString sError;
+	DWORD uVersion = ReadVersion ( sPath, sError );
 
-	for ( int i=0; i<EXT_COUNT; i++ )
+	if ( !sError.IsEmpty() )
 	{
-		snprintf ( sFile, sizeof(sFile), "%s%s", sPath, g_dNewExts[i] );
+		if ( tIndex.m_bOnlyNew )
+			sphWarning ( "rotating index '%s': %s; NOT SERVING", sIndex, sError.cstr() );
+		else
+			sphWarning ( "rotating index '%s': %s; using old index", sIndex, sError.cstr() );
+
+		return false;
+	}
+
+	for ( int i=0; i<sphGetExtCount ( uVersion ); i++ )
+	{
+		snprintf ( sFile, sizeof(sFile), "%s%s", sPath, sphGetExts ( SPH_EXT_NEW, uVersion )[i]);
 		if ( !sphIsReadable ( sFile ) )
 		{
 			if ( i>0 )
@@ -16492,15 +16497,15 @@ bool RotateIndexGreedy ( ServedIndex_t & tIndex, const char * sIndex )
 	if ( !tIndex.m_bOnlyNew )
 	{
 		// rename current to old
-		for ( int i=0; i<EXT_COUNT; i++ )
+		for ( int i=0; i<sphGetExtCount ( uVersion ); i++ )
 		{
-			snprintf ( sFile, sizeof(sFile), "%s%s", sPath, g_dCurExts[i] );
-			if ( !sphIsReadable ( sFile ) || TryRename ( sIndex, sPath, g_dCurExts[i], g_dOldExts[i], false ) )
+			snprintf ( sFile, sizeof(sFile), "%s%s", sPath, sphGetExts ( SPH_EXT_CUR, uVersion )[i] );
+			if ( !sphIsReadable ( sFile ) || TryRename ( sIndex, sPath, sphGetExts ( SPH_EXT_CUR, uVersion )[i], sphGetExts ( SPH_EXT_OLD, uVersion )[i], false ) )
 				continue;
 
 			// rollback
 			for ( int j=0; j<i; j++ )
-				TryRename ( sIndex, sPath, g_dOldExts[j], g_dCurExts[j], true );
+				TryRename ( sIndex, sPath, sphGetExts ( SPH_EXT_OLD, uVersion )[j], sphGetExts ( SPH_EXT_CUR, uVersion )[j], true );
 
 			sphWarning ( "rotating index '%s': rename to .old failed; using old index", sIndex );
 			return false;
@@ -16510,7 +16515,7 @@ bool RotateIndexGreedy ( ServedIndex_t & tIndex, const char * sIndex )
 		for ( ;; )
 		{
 			char sBuf [ SPH_MAX_FILENAME_LEN ];
-			snprintf ( sBuf, sizeof(sBuf), "%s%s", sPath, g_dCurExts[EXT_MVP] );
+			snprintf ( sBuf, sizeof(sBuf), "%s%s", sPath, sphGetCurMvp() );
 
 			CSphString sFakeError;
 			CSphAutofile fdTest ( sBuf, SPH_O_READ, sFakeError );
@@ -16519,12 +16524,12 @@ bool RotateIndexGreedy ( ServedIndex_t & tIndex, const char * sIndex )
 			if ( bNoMVP )
 				break; ///< no file, nothing to hold
 
-			if ( TryRename ( sIndex, sPath, g_dCurExts[EXT_MVP], g_dOldExts[EXT_MVP], false, false ) )
+			if ( TryRename ( sIndex, sPath, sphGetCurMvp(), sphGetOldMvp(), false, false ) )
 				break;
 
 			// rollback
-			for ( int j=0; j<EXT_COUNT; j++ )
-				TryRename ( sIndex, sPath, g_dOldExts[j], g_dCurExts[j], true );
+			for ( int j=0; j<sphGetExtCount ( uVersion ); j++ )
+				TryRename ( sIndex, sPath, sphGetExts ( SPH_EXT_OLD, uVersion )[j], sphGetExts ( SPH_EXT_CUR, uVersion )[j], true );
 
 			break;
 		}
@@ -16532,19 +16537,19 @@ bool RotateIndexGreedy ( ServedIndex_t & tIndex, const char * sIndex )
 	}
 
 	// rename new to current
-	for ( int i=0; i<EXT_COUNT; i++ )
+	for ( int i=0; i<sphGetExtCount ( uVersion ); i++ )
 	{
-		if ( TryRename ( sIndex, sPath, g_dNewExts[i], g_dCurExts[i], false ) )
+		if ( TryRename ( sIndex, sPath, sphGetExts ( SPH_EXT_NEW, uVersion )[i], sphGetExts ( SPH_EXT_CUR, uVersion )[i], false ) )
 			continue;
 
 		// rollback new ones we already renamed
 		for ( int j=0; j<i; j++ )
-			TryRename ( sIndex, sPath, g_dCurExts[j], g_dNewExts[j], true );
+			TryRename ( sIndex, sPath, sphGetExts ( SPH_EXT_CUR, uVersion )[j], sphGetExts ( SPH_EXT_NEW, uVersion )[j], true );
 
 		// rollback old ones
 		if ( !tIndex.m_bOnlyNew )
-			for ( int j=0; j<=EXT_COUNT; j++ ) ///< <=, not <, since we have the .mvp at the end of these lists
-				TryRename ( sIndex, sPath, g_dOldExts[j], g_dCurExts[j], true );
+			for ( int j=0; j<=sphGetExtCount ( uVersion ); j++ ) ///< <=, not <, since we have the .mvp at the end of these lists
+				TryRename ( sIndex, sPath, sphGetExts ( SPH_EXT_OLD, uVersion )[j], sphGetExts ( SPH_EXT_CUR, uVersion )[j], true );
 
 		return false;
 	}
@@ -16570,12 +16575,12 @@ bool RotateIndexGreedy ( ServedIndex_t & tIndex, const char * sIndex )
 			sphWarning ( "rotating index '%s': .new preload failed: %s", sIndex, tIndex.m_pIndex->GetLastError().cstr() );
 
 			// try to recover
-			for ( int j=0; j<EXT_COUNT; j++ )
+			for ( int j=0; j<sphGetExtCount ( uVersion ); j++ )
 			{
-				TryRename ( sIndex, sPath, g_dCurExts[j], g_dNewExts[j], true );
-				TryRename ( sIndex, sPath, g_dOldExts[j], g_dCurExts[j], true );
+				TryRename ( sIndex, sPath, sphGetExts ( SPH_EXT_CUR, uVersion )[j], sphGetExts ( SPH_EXT_NEW, uVersion )[j], true );
+				TryRename ( sIndex, sPath, sphGetExts ( SPH_EXT_OLD, uVersion )[j], sphGetExts ( SPH_EXT_CUR, uVersion )[j], true );
 			}
-			TryRename ( sIndex, sPath, g_dOldExts[EXT_MVP], g_dCurExts[EXT_MVP], false, false );
+			TryRename ( sIndex, sPath, sphGetOldMvp(), sphGetCurMvp(), false, false );
 			sphLogDebug ( "RotateIndexGreedy: has recovered" );
 
 			if ( !tIndex.m_pIndex->Prealloc ( tIndex.m_bMlock, g_bStripPath, sWarning ) || !tIndex.m_pIndex->Preread() )
@@ -16989,7 +16994,7 @@ static void RotateIndexMT ( const CSphString & sIndex )
 			pServed->m_bEnabled = true;
 
 			// rename current MVP to old one to unlink it
-			TryRename ( sIndex.cstr(), pServed->m_sIndexPath.cstr(), g_dCurExts[EXT_MVP], g_dOldExts[EXT_MVP], false, false );
+			TryRename ( sIndex.cstr(), pServed->m_sIndexPath.cstr(), sphGetCurMvp(), sphGetOldMvp(), false, false );
 			// unlink .old
 			sphLogDebug ( "unlink .old" );
 			if ( !pServed->m_bOnlyNew )
@@ -17599,7 +17604,7 @@ void HandlePipePreread ( PipeReader_t & tPipe, bool bFailure )
 				tServed.m_bEnabled = true;
 
 				// rename current MVP to old one to unlink it
-				TryRename ( sPrereading, tServed.m_sIndexPath.cstr(), g_dCurExts[EXT_MVP], g_dOldExts[EXT_MVP], false, false );
+				TryRename ( sPrereading, tServed.m_sIndexPath.cstr(), sphGetCurMvp(), sphGetOldMvp(), false, false );
 				// unlink .old
 				if ( !tServed.m_bOnlyNew )
 				{
@@ -18502,6 +18507,12 @@ void CheckRotate ()
 			tIndex.WriteLock();
 			const char * sIndex = it.GetKey().cstr();
 			assert ( tIndex.m_pIndex );
+
+			if ( tIndex.m_bRT )
+			{
+				tIndex.Unlock();
+				continue;
+			}
 
 			bool bWasAdded = tIndex.m_bOnlyNew;
 			RotateIndexGreedy ( tIndex, sIndex );
@@ -20004,9 +20015,9 @@ void ConfigureAndPreload ( const CSphConfig & hConf, const CSphVector<const char
 			fflush ( stdout );
 			tIndex.m_pIndex->SetProgressCallback ( ShowProgress );
 
-			if ( HasFiles ( tIndex, g_dNewExts ) )
+			if ( HasFiles ( tIndex, sphGetExts ( SPH_EXT_NEW ) ) )
 			{
-				tIndex.m_bOnlyNew = !HasFiles ( tIndex, g_dCurExts );
+				tIndex.m_bOnlyNew = !HasFiles ( tIndex, sphGetExts ( SPH_EXT_CUR ) );
 				if ( RotateIndexGreedy ( tIndex, sIndexName ) )
 				{
 					CSphString sError;

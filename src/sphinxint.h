@@ -1443,6 +1443,22 @@ void			SaveDictionarySettings ( CSphWriter & tWriter, CSphDict * pDict, bool bFo
 void			LoadDictionarySettings ( CSphReader & tReader, CSphDictSettings & tSettings, CSphEmbeddedFiles & tEmbeddedFiles, DWORD uVersion, CSphString & sWarning );
 void			SaveFieldFilterSettings ( CSphWriter & tWriter, ISphFieldFilter * pFieldFilter );
 
+DWORD ReadVersion ( const char * sPath, CSphString & sError );
+
+enum ESphExtType
+{
+	SPH_EXT_CUR,
+	SPH_EXT_NEW,
+	SPH_EXT_OLD,
+	SPH_EXT_LOC
+};
+
+const char ** sphGetExts ( ESphExtType eType, DWORD uVersion=INDEX_FORMAT_VERSION );
+
+int sphGetExtCount ( DWORD uVersion=INDEX_FORMAT_VERSION );
+
+const char * sphGetCurMvp();
+const char * sphGetOldMvp();
 
 int sphDictCmp ( const char * pStr1, int iLen1, const char * pStr2, int iLen2 );
 int sphDictCmpStrictly ( const char * pStr1, int iLen1, const char * pStr2, int iLen2 );

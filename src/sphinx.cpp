@@ -1217,6 +1217,89 @@ struct BuildHeader_t : public CSphSourceStats, public DictHeader_t
 };
 
 
+DWORD ReadVersion ( const char * sPath, CSphString & sError )
+{
+	BYTE dBuffer[8];
+	char sHeaderName [ SPH_MAX_FILENAME_LEN ];
+
+	snprintf ( sHeaderName, sizeof(sHeaderName), "%s%s", sPath, ".new.sph" );
+
+	CSphAutoreader rdHeader ( dBuffer, sizeof(dBuffer) );
+	if ( !rdHeader.Open ( sHeaderName, sError ) )
+		return 0;
+
+	DWORD uHeader = rdHeader.GetDword();
+	if ( uHeader!=INDEX_MAGIC_HEADER )
+	{
+		sError.SetSprintf ( "%s is invalid header file (too old index version?)", sHeaderName );
+		return 0;
+	}
+
+	DWORD uVersion = rdHeader.GetDword();
+	if ( uVersion==0 || uVersion>INDEX_FORMAT_VERSION )
+	{
+		sError.SetSprintf ( "%s is v.%d, binary is v.%d", sHeaderName, uVersion, INDEX_FORMAT_VERSION );
+		return 0;
+	}
+
+	return uVersion;
+}
+
+
+static const char * g_dNewExts17[] = { ".new.sph", ".new.spa", ".new.spi", ".new.spd", ".new.spp", ".new.spm", ".new.spk", ".new.sps" };
+static const char * g_dOldExts17[] = { ".old.sph", ".old.spa", ".old.spi", ".old.spd", ".old.spp", ".old.spm", ".old.spk", ".old.sps", ".old.mvp" };
+static const char * g_dCurExts17[] = { ".sph", ".spa", ".spi", ".spd", ".spp", ".spm", ".spk", ".sps", ".mvp" };
+static const char * g_dLocExts17[] = { ".sph", ".spa", ".spi", ".spd", ".spp", ".spm", ".spk", ".sps", ".spl" };
+
+static const char * g_dNewExts31[] = { ".new.sph", ".new.spa", ".new.spi", ".new.spd", ".new.spp", ".new.spm", ".new.spk", ".new.sps", ".new.spe" };
+static const char * g_dOldExts31[] = { ".old.sph", ".old.spa", ".old.spi", ".old.spd", ".old.spp", ".old.spm", ".old.spk", ".old.sps", ".old.spe", ".old.mvp" };
+static const char * g_dCurExts31[] = { ".sph", ".spa", ".spi", ".spd", ".spp", ".spm", ".spk", ".sps", ".spe", ".mvp" };
+static const char * g_dLocExts31[] = { ".sph", ".spa", ".spi", ".spd", ".spp", ".spm", ".spk", ".sps", ".spe", ".spl" };
+
+const char ** sphGetExts ( ESphExtType eType, DWORD uVersion )
+{
+	if ( uVersion<31 )
+	{
+		switch ( eType )
+		{
+		case SPH_EXT_NEW: return g_dNewExts17;
+		case SPH_EXT_OLD: return g_dOldExts17;
+		case SPH_EXT_CUR: return g_dCurExts17;
+		case SPH_EXT_LOC: return g_dLocExts17;
+		}
+
+	} else
+	{
+		switch ( eType )
+		{
+		case SPH_EXT_NEW: return g_dNewExts31;
+		case SPH_EXT_OLD: return g_dOldExts31;
+		case SPH_EXT_CUR: return g_dCurExts31;
+		case SPH_EXT_LOC: return g_dLocExts31;
+		}
+	}
+
+	assert ( 0 && "Unknown extension type" );
+}
+
+int sphGetExtCount ( DWORD uVersion )
+{
+	if ( uVersion<31 )
+		return 8;
+	else
+		return 9;
+}
+
+const char * sphGetCurMvp()
+{
+	return g_dCurExts31[9];
+}
+
+const char * sphGetOldMvp()
+{
+	return g_dOldExts31[9];
+}
+
 /// this is my actual VLN-compressed phrase index implementation
 class CSphIndex_VLN : public CSphIndex
 {
@@ -15576,30 +15659,31 @@ bool CSphIndex_VLN::Rename ( const char * sNewBase )
 	char sFrom [ SPH_MAX_FILENAME_LEN ];
 	char sTo [ SPH_MAX_FILENAME_LEN ];
 
-	const int EXT_COUNT = 10;
-	const char * sExts[EXT_COUNT] = { "spa", "spd", "sph", "spi", "spl", "spm", "spp", "spk", "sps", "spe" };
+	// +1 for ".spl"
+	int iExtCount = sphGetExtCount() + 1;
+	const char ** sExts = sphGetExts ( SPH_EXT_LOC );
 	DWORD uMask = 0;
 
 	int iExt;
-	for ( iExt=0; iExt<EXT_COUNT; iExt++ )
+	for ( iExt=0; iExt<iExtCount; iExt++ )
 	{
 		const char * sExt = sExts[iExt];
-		if ( !strcmp ( sExt, "spp" ) && m_uVersion<3 ) // .spp files are v3+
+		if ( !strcmp ( sExt, ".spp" ) && m_uVersion<3 ) // .spp files are v3+
 			continue;
-		if ( !strcmp ( sExt, "spm" ) && m_uVersion<4 ) // .spm files are v4+
+		if ( !strcmp ( sExt, ".spm" ) && m_uVersion<4 ) // .spm files are v4+
 			continue;
-		if ( !strcmp ( sExt, "spk" ) && m_uVersion<10 ) // .spk files are v10+
+		if ( !strcmp ( sExt, ".spk" ) && m_uVersion<10 ) // .spk files are v10+
 			continue;
-		if ( !strcmp ( sExt, "sps" ) && m_uVersion<17 ) // .spk files are v17+
+		if ( !strcmp ( sExt, ".sps" ) && m_uVersion<17 ) // .sps files are v17+
 			continue;
-		if ( !strcmp ( sExt, "spe" ) && m_uVersion<31 ) // .spe files are v31+
+		if ( !strcmp ( sExt, ".spe" ) && m_uVersion<31 ) // .spe files are v31+
 			continue;
 
 #if !USE_WINDOWS
-		if ( !strcmp ( sExt, "spl" ) && m_iLockFD<0 ) // .spl files are locks
+		if ( !strcmp ( sExt, ".spl" ) && m_iLockFD<0 ) // .spl files are locks
 			continue;
 #else
-		if ( !strcmp ( sExt, "spl" ) )
+		if ( !strcmp ( sExt, ".spl" ) )
 		{
 			if ( m_iLockFD>=0 )
 			{
@@ -15612,8 +15696,8 @@ bool CSphIndex_VLN::Rename ( const char * sNewBase )
 		}
 #endif
 
-		snprintf ( sFrom, sizeof(sFrom), "%s.%s", m_sFilename.cstr(), sExt );
-		snprintf ( sTo, sizeof(sTo), "%s.%s", sNewBase, sExt );
+		snprintf ( sFrom, sizeof(sFrom), "%s%s", m_sFilename.cstr(), sExt );
+		snprintf ( sTo, sizeof(sTo), "%s%s", sNewBase, sExt );
 
 #if USE_WINDOWS
 		::unlink ( sTo );
@@ -15624,14 +15708,14 @@ bool CSphIndex_VLN::Rename ( const char * sNewBase )
 		{
 			m_sLastError.SetSprintf ( "rename %s to %s failed: %s", sFrom, sTo, strerror(errno) );
 			// this is no reason to fail if spl is missing, since it is only lock and no data.
-			if ( strcmp ( sExt, "spl" ) )
+			if ( strcmp ( sExt, ".spl" ) )
 				break;
 		}
 		uMask |= ( 1UL << iExt );
 	}
 
 	// are we good?
-	if ( iExt==EXT_COUNT )
+	if ( iExt==iExtCount )
 	{
 		SetBase ( sNewBase );
 		sphLogDebug ( "Base set to %s", sNewBase );
@@ -15639,14 +15723,14 @@ bool CSphIndex_VLN::Rename ( const char * sNewBase )
 	}
 
 	// if there were errors, rollback
-	for ( iExt=0; iExt<EXT_COUNT; iExt++ )
+	for ( iExt=0; iExt<iExtCount; iExt++ )
 	{
 		if (!( uMask & ( 1UL << iExt ) ))
 			continue;
 
 		const char * sExt = sExts[iExt];
-		snprintf ( sFrom, sizeof(sFrom), "%s.%s", sNewBase, sExt );
-		snprintf ( sTo, sizeof(sTo), "%s.%s", m_sFilename.cstr(), sExt );
+		snprintf ( sFrom, sizeof(sFrom), "%s%s", sNewBase, sExt );
+		snprintf ( sTo, sizeof(sTo), "%s%s", m_sFilename.cstr(), sExt );
 		if ( ::rename ( sFrom, sTo ) )
 		{
 			sphLogDebug ( "Rollback failure when renaming %s to %s", sFrom, sTo );
