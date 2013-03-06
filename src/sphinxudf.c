@@ -69,26 +69,44 @@ int sphinx_factors_unpack ( const unsigned int * in, SPH_UDF_FACTORS * out )
 		return 1;
 
 	if ( out->num_fields > 0 )
-		out->field = malloc ( out->num_fields*sizeof(SPH_UDF_FIELD_FACTORS) );
+	{
+		i = out->num_fields*sizeof(SPH_UDF_FIELD_FACTORS);
+		out->field = malloc ( i );
+		memset ( out->field, 0, i );
+	}
 
 	for ( i=0; i<out->num_fields; i++ )
 	{
-		out->field[i].hit_count = *in++;
-		if ( !out->field[i].hit_count )
-			continue;
-
 		f = &(out->field[i]);
-		f->id = *in++;
-		f->lcs = *in++;
-		f->word_count = *in++;
-		f->tf_idf = *(float*)in++;
-		f->min_idf = *(float*)in++;
-		f->max_idf = *(float*)in++;
-		f->sum_idf = *(float*)in++;
-		f->min_hit_pos = (int)*in++;
-		f->min_best_span_pos = (int)*in++;
-		f->exact_hit = *in++;
-		f->max_window_hits = (int)*in++;
+		f->hit_count = *in++;
+
+		if ( f->hit_count )
+		{
+			f->id = *in++;
+			f->lcs = *in++;
+			f->word_count = *in++;
+			f->tf_idf = *(float*)in++;
+			f->min_idf = *(float*)in++;
+			f->max_idf = *(float*)in++;
+			f->sum_idf = *(float*)in++;
+			f->min_hit_pos = (int)*in++;
+			f->min_best_span_pos = (int)*in++;
+			f->exact_hit = *in++;
+			f->max_window_hits = (int)*in++;
+		} else
+		{
+			f->id = i;
+			f->lcs = 0;
+			f->word_count = 0;
+			f->tf_idf = 0.0f;
+			f->min_idf = 0.0f;
+			f->max_idf = 0.0f;
+			f->sum_idf = 0.0f;
+			f->min_hit_pos = 0;
+			f->min_best_span_pos = 0;
+			f->exact_hit = 0;
+			f->max_window_hits = 0;
+		}
 	}
 
 	// extract term-level factors
