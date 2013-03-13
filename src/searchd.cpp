@@ -16469,11 +16469,7 @@ bool RotateIndexGreedy ( ServedIndex_t & tIndex, const char * sIndex )
 
 	if ( !sError.IsEmpty() )
 	{
-		if ( tIndex.m_bOnlyNew )
-			sphWarning ( "rotating index '%s': %s; NOT SERVING", sIndex, sError.cstr() );
-		else
-			sphWarning ( "rotating index '%s': %s; using old index", sIndex, sError.cstr() );
-
+		// no files - no rotation
 		return false;
 	}
 
