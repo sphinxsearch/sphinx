@@ -340,6 +340,8 @@ INSERT INTO json_attr ( id, gid, json ) VALUES
 <sphinxql>select * from myindex where json.floatkey between 1.01 and 1.02</sphinxql>
 <sphinxql>select * from myindex where json.floatkey>2.22</sphinxql>
 <sphinxql>select * from myindex where json.floatkey>=2.22</sphinxql>
+<!-- json in multiple -->
+<sphinxql>select *, groupby(), count(*) from test group by gid, j.t1, j.gid</sphinxql>
 </sphqueries>
 
 </test>

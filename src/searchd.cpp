@@ -10791,7 +10791,7 @@ public:
 	bool			AddIntFilterGreater ( const CSphString & sAttr, int64_t iVal, bool bHasEqual );
 	bool			AddIntFilterLesser ( const CSphString & sAttr, int64_t iVal, bool bHasEqual );
 	bool			AddUservarFilter ( const CSphString & sCol, const CSphString & sVar, bool bExclude );
-	void			SetGroupBy ( const CSphString & sGroupBy );
+	void			AddGroupBy ( const CSphString & sGroupBy );
 	bool			AddDistinct ( SqlNode_t * pNewExpr, SqlNode_t * pStart, SqlNode_t * pEnd );
 	CSphFilterSettings *	AddFilter ( const CSphString & sCol, ESphFilter eType );
 	bool			AddStringFilter ( const CSphString & sCol, const CSphString & sVal, bool bExclude );
@@ -11192,11 +11192,20 @@ bool SqlParser_c::AddItem ( const char * pToken, SqlNode_t * pStart, SqlNode_t *
 	return SetNewSyntax();
 }
 
-void SqlParser_c::SetGroupBy ( const CSphString & sGroupBy )
+void SqlParser_c::AddGroupBy ( const CSphString & sGroupBy )
 {
-	m_pQuery->m_eGroupFunc = SPH_GROUPBY_ATTR;
-	m_pQuery->m_sGroupBy = sGroupBy;
-	sphColumnToLowercase ( const_cast<char *>( m_pQuery->m_sGroupBy.cstr() ) );
+	if ( m_pQuery->m_sGroupBy.IsEmpty() )
+	{
+		m_pQuery->m_eGroupFunc = SPH_GROUPBY_ATTR;
+		m_pQuery->m_sGroupBy = sGroupBy;
+		sphColumnToLowercase ( const_cast<char *>( m_pQuery->m_sGroupBy.cstr() ) );
+	} else
+	{
+		m_pQuery->m_eGroupFunc = SPH_GROUPBY_MULTIPLE;
+		CSphString sTmp = sGroupBy;
+		sphColumnToLowercase ( const_cast<char *>( sTmp.cstr() ) );
+		m_pQuery->m_sGroupBy.SetSprintf ( "%s, %s", m_pQuery->m_sGroupBy.cstr(), sTmp.cstr() );
+	}
 }
 
 bool SqlParser_c::AddDistinct ( SqlNode_t * pNewExpr, SqlNode_t * pStart, SqlNode_t * pEnd )

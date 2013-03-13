@@ -2299,7 +2299,8 @@ enum ESphGroupBy
 	SPH_GROUPBY_MONTH	= 2,	///< group by month
 	SPH_GROUPBY_YEAR	= 3,	///< group by year
 	SPH_GROUPBY_ATTR	= 4,	///< group by attribute value
-	SPH_GROUPBY_ATTRPAIR= 5		///< group by sequential attrs pair (rendered redundant by 64bit attrs support; removed)
+	SPH_GROUPBY_ATTRPAIR= 5,	///< group by sequential attrs pair (rendered redundant by 64bit attrs support; removed)
+	SPH_GROUPBY_MULTIPLE= 6		///< group by on multiple attribute values
 };
 
 
@@ -2443,7 +2444,7 @@ public:
 
 	CSphVector<CSphFilterSettings>	m_dFilters;	///< filters
 
-	CSphString		m_sGroupBy;			///< group-by attribute name
+	CSphString		m_sGroupBy;			///< group-by attribute name(s)
 	ESphGroupBy		m_eGroupFunc;		///< function to pre-process group-by attribute value with
 	CSphString		m_sGroupSortBy;		///< sorting clause for groups in group-by mode
 	CSphString		m_sGroupDistinct;	///< count distinct values for this attribute

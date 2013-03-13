@@ -465,13 +465,17 @@ const_list:
 
 opt_group_clause:
 	// empty
-	| group_clause
+	| TOK_GROUP TOK_BY group_items_list
 	;
 
-group_clause:
-	TOK_GROUP TOK_BY expr_ident
+group_items_list:
+	expr_ident
 		{
-			pParser->SetGroupBy ( $3.m_sValue );
+			pParser->AddGroupBy ( $1.m_sValue );
+		}
+	| group_items_list ',' expr_ident
+		{
+			pParser->AddGroupBy ( $3.m_sValue );
 		}
 	;
 
