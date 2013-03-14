@@ -945,6 +945,7 @@ public:
 
 	void	CreateTimerThread ();
 	bool	IsActive ()			{ return !m_bDisabled; }
+	void	CheckPath ( const CSphConfigSection & hSearchd, bool bTestMode );
 
 private:
 	static const DWORD		BINLOG_VERSION = 4;
@@ -8215,6 +8216,22 @@ bool RtBinlog_c::ReplayCacheAdd ( int iBinlog, BinlogReader_c & tReader ) const
 	return true;
 }
 
+void RtBinlog_c::CheckPath ( const CSphConfigSection & hSearchd, bool bTestMode )
+{
+#ifndef DATADIR
+#define DATADIR "."
+#endif
+
+	m_sLogPath = hSearchd.GetStr ( "binlog_path", bTestMode ? "" : DATADIR );
+	m_bDisabled = m_sLogPath.IsEmpty();
+
+	if ( !m_bDisabled )
+	{
+		LockFile ( true );
+		LockFile ( false );
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 ISphRtIndex * sphGetCurrentIndexRT()
@@ -8233,7 +8250,7 @@ ISphRtIndex * sphCreateIndexRT ( const CSphSchema & tSchema, const char * sIndex
 }
 
 
-void sphRTInit ()
+void sphRTInit ( const CSphConfigSection & hSearchd, bool bTestMode )
 {
 	MEMORY ( SPH_MEM_BINLOG );
 
@@ -8244,6 +8261,9 @@ void sphRTInit ()
 	if ( !g_pRtBinlog )
 		sphDie ( "binlog: failed to create binlog" );
 	g_pBinlog = g_pRtBinlog;
+
+	// check binlog path before detaching from the console
+	g_pRtBinlog->CheckPath ( hSearchd, bTestMode );
 }
 
 

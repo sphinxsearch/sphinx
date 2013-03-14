@@ -899,10 +899,10 @@ public:
 
 		Sort ();
 
-		int iSrc = 0, iDst = 0;
+		int iSrc = 1, iDst = 1;
 		while ( iSrc<m_iLength )
 		{
-			if ( iDst>0 && m_pData[iDst-1]==m_pData[iSrc] )
+			if ( m_pData[iDst-1]==m_pData[iSrc] )
 				iSrc++;
 			else
 				m_pData[iDst++] = m_pData[iSrc++];
