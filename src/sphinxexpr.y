@@ -112,9 +112,17 @@ consthash:
 		{
 			$$ = pParser->AddNodeConsthash ( $1, $3 );
 		}
+	| TOK_ATTR_STRING TOK_EQ TOK_CONST_INT
+		{
+			$$ = pParser->AddNodeConsthash ( pParser->Attr2Ident($1), $3 );
+		}
 	| consthash ',' ident TOK_EQ TOK_CONST_INT
 		{
 			pParser->AppendToConsthash ( $$, $3, $5 );
+		}
+	| consthash ',' TOK_ATTR_STRING TOK_EQ TOK_CONST_INT
+		{
+			pParser->AppendToConsthash ( $$, pParser->Attr2Ident($3), $5 );
 		}
 	;
 

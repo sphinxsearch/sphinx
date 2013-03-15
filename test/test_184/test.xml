@@ -107,6 +107,10 @@ INSERT INTO test_table VALUES
 <sphinxql>select id, weight() as w1, bm25f(2.2, 0.5) * 1000 as w2 from test where match('Mary lamb')</sphinxql>
 <sphinxql>show warnings</sphinxql>
 
+<!-- regression hash vs attr-name -->
+<sphinxql>select id, weight() as w1, FLOOR ( bm25f(1.2, 0.8, {title=10}) * 100000 ) as w2 from test where match('Mary lamb') option ranker=expr('bm25f(1.2, 0.8, {title=10}) * 1000')</sphinxql>
+<sphinxql>select id, weight() as w1, FLOOR ( bm25f(1.2, 0.8, {title=2}) * 100000 ) as w2 from test where match('Mary lamb') option ranker=expr('bm25f(1.2, 0.8, {title=10}) * 1000')</sphinxql>
+
 </sphqueries>
 
 </test>
