@@ -146,10 +146,10 @@ source json_attr
 	sql_attr_json	= json
 }
 
-index myindex
+index json_attr
 {
 	source = json_attr
-	path=<data_path/>/myindex
+	path=<data_path/>/json_attr
 }
 </config>
 
@@ -330,18 +330,31 @@ INSERT INTO json_attr ( id, gid, json ) VALUES
 <sphinxql>select * from rt group by data.new_attr</sphinxql>
 <sphinxql>select data.attr2 from rt group by data.new_attr</sphinxql>
 <!-- quoting check -->
-<sphinxql>select * from myindex</sphinxql>
-<sphinxql>select json.username from myindex where id=123</sphinxql>
-<sphinxql>select json.year from myindex where id=123</sphinxql>
+<sphinxql>select * from json_attr</sphinxql>
+<sphinxql>select json.username from json_attr where id=123</sphinxql>
+<sphinxql>select json.year from json_attr where id=123</sphinxql>
 <!-- floats check -->
-<sphinxql>select * from myindex where json.floatkey>1.234</sphinxql>
-<sphinxql>select * from myindex where json.floatkey between 1 and 3</sphinxql>
-<sphinxql>select * from myindex where json.floatkey between 1.01 and 3.0</sphinxql>
-<sphinxql>select * from myindex where json.floatkey between 1.01 and 1.02</sphinxql>
-<sphinxql>select * from myindex where json.floatkey>2.22</sphinxql>
-<sphinxql>select * from myindex where json.floatkey>=2.22</sphinxql>
+<sphinxql>select * from json_attr where json.floatkey>1.234</sphinxql>
+<sphinxql>select * from json_attr where json.floatkey between 1 and 3</sphinxql>
+<sphinxql>select * from json_attr where json.floatkey between 1.01 and 3.0</sphinxql>
+<sphinxql>select * from json_attr where json.floatkey between 1.01 and 1.02</sphinxql>
+<sphinxql>select * from json_attr where json.floatkey>2.22</sphinxql>
+<sphinxql>select * from json_attr where json.floatkey>=2.22</sphinxql>
 <!-- json in multiple -->
 <sphinxql>select *, groupby(), count(*) from test group by gid, j.t1, j.gid</sphinxql>
+<!-- type conversion -->
+<sphinxql>select double(json.year) from json_attr</sphinxql>
+<sphinxql>select double(json.floatkey) from json_attr</sphinxql>
+<sphinxql>select sum(integer(json.year)) from json_attr</sphinxql>
+<sphinxql>select sum(double(json.floatkey)) from json_attr</sphinxql>
+<sphinxql>select avg(double(json.floatkey)) from json_attr</sphinxql>
+<sphinxql>select avg(integer(json.floatkey)) from json_attr</sphinxql>
+<sphinxql>select min(bigint(json.floatkey)) from json_attr</sphinxql>
+<sphinxql>select min(bigint(json.year)) from json_attr</sphinxql>
+<sphinxql>select max(double(json.floatkey)) from json_attr</sphinxql>
+<sphinxql>select max(integer(json.floatkey)) from json_attr</sphinxql>
+<sphinxql>select double(json.year) as year from json_attr where year>=2002.0</sphinxql>
+<sphinxql>select integer(json.floatkey) as floatkey from json_attr where floatkey>=2</sphinxql>
 </sphqueries>
 
 </test>

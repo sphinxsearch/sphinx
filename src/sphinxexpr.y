@@ -29,6 +29,7 @@
 %token <iNode>			TOK_HOOK_IDENT
 %token <iNode>			TOK_HOOK_FUNC
 %token <sIdent>			TOK_IDENT
+%token <sIdent>			TOK_ATTR_JSON_FIELD
 
 %token	TOK_ATID
 %token	TOK_ATWEIGHT
@@ -40,6 +41,7 @@
 %token	TOK_CONST_LIST
 %token	TOK_ATTR_SINT
 %token	TOK_CONST_HASH
+
 
 %type <iNode>			attr
 %type <iNode>			expr
@@ -134,6 +136,7 @@ arg:
 	| TOK_ATTR_MVA64				{ $$ = pParser->AddNodeAttr ( TOK_ATTR_MVA64, $1 ); }
 	| TOK_ATTR_FACTORS				{ $$ = pParser->AddNodeAttr ( TOK_ATTR_FACTORS, $1 ); }
 	| TOK_CONST_STRING				{ $$ = pParser->AddNodeString ( $1 ); }
+	| TOK_ATTR_JSON_FIELD			{ $$ = pParser->AddNodeJsonField ( $1 ); }
 	;
 
 arglist:
