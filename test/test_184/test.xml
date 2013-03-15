@@ -32,6 +32,7 @@ index test
 {
 	source				= test
 	path				= <data_path/>/test
+	index_field_lengths = 1
 }
 
 index dist
@@ -98,6 +99,14 @@ INSERT INTO test_table VALUES
 +<sphinxql>select id, gid, weight(), title from test where match('mary') option ranker=expr('crc32(title)')</sphinxql>
 +<sphinxql>select id, gid, weight(), title from test where match('mary') option ranker=expr('in(mva32,1)')</sphinxql>
 +<sphinxql>select id, gid, weight(), title from test where match('mary') option ranker=expr('in(mva64,1)')</sphinxql>
+
+<!-- bm25f expression vs ranker function -->
+<sphinxql>select id, weight() as w1, bm25f(1.2, 0.8, {content=10}) * 1000 as w2 from test where match('Mary lamb') option ranker=expr('bm25f(1.2, 0.8, {content=10}) * 1000')</sphinxql>
+<sphinxql>select id, weight() as w1, bm25f(1.2, 0.8, {content=1000}) * 1000 as w2 from test where match('Mary lamb') option ranker=expr('bm25f(1.2, 0.8, {content=10}) * 1000')</sphinxql>
+<sphinxql>select id, weight() as w1, bm25f(2.2, 0.5) * 1000 as w2, bm25f(1.2, 0.8, {content=10}) * 1000 as w3 from test where match('Mary lamb') option ranker=expr('bm25f(10.2, 0.5) * 1000')</sphinxql>
+<sphinxql>select id, weight() as w1, bm25f(2.2, 0.5) * 1000 as w2 from test where match('Mary lamb')</sphinxql>
+<sphinxql>show warnings</sphinxql>
+
 </sphqueries>
 
 </test>

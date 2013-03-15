@@ -48,7 +48,7 @@ int sphinx_factors_unpack ( const unsigned int * in, SPH_UDF_FACTORS * out )
 	const unsigned int * pack = in;
 	SPH_UDF_FIELD_FACTORS * f;
 	SPH_UDF_TERM_FACTORS * t;
-	int i, size;
+	int i, size, fields;
 
 	if ( !in || !out )
 		return 1;
@@ -129,6 +129,12 @@ int sphinx_factors_unpack ( const unsigned int * in, SPH_UDF_FACTORS * out )
 		}
 	}
 
+	// extract field_tf factors
+	fields = *in++;
+	out->field_tf = malloc ( fields*sizeof(int) );
+	memcpy ( out->field_tf, in, fields*sizeof(int) );
+	in += fields*sizeof(int);
+
 	// do a safety check, and return
 	return ( size!=( (int)(in-pack) * (int)sizeof(unsigned int) ) ) ? 1 : 0;
 }
@@ -145,6 +151,7 @@ int sphinx_factors_deinit ( SPH_UDF_FACTORS * out )
 
 	free ( out->term );
 	free ( out->field );
+	free ( out->field_tf );
 
 	return 0;
 }

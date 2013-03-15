@@ -375,17 +375,7 @@ struct Expr_GetRankFactors_c : public ISphStringExpr
 
 struct Expr_GetPackedFactors_c : public ISphStringExpr
 {
-	/// hash type MUST BE IN SYNC with RankerState_Expr_fn in sphinxsearch.cpp
-	struct FactorHashEntry_t
-	{
-		SphDocID_t			m_iId;
-		int					m_iRefCount;
-		BYTE *				m_pData;
-		FactorHashEntry_t *	m_pPrev;
-		FactorHashEntry_t *	m_pNext;
-	};
-
-	CSphTightVector<FactorHashEntry_t *> * m_pHash;
+	SphFactorHash_t * m_pHash;
 
 	explicit Expr_GetPackedFactors_c ()
 		: m_pHash ( NULL )
@@ -396,7 +386,7 @@ struct Expr_GetPackedFactors_c : public ISphStringExpr
 		if ( !m_pHash || !m_pHash->GetLength() )
 			return NULL;
 
-		FactorHashEntry_t * pEntry = (*m_pHash)[tMatch.m_iDocID % m_pHash->GetLength()];
+		SphFactorHashEntry_t * pEntry = (*m_pHash)[tMatch.m_iDocID % m_pHash->GetLength()];
 		assert ( pEntry );
 
 		while ( pEntry && pEntry->m_iId!=tMatch.m_iDocID )
@@ -422,6 +412,118 @@ struct Expr_GetPackedFactors_c : public ISphStringExpr
 	virtual bool IsStringPtr() const
 	{
 		return true;
+	}
+};
+
+
+struct Expr_BM25F_c : public ISphExpr
+{
+	SphExtraDataRankerState_t	m_tRankerState;
+	float						m_fK1;
+	float						m_fB;
+	float						m_fWeightedAvgDocLen;
+	CSphVector<int>				m_dWeights;		///< per field weights
+	SphFactorHash_t *			m_pHash;
+	CSphVector<CSphNamedInt>	m_dFieldWeights;
+
+	Expr_BM25F_c ( float k1, float b, CSphVector<CSphNamedInt> * pFieldWeights )
+		: m_pHash ( NULL )
+	{
+		// bind k1, b
+		m_fK1 = k1;
+		m_fB = b;
+		if ( pFieldWeights )
+			m_dFieldWeights.SwapData ( *pFieldWeights );
+	}
+
+	float Eval ( const CSphMatch & tMatch ) const
+	{
+		if ( !m_pHash || !m_pHash->GetLength() )
+			return 0.0f;
+
+		SphFactorHashEntry_t * pEntry = (*m_pHash)[tMatch.m_iDocID % m_pHash->GetLength()];
+		assert ( pEntry );
+
+		while ( pEntry && pEntry->m_iId!=tMatch.m_iDocID )
+			pEntry = pEntry->m_pNext;
+
+		if ( !pEntry )
+			return 0.0f;
+
+		SPH_UDF_FACTORS tUnpacked;
+		sphinx_factors_init ( &tUnpacked );
+		sphinx_factors_unpack ( (const unsigned int*)pEntry->m_pData, &tUnpacked );
+
+		// compute document length
+		// OPTIMIZE? could precompute and store total dl in attrs, but at a storage cost
+		// OPTIMIZE? could at least share between multiple BM25F instances, if there are many
+		float dl = 0;
+		CSphAttrLocator tLoc = m_tRankerState.m_tFieldLensLoc;
+		if ( tLoc.m_iBitOffset>=0 )
+		{
+			for ( int i=0; i<m_tRankerState.m_iFields; i++ )
+			{
+				dl += tMatch.GetAttr ( tLoc ) * m_dWeights[i];
+				tLoc.m_iBitOffset += 32;
+			}
+		}
+
+		// compute (the current instance of) BM25F
+		float fRes = 0.0f;
+		for ( int iWord=0; iWord<m_tRankerState.m_iMaxQpos; iWord++ )
+		{
+			// compute weighted TF
+			float tf = 0.0f;
+			for ( int i=0; i<m_tRankerState.m_iFields; i++ )
+			{
+				tf += tUnpacked.field_tf[ iWord + 1 + i * ( 1 + m_tRankerState.m_iMaxQpos ) ] * m_dWeights[i];
+			}
+			float idf = tUnpacked.term[iWord].idf; // FIXME? zeroed out for dupes!
+			fRes += tf / (tf + m_fK1*(1 - m_fB + m_fB*dl/m_fWeightedAvgDocLen)) * idf;
+		}
+
+		sphinx_factors_deinit ( &tUnpacked );
+
+		return fRes + 0.5f; // map to [0..1] range
+	}
+
+	virtual void Command ( ESphExprCommand eCmd, void * pArg )
+	{
+		if ( eCmd!=SPH_EXPR_SET_EXTRA_DATA )
+			return;
+
+		bool bGotHash = static_cast<ISphExtra*>(pArg)->ExtraData ( EXTRA_GET_DATA_PACKEDFACTORS, (void**)&m_pHash );
+		if ( !bGotHash )
+			return;
+
+		bool bGotState = static_cast<ISphExtra*>(pArg)->ExtraData ( EXTRA_GET_DATA_RANKER_STATE, (void**)&m_tRankerState );
+		if ( !bGotState )
+			return;
+
+		// bind weights
+		m_dWeights.Resize ( m_tRankerState.m_iFields );
+		m_dWeights.Fill ( 1 );
+		if ( m_dFieldWeights.GetLength() )
+		{
+			ARRAY_FOREACH ( i, m_dFieldWeights )
+			{
+				// FIXME? report errors if field was not found?
+				CSphString & sField = m_dFieldWeights[i].m_sName;
+				int iField = m_tRankerState.m_pSchema->GetFieldIndex ( sField.cstr() );
+				if ( iField>=0 )
+					m_dWeights[iField] = m_dFieldWeights[i].m_iValue;
+			}
+		}
+
+		// compute weighted avgdl
+		m_fWeightedAvgDocLen = 1.0f;
+		if ( m_tRankerState.m_pFieldLens )
+		{
+			m_fWeightedAvgDocLen = 0.0f;
+			ARRAY_FOREACH ( i, m_dWeights )
+				m_fWeightedAvgDocLen += m_tRankerState.m_pFieldLens[i] * m_dWeights[i];
+		}
+		m_fWeightedAvgDocLen /= m_tRankerState.m_iTotalDocuments;
 	}
 };
 
@@ -926,7 +1028,8 @@ enum Func_e
 	FUNC_ZONESPANLIST,
 	FUNC_TO_STRING,
 	FUNC_RANKFACTORS,
-	FUNC_PACKEDFACTORS
+	FUNC_PACKEDFACTORS,
+	FUNC_BM25F
 };
 
 
@@ -985,7 +1088,8 @@ static FuncDesc_t g_dFuncs[] =
 	{ "zonespanlist",	0,	FUNC_ZONESPANLIST,	SPH_ATTR_STRINGPTR },
 	{ "to_string",		1,	FUNC_TO_STRING,		SPH_ATTR_STRINGPTR },
 	{ "rankfactors",	0,	FUNC_RANKFACTORS,	SPH_ATTR_STRINGPTR },
-	{ "packedfactors",	0,	FUNC_PACKEDFACTORS, SPH_ATTR_FACTORS }
+	{ "packedfactors",	0,	FUNC_PACKEDFACTORS, SPH_ATTR_FACTORS },
+	{ "bm25f",			-1,	FUNC_BM25F,			SPH_ATTR_FLOAT }
 };
 
 
@@ -1031,7 +1135,7 @@ static int FuncHashLookup ( const char * sKey )
 		77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
 		77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
 		77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
-		77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
+		10, 77, 77, 77, 77, 77, 77, 77, 77, 77,
 		77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
 		77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
 		77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
@@ -1070,7 +1174,7 @@ static int FuncHashLookup ( const char * sKey )
 		-1, -1, 6, -1, 17, -1, -1, 28, 20, 18,
 		16, 37, 19, 21, 7, 8, -1, 30, -1, 33,
 		31, 32, 24, 9, 2, 3, -1, 35, 34, 26,
-		-1, 11, -1, 4, 12, 13, -1, -1, 38, 10,
+		39, 11, -1, 4, 12, 13, -1, -1, 38, 10,
 		-1, -1, -1, 1, 14, -1, -1, -1, 5, -1,
 		-1, -1, -1, 15, 25, -1, -1, -1, 0, -1,
 		-1, -1, -1, 27, 23, -1, -1, -1, 22, 36,
@@ -1470,9 +1574,14 @@ int ExprParser_t::GetToken ( YYSTYPE * lvalp )
 		if ( iAttr>=0 )
 			return ParseAttr ( iAttr, sTok.cstr(), lvalp );
 
+		// hook might replace built-in function
+		int iHookFunc = -1;
+		if ( m_pHook )
+			iHookFunc = m_pHook->IsKnownFunc ( sTok.cstr() );
+
 		// check for function
 		int iFunc = FuncHashLookup ( sTok.cstr() );
-		if ( iFunc>=0 )
+		if ( iFunc>=0 && iHookFunc==-1 )
 		{
 			assert ( !strcasecmp ( g_dFuncs[iFunc].m_sName, sTok.cstr() ) );
 			lvalp->iFunc = iFunc;
@@ -1489,7 +1598,7 @@ int ExprParser_t::GetToken ( YYSTYPE * lvalp )
 				return TOK_HOOK_IDENT;
 			}
 
-			iID = m_pHook->IsKnownFunc ( sTok.cstr() );
+			iID = iHookFunc;
 			if ( iID>=0 )
 			{
 				lvalp->iNode = iID;
@@ -2622,6 +2731,9 @@ ISphExpr * ExprParser_t::CreateTree ( int iNode )
 		case FUNC_RANKFACTORS:
 		case FUNC_PACKEDFACTORS:
 			bSkipLeft = true;
+		case FUNC_BM25F:
+			bSkipLeft = true;
+			bSkipRight = true;
 		default:
 			break;
 		}
@@ -2760,6 +2872,26 @@ ISphExpr * ExprParser_t::CreateTree ( int iNode )
 						m_bHasPackedFactors = true;
 						m_eEvalStage = SPH_EVAL_FINAL;
 						return new Expr_GetPackedFactors_c();
+					case FUNC_BM25F:
+					{
+						m_bHasPackedFactors = true;
+
+						CSphVector<int> dArgs;
+						GatherArgNodes ( tNode.m_iLeft, dArgs );
+
+						const ExprNode_t & tLeft = m_dNodes[dArgs[0]];
+						const ExprNode_t & tRight = m_dNodes[dArgs[1]];
+						float fK1 = tLeft.m_fConst;
+						float fB = tRight.m_fConst;
+						fK1 = Max ( fK1, 0.001f );
+						fB = Min ( Max ( fB, 0.0f ), 1.0f );
+
+						CSphVector<CSphNamedInt> * pFiledWeights = NULL;
+						if ( dArgs.GetLength()>2 )
+							pFiledWeights = &m_dNodes[dArgs[2]].m_pConsthash->m_dPairs;
+
+						return new Expr_BM25F_c ( fK1, fB, pFiledWeights );
+					}
 				}
 				assert ( 0 && "unhandled function id" );
 				break;
@@ -3858,6 +3990,27 @@ int ExprParser_t::AddNodeFunc ( int iFunc, int iLeft, int iRight )
 				m_sParserError.SetSprintf ( "%s() argument %d must be numeric", g_dFuncs[iFunc].m_sName, 1+i );
 				return -1;
 			}
+		}
+	}
+	// check that BM25F args are float, float [, {file_name=weight}]
+	if ( eFunc==FUNC_BM25F )
+	{
+		if ( dRetTypes.GetLength()<2 || dRetTypes.GetLength()>3 )
+		{
+			m_sParserError.SetSprintf ( "%s() called with 2-3 args, got %d args", g_dFuncs[iFunc].m_sName, dRetTypes.GetLength() );
+			return -1;
+		}
+
+		if ( dRetTypes[0]!=SPH_ATTR_FLOAT || dRetTypes[1]!=SPH_ATTR_FLOAT )
+		{
+			m_sParserError.SetSprintf ( "%s() arguments 1,2 must be numeric", g_dFuncs[iFunc].m_sName );
+			return -1;
+		}
+
+		if ( dRetTypes.GetLength()==3 && dRetTypes[2]!=SPH_ATTR_CONSTHASH )
+		{
+			m_sParserError.SetSprintf ( "%s() argument 3 must be hash", g_dFuncs[iFunc].m_sName );
+			return -1;
 		}
 	}
 

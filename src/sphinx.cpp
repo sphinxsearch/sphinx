@@ -17339,7 +17339,7 @@ bool CSphIndex_VLN::ParsedMultiQuery ( const CSphQuery * pQuery, CSphQueryResult
 		return false;
 
 	if ( bFactors && pQuery->m_eRanker!=SPH_RANK_EXPR )
-		pResult->m_sWarning.SetSprintf ( "packedfactors() requires using an expression ranker" );
+		pResult->m_sWarning.SetSprintf ( "packedfactors() and bm25f() requires using an expression ranker" );
 
 	sphCheckWordStats ( hPrevWordStat, pResult->m_hWordStats, m_sIndexName.cstr(), pResult->m_sWarning );
 
@@ -24449,7 +24449,7 @@ bool CSphSource_SQL::Connect ( CSphString & sError )
 #define LOC_ERROR2(_msg,_arg,_arg2)		{ sError.SetSprintf ( _msg, _arg, _arg2 ); return false; }
 
 /// setup them ranges (called both for document range-queries and MVA range-queries)
-bool CSphSource_SQL::SetupRanges ( const char * sRangeQuery, const char * sQuery, const char * sPrefix, CSphString & sError, ERangesReason iReason  )
+bool CSphSource_SQL::SetupRanges ( const char * sRangeQuery, const char * sQuery, const char * sPrefix, CSphString & sError, ERangesReason iReason )
 {
 	// check step
 	if ( m_tParams.m_iRangeStep<=0 )
@@ -24507,7 +24507,7 @@ bool CSphSource_SQL::SetupRanges ( const char * sRangeQuery, const char * sQuery
 
 	SqlDismissResult ();
 
-	if ( iReason==SRE_DOCS && ( !m_tParams.m_sHookQueryRange.IsEmpty()) )
+	if ( iReason==SRE_DOCS && ( !m_tParams.m_sHookQueryRange.IsEmpty() ) )
 	{
 		if ( !HookQueryRange ( m_tParams.m_sHookQueryRange.cstr(), &m_uMinID, &m_uMaxID ) )
 			LOC_ERROR ( "hook_query_range: runtime error %s when running external hook", strerror(errno) );

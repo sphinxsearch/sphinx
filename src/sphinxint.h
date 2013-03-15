@@ -377,6 +377,38 @@ public:
 
 //////////////////////////////////////////////////////////////////////////
 
+/// generic COM-like uids
+enum ExtraData_e
+{
+	EXTRA_GET_DATA_ZONESPANS,
+	EXTRA_GET_DATA_ZONESPANLIST,
+	EXTRA_GET_DATA_RANKFACTORS,
+	EXTRA_GET_DATA_PACKEDFACTORS,
+	EXTRA_GET_DATA_RANKER_STATE,
+	EXTRA_SET_MVAPOOL,
+	EXTRA_SET_STRINGPOOL,
+	EXTRA_SET_MAXMATCHES,
+	EXTRA_SET_MATCHPUSHED,
+	EXTRA_SET_MATCHPOPPED
+};
+
+/// generic COM-like interface
+class ISphExtra
+{
+public:
+	virtual						~ISphExtra () {}
+	inline bool					ExtraData	( ExtraData_e eType, void** ppData )
+	{
+		return ExtraDataImpl ( eType, ppData );
+	}
+private:
+	virtual bool ExtraDataImpl ( ExtraData_e, void** )
+	{
+		return false;
+	}
+};
+
+
 /// per-query search context
 /// everything that index needs to compute/create to process the query
 class CSphQueryContext
@@ -1147,6 +1179,37 @@ public:
 	virtual ~ISphZoneCheck () {}
 	virtual SphZoneHit_e IsInZone ( int iZone, const ExtHit_t * pHit, int * pLastSpan=0 ) = 0;
 };
+
+
+struct SphFactorHashEntry_t
+{
+	SphDocID_t				m_iId;
+	int						m_iRefCount;
+	BYTE *					m_pData;
+	SphFactorHashEntry_t *	m_pPrev;
+	SphFactorHashEntry_t *	m_pNext;
+};
+
+typedef CSphTightVector<SphFactorHashEntry_t *> SphFactorHash_t;
+
+
+struct SphExtraDataRankerState_t
+{
+	const CSphSchema *	m_pSchema;
+	const int64_t *		m_pFieldLens;
+	CSphAttrLocator		m_tFieldLensLoc;
+	int64_t				m_iTotalDocuments;
+	int					m_iFields;
+	int					m_iMaxQpos;
+	SphExtraDataRankerState_t ()
+		: m_pSchema ( NULL )
+		, m_pFieldLens ( NULL )
+		, m_iTotalDocuments ( 0 )
+		, m_iFields ( 0 )
+		, m_iMaxQpos ( 0 )
+	{ }
+};
+
 
 //////////////////////////////////////////////////////////////////////////
 // INLINES, MISC
