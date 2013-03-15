@@ -479,7 +479,7 @@ struct Expr_BM25F_c : public ISphExpr
 				tf += tUnpacked.field_tf[ iWord + 1 + i * ( 1 + m_tRankerState.m_iMaxQpos ) ] * m_dWeights[i];
 			}
 			float idf = tUnpacked.term[iWord].idf; // FIXME? zeroed out for dupes!
-			fRes += tf / (tf + m_fK1*(1 - m_fB + m_fB*dl/m_fWeightedAvgDocLen)) * idf;
+			fRes += tf / ( tf + m_fK1 * ( 1.0f - m_fB + m_fB * dl / m_fWeightedAvgDocLen ) ) * idf;
 		}
 
 		sphinx_factors_deinit ( &tUnpacked );

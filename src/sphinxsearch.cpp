@@ -6968,7 +6968,7 @@ struct Expr_BM25F_T : public ISphExpr
 			for ( int i=0; i<m_pState->m_iFields; i++ )
 				tf += m_pState->m_dFieldTF [ iWord + i*(1+m_pState->m_iMaxQpos) ] * m_dWeights[i];
 			float idf = m_pState->m_dIDF[iWord]; // FIXME? zeroed out for dupes!
-			fRes += tf / (tf + m_fK1*(1 - m_fB + m_fB*dl/m_fWeightedAvgDocLen)) * idf;
+			fRes += tf / (tf + m_fK1*(1.0f - m_fB + m_fB*dl/m_fWeightedAvgDocLen)) * idf;
 		}
 		return fRes + 0.5f; // map to [0..1] range
 	}
