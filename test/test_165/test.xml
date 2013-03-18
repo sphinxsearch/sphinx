@@ -58,6 +58,23 @@ index snip
 	exceptions		= <this_test/>/synonyms3.txt
 }
 
+source src_wild1
+{
+	type			= mysql
+	<sql_settings/>
+
+	sql_query		= SELECT 1 as id, 11 as idd, '50% of 20% not 30* found' as text
+	sql_attr_uint = idd
+}
+
+index wild1
+{
+	source				= src_wild1
+	path					= <data_path/>/wild1
+	charset_type 	= utf-8
+	charset_table	= a..z, _, A..Z->a..z
+}
+
 </config>
 
 <db_create>
@@ -126,6 +143,10 @@ INSERT INTO `star_table` VALUES
 
 <sphinxql>select * from star where match ('a?c')</sphinxql>
 <sphinxql>select * from star where match ('x%z')</sphinxql>
+
+<!-- regression tokenizer produces wild chracters -->
+<sphinxql>select * from wild1 where match ('50? of 20% not 30* found')</sphinxql>
+<sphinxql>show meta</sphinxql>
 </sphqueries>
 
 </test>
