@@ -6,6 +6,7 @@
 <requires>
 <id32/>
 <non-rt/>
+<non-windows/>
 </requires>
 
 <config>
