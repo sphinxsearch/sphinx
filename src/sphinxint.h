@@ -1490,7 +1490,7 @@ void			sphCheckWordStats ( const SmallStringHash_T<CSphQueryResultMeta::WordStat
 bool			sphCheckQueryHeight ( const struct XQNode_t * pRoot, CSphString & sError );
 void			sphTransformExtendedQuery ( XQNode_t ** ppNode, const CSphIndexSettings & tSettings, bool bHasBooleanOptimization, const ISphKeywordsStat * pKeywords );
 void			TransformAotFilter ( XQNode_t * pNode, bool bUtf8, const CSphWordforms * pWordforms );
-bool			sphMerge ( const CSphIndex * pDst, const CSphIndex * pSrc, ISphFilter * pFilter, CSphString & sError, CSphIndexProgress & tProgress, ThrottleState_t * pThrottle );
+bool			sphMerge ( const CSphIndex * pDst, const CSphIndex * pSrc, ISphFilter * pFilter, CSphString & sError, CSphIndexProgress & tProgress, ThrottleState_t * pThrottle, volatile bool * pForceTerminate );
 CSphString		sphReconstructNode ( const XQNode_t * pNode, const CSphSchema * pSchema );
 
 void			sphSetUnlinkOld ( bool bUnlink );

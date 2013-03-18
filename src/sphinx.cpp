@@ -1280,6 +1280,7 @@ const char ** sphGetExts ( ESphExtType eType, DWORD uVersion )
 	}
 
 	assert ( 0 && "Unknown extension type" );
+	return NULL;
 }
 
 int sphGetExtCount ( DWORD uVersion )
@@ -1347,8 +1348,8 @@ public:
 	virtual bool				Merge ( CSphIndex * pSource, const CSphVector<CSphFilterSettings> & dFilters, bool bMergeKillLists );
 
 	template <class QWORDDST, class QWORDSRC>
-	static bool					MergeWords ( const CSphIndex_VLN * pDstIndex, const CSphIndex_VLN * pSrcIndex, const ISphFilter * pFilter, SphDocID_t iMinID, CSphHitBuilder * pHitBuilder, CSphString & sError, CSphSourceStats & tStat, CSphIndexProgress & tProgress, ThrottleState_t * pThrottle );
-	static bool					DoMerge ( const CSphIndex_VLN * pDstIndex, const CSphIndex_VLN * pSrcIndex, bool bMergeKillLists, ISphFilter * pFilter, CSphString & sError, CSphIndexProgress & tProgress, ThrottleState_t * pThrottle );
+	static bool					MergeWords ( const CSphIndex_VLN * pDstIndex, const CSphIndex_VLN * pSrcIndex, const ISphFilter * pFilter, SphDocID_t iMinID, CSphHitBuilder * pHitBuilder, CSphString & sError, CSphSourceStats & tStat, CSphIndexProgress & tProgress, ThrottleState_t * pThrottle, volatile bool * pForceTerminate );
+	static bool					DoMerge ( const CSphIndex_VLN * pDstIndex, const CSphIndex_VLN * pSrcIndex, bool bMergeKillLists, ISphFilter * pFilter, CSphString & sError, CSphIndexProgress & tProgress, ThrottleState_t * pThrottle, volatile bool * pForceTerminate );
 
 	virtual int					UpdateAttributes ( const CSphAttrUpdate & tUpd, int iIndex, CSphString & sError );
 	virtual bool				SaveAttributes ( CSphString & sError ) const;
@@ -12499,7 +12500,7 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 /////////////////////////////////////////////////////////////////////////////
 
 
-static bool CopyFile ( const char * sSrc, const char * sDst, CSphString & sErrStr, ThrottleState_t * pThrottle )
+static bool CopyFile ( const char * sSrc, const char * sDst, CSphString & sErrStr, ThrottleState_t * pThrottle, volatile bool * pForceTerminate )
 {
 	assert ( sSrc );
 	assert ( sDst );
@@ -12517,28 +12518,24 @@ static bool CopyFile ( const char * sSrc, const char * sDst, CSphString & sErrSt
 
 	if ( iFileSize )
 	{
-		BYTE * pData = new BYTE[iBufSize];
-
-		if ( !pData )
-		{
-			sErrStr.SetSprintf ( "memory allocation error" );
-			return false;
-		}
-
+		CSphFixedVector<BYTE> dData ( iBufSize );
 		bool bError = true;
 
 		while ( iFileSize > 0 )
 		{
+			if ( *pForceTerminate )
+				return false;
+
 			DWORD iSize = (DWORD) Min ( iFileSize, (SphOffset_t)iBufSize );
 
-			size_t iRead = sphReadThrottled ( tSrcFile.GetFD(), pData, iSize, pThrottle );
+			size_t iRead = sphReadThrottled ( tSrcFile.GetFD(), dData.Begin(), iSize, pThrottle );
 			if ( iRead!=iSize )
 			{
 				sErrStr.SetSprintf ( "read error in %s; "INT64_FMT" of %d bytes read", sSrc, (int64_t)iRead, iSize );
 				break;
 			}
 
-			if ( !sphWriteThrottled ( tDstFile.GetFD(), pData, iSize, "CopyFile", sErrStr, pThrottle ) )
+			if ( !sphWriteThrottled ( tDstFile.GetFD(), dData.Begin(), iSize, "CopyFile", sErrStr, pThrottle ) )
 				break;
 
 			iFileSize -= iSize;
@@ -12547,7 +12544,6 @@ static bool CopyFile ( const char * sSrc, const char * sDst, CSphString & sErrSt
 				bError = false;
 		}
 
-		SafeDeleteArray ( pData );
 		return ( bError==false );
 	}
 
@@ -12895,14 +12891,14 @@ public:
 
 	template < typename QWORD >
 	inline void TransferData ( QWORD & tQword, SphWordID_t iWordID, BYTE * sWord,
-		const CSphIndex_VLN * pSourceIndex, const ISphFilter * pFilter )
+		const CSphIndex_VLN * pSourceIndex, const ISphFilter * pFilter, volatile bool * pForceTerminate )
 	{
 		CSphAggregateHit tHit;
 		tHit.m_iWordID = iWordID;
 		tHit.m_sKeyword = sWord;
 		tHit.m_dFieldMask.Unset();
 
-		while ( CSphMerger::NextDocument ( tQword, pSourceIndex, pFilter ) )
+		while ( CSphMerger::NextDocument ( tQword, pSourceIndex, pFilter ) && !*pForceTerminate )
 		{
 			if ( tQword.m_bHasHitlist )
 				TransferHits ( tQword, tHit );
@@ -12956,7 +12952,7 @@ public:
 template < typename QWORDDST, typename QWORDSRC >
 bool CSphIndex_VLN::MergeWords ( const CSphIndex_VLN * pDstIndex, const CSphIndex_VLN * pSrcIndex,
 	const ISphFilter * pFilter, SphDocID_t iMinID, CSphHitBuilder * pHitBuilder, CSphString & sError,
-	CSphSourceStats & tStat, CSphIndexProgress & tProgress, ThrottleState_t * pThrottle )
+	CSphSourceStats & tStat, CSphIndexProgress & tProgress, ThrottleState_t * pThrottle, volatile bool * pForceTerminate )
 {
 	CSphAutofile tDummy;
 	pHitBuilder->CreateIndexFiles ( pDstIndex->GetIndexFileName("tmp.spd").cstr(),
@@ -12997,7 +12993,7 @@ bool CSphIndex_VLN::MergeWords ( const CSphIndex_VLN * pDstIndex, const CSphInde
 	fDstDocs.Open ( pDstIndex->GetIndexFileName("spd"), SPH_O_READ, sError );
 	fDstHits.Open ( pDstIndex->GetIndexFileName("spp"), SPH_O_READ, sError );
 
-	if ( !sError.IsEmpty() )
+	if ( !sError.IsEmpty() || *pForceTerminate )
 		return false;
 
 	int iDstInlineSize = pDstIndex->m_tSettings.m_eDocinfo==SPH_DOCINFO_INLINE ? pDstIndex->m_tSchema.GetRowSize() : 0;
@@ -13031,13 +13027,16 @@ bool CSphIndex_VLN::MergeWords ( const CSphIndex_VLN * pDstIndex, const CSphInde
 			iWords = 0;
 		}
 
+		if ( *pForceTerminate )
+			return false;
+
 		const int iCmp = tDstReader.CmpWord ( tSrcReader );
 
 		if ( !bSrcWord || ( bDstWord && iCmp<0 ) )
 		{
 			// transfer documents and hits from destination
 			CSphMerger::PrepareQword<QWORDDST> ( tDstQword, tDstReader, iDstMinID, bWordDict );
-			tMerger.TransferData<QWORDDST> ( tDstQword, tDstReader.m_iWordID, tDstReader.GetWord(), pDstIndex, pFilter );
+			tMerger.TransferData<QWORDDST> ( tDstQword, tDstReader.m_iWordID, tDstReader.GetWord(), pDstIndex, pFilter, pForceTerminate );
 			iWords++;
 			bDstWord = tDstReader.Read();
 
@@ -13045,7 +13044,7 @@ bool CSphIndex_VLN::MergeWords ( const CSphIndex_VLN * pDstIndex, const CSphInde
 		{
 			// transfer documents and hits from source
 			CSphMerger::PrepareQword<QWORDSRC> ( tSrcQword, tSrcReader, iSrcMinID, bWordDict );
-			tMerger.TransferData<QWORDSRC> ( tSrcQword, tSrcReader.m_iWordID, tSrcReader.GetWord(), pSrcIndex, NULL );
+			tMerger.TransferData<QWORDSRC> ( tSrcQword, tSrcReader.m_iWordID, tSrcReader.GetWord(), pSrcIndex, NULL, pForceTerminate );
 			iWords++;
 			bSrcWord = tSrcReader.Read();
 
@@ -13076,6 +13075,9 @@ bool CSphIndex_VLN::MergeWords ( const CSphIndex_VLN * pDstIndex, const CSphInde
 
 			while ( bDstDocs || bSrcDocs )
 			{
+				if ( *pForceTerminate )
+					return false;
+
 				if ( !bSrcDocs || ( bDstDocs && tDstQword.m_tDoc.m_iDocID < tSrcQword.m_tDoc.m_iDocID ) )
 				{
 					// transfer hits from destination
@@ -13211,13 +13213,14 @@ bool CSphIndex_VLN::Merge ( CSphIndex * pSource, const CSphVector<CSphFilterSett
 		pFilter = sphJoinFilters ( pFilter.LeakPtr(), pKillListFilter );
 	}
 
+	bool bForceTerminate = false;
 	return CSphIndex_VLN::DoMerge ( this, dynamic_cast<const CSphIndex_VLN *>( pSource ),
-		bMergeKillLists, pFilter.Ptr(), m_sLastError, m_tProgress, &g_tThrottle );
+		bMergeKillLists, pFilter.Ptr(), m_sLastError, m_tProgress, &g_tThrottle, &bForceTerminate );
 }
 
 bool CSphIndex_VLN::DoMerge ( const CSphIndex_VLN * pDstIndex, const CSphIndex_VLN * pSrcIndex,
 	bool bMergeKillLists, ISphFilter * pFilter, CSphString & sError,
-	CSphIndexProgress & tProgress, ThrottleState_t * pThrottle )
+	CSphIndexProgress & tProgress, ThrottleState_t * pThrottle, volatile bool * pForceTerminate )
 {
 	assert ( pDstIndex && pSrcIndex );
 
@@ -13320,6 +13323,9 @@ bool CSphIndex_VLN::DoMerge ( const CSphIndex_VLN * pDstIndex, const CSphIndex_V
 		CSphMatch tMatch;
 		while ( iSrcCount < pSrcIndex->m_iDocinfo || iDstCount < pDstIndex->m_iDocinfo )
 		{
+			if ( *pForceTerminate )
+				return false;
+
 			SphDocID_t iDstDocID, iSrcDocID;
 
 			if ( iDstCount < pDstIndex->m_iDocinfo )
@@ -13421,7 +13427,7 @@ bool CSphIndex_VLN::DoMerge ( const CSphIndex_VLN * pDstIndex, const CSphIndex_V
 		CSphString sSrc = !pDstIndex->m_bIsEmpty ? pDstIndex->GetIndexFileName("spa") : pSrcIndex->GetIndexFileName("spa");
 		CSphString sDst = pDstIndex->GetIndexFileName("tmp.spa");
 
-		if ( !CopyFile ( sSrc.cstr(), sDst.cstr(), sError, pThrottle ) )
+		if ( !CopyFile ( sSrc.cstr(), sDst.cstr(), sError, pThrottle, pForceTerminate ) )
 			return false;
 
 	} else
@@ -13451,7 +13457,7 @@ bool CSphIndex_VLN::DoMerge ( const CSphIndex_VLN * pDstIndex, const CSphIndex_V
 	CSphAutofile fdTmpDict ( pDstIndex->GetIndexFileName("tmp8.spi"), SPH_O_NEW, sError, true );
 	CSphAutofile fdDict ( pDstIndex->GetIndexFileName("tmp.spi"), SPH_O_NEW, sError );
 
-	if ( !sError.IsEmpty() || fdTmpDict.GetFD()<0 || fdDict.GetFD()<0 )
+	if ( !sError.IsEmpty() || fdTmpDict.GetFD()<0 || fdDict.GetFD()<0 || *pForceTerminate )
 		return false;
 
 	CSphScopedPtr<CSphDict> pDict ( pDstIndex->m_pDict->Clone() );
@@ -13478,7 +13484,7 @@ bool CSphIndex_VLN::DoMerge ( const CSphIndex_VLN * pDstIndex, const CSphIndex_V
 			WITH_QWORD ( pSrcIndex, false, QwordSrc,
 		{
 			if ( !CSphIndex_VLN::MergeWords < QwordDst, QwordSrc > ( pDstIndex, pSrcIndex, pFilter, iMinDocid,
-					&tHitBuilder, sError, tBuildHeader, tProgress, pThrottle ) )
+					&tHitBuilder, sError, tBuildHeader, tProgress, pThrottle, pForceTerminate ) )
 				return false;
 		} ) );
 	} else
@@ -13487,7 +13493,7 @@ bool CSphIndex_VLN::DoMerge ( const CSphIndex_VLN * pDstIndex, const CSphIndex_V
 			WITH_QWORD ( pSrcIndex, true, QwordSrc,
 		{
 			if ( !CSphIndex_VLN::MergeWords < QwordDst, QwordSrc > ( pDstIndex, pSrcIndex, pFilter, iMinDocid,
-					&tHitBuilder, sError, tBuildHeader, tProgress, pThrottle ) )
+					&tHitBuilder, sError, tBuildHeader, tProgress, pThrottle, pForceTerminate ) )
 				return false;
 		} ) );
 	}
@@ -13515,6 +13521,9 @@ bool CSphIndex_VLN::DoMerge ( const CSphIndex_VLN * pDstIndex, const CSphIndex_V
 
 		tBuildHeader.m_iKillListSize = dKillList.GetLength ();
 
+		if ( *pForceTerminate )
+			return false;
+
 		if ( dKillList.GetLength() )
 		{
 			if ( !sphWriteThrottled ( fdKillList.GetFD(), &dKillList[0], dKillList.GetLength()*sizeof(SphAttr_t), "kill_list", sError, pThrottle ) )
@@ -13523,6 +13532,9 @@ bool CSphIndex_VLN::DoMerge ( const CSphIndex_VLN * pDstIndex, const CSphIndex_V
 	}
 
 	fdKillList.Close ();
+
+	if ( *pForceTerminate )
+		return false;
 
 	// finalize
 	CSphAggregateHit tFlush;
@@ -13550,13 +13562,13 @@ bool CSphIndex_VLN::DoMerge ( const CSphIndex_VLN * pDstIndex, const CSphIndex_V
 
 
 bool sphMerge ( const CSphIndex * pDst, const CSphIndex * pSrc, ISphFilter * pFilter,
-	CSphString & sError, CSphIndexProgress & tProgress, ThrottleState_t * pThrottle )
+				CSphString & sError, CSphIndexProgress & tProgress, ThrottleState_t * pThrottle, volatile bool * pForceTerminate )
 {
 	const CSphIndex_VLN * pDstIndex = dynamic_cast<const CSphIndex_VLN *>( pDst );
 	const CSphIndex_VLN * pSrcIndex = dynamic_cast<const CSphIndex_VLN *> ( pSrc );
 	assert ( pDstIndex && pSrcIndex );
 
-	return CSphIndex_VLN::DoMerge ( pDstIndex, pSrcIndex, false, pFilter, sError, tProgress, pThrottle );
+	return CSphIndex_VLN::DoMerge ( pDstIndex, pSrcIndex, false, pFilter, sError, tProgress, pThrottle, pForceTerminate );
 }
 
 

@@ -6881,6 +6881,9 @@ void RtIndex_t::Optimize ( volatile bool * pForceTerminate, ThrottleState_t * pT
 		// add disk chunks kill-lists
 		for ( int iChunk=1; iChunk<m_pDiskChunks.GetLength(); iChunk++ )
 		{
+			if ( *pForceTerminate )
+				break;
+
 			const CSphIndex * pIndex = m_pDiskChunks[iChunk];
 			if ( !pIndex->GetKillListSize() )
 				continue;
@@ -6928,7 +6931,7 @@ void RtIndex_t::Optimize ( volatile bool * pForceTerminate, ThrottleState_t * pT
 
 		// merge data to disk ( data is constant during that phase )
 		CSphIndexProgress tProgress;
-		bool bMerged = sphMerge ( pOldest, pOlder, pFilter.Ptr(), sError, tProgress, pThrottle );
+		bool bMerged = sphMerge ( pOldest, pOlder, pFilter.Ptr(), sError, tProgress, pThrottle, pForceTerminate );
 		if ( !bMerged )
 		{
 			sphWarning ( "rt optimize: index %s: failed to merge %s to %s (error %s)",
@@ -7010,8 +7013,15 @@ void RtIndex_t::Optimize ( volatile bool * pForceTerminate, ThrottleState_t * pT
 	m_bOptimizing = false;
 	int64_t tmPass = sphMicroTimer() - tmStart;
 
-	sphInfo ( "rt: index %s: optimized chunk(s) %d ( of %d ) in %d.%03d sec",
-		m_sIndexName.cstr(), iChunks-m_pDiskChunks.GetLength(), iChunks, (int)(tmPass/1000000), (int)((tmPass/1000)%1000) );
+	if ( *pForceTerminate )
+	{
+		sphWarning ( "rt: index %s: optimization terminated chunk(s) %d ( of %d ) in %d.%03d sec",
+			m_sIndexName.cstr(), iChunks-m_pDiskChunks.GetLength(), iChunks, (int)(tmPass/1000000), (int)((tmPass/1000)%1000) );
+	} else
+	{
+		sphInfo ( "rt: index %s: optimized chunk(s) %d ( of %d ) in %d.%03d sec",
+			m_sIndexName.cstr(), iChunks-m_pDiskChunks.GetLength(), iChunks, (int)(tmPass/1000000), (int)((tmPass/1000)%1000) );
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
