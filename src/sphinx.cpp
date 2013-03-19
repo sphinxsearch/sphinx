@@ -23706,7 +23706,7 @@ void CSphSource_Document::AllocDocinfo()
 
 	m_dStrAttrs.Resize ( m_tSchema.GetAttrsCount() );
 
-	if ( m_bIndexFieldLens )
+	if ( m_bIndexFieldLens && m_tSchema.GetAttrsCount() )
 	{
 		int iFirst = m_tSchema.GetAttrsCount() - m_tSchema.m_dFields.GetLength();
 		assert ( m_tSchema.GetAttr ( iFirst ).m_eAttrType==SPH_ATTR_TOKENCOUNT );
@@ -26976,13 +26976,26 @@ BYTE **	CSphSource_XMLPipe2::NextDocument ( CSphString & sError )
 			continue;
 		}
 
+		int iFieldLenAttr = nAttrs;
+		if ( m_bIndexFieldLens )
+			iFieldLenAttr = nAttrs - m_tSchema.m_dFields.GetLength();
+
 		// attributes
 		for ( int i = 0; i < nAttrs; i++ )
 		{
+			const CSphColumnInfo & tAttr = m_tSchema.GetAttr ( i );
+
+			// reset, and the value will be filled by IterateHits()
+			if ( i>=iFieldLenAttr )
+			{
+				assert ( tAttr.m_eAttrType==SPH_ATTR_TOKENCOUNT );
+				m_tDocInfo.SetAttr ( tAttr.m_tLocator, 0 );
+				continue;
+			}
+
 			const CSphString & sAttrValue = pDocument->m_dAttrs[i].IsEmpty () && m_dDefaultAttrs.GetLength ()
 				? m_dDefaultAttrs[i]
 				: pDocument->m_dAttrs[i];
-			const CSphColumnInfo & tAttr = m_tSchema.GetAttr ( i );
 
 			if ( tAttr.m_eAttrType==SPH_ATTR_UINT32SET || tAttr.m_eAttrType==SPH_ATTR_INT64SET )
 			{
