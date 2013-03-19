@@ -2151,6 +2151,12 @@ protected:
 			// if new entry is more relevant, update from it
 			if ( tEntry.m_iDocID<m_tData.m_iDocID )
 			{
+				if ( NOTIFICATIONS )
+				{
+					m_iJustPushed = tEntry.m_iDocID;
+					m_dJustPopped.Add ( m_tData.m_iDocID );
+				}
+
 				// can't use Clone() here; must keep current aggregate values
 				m_tData.m_iDocID = tEntry.m_iDocID;
 				m_tData.m_iWeight = tEntry.m_iWeight;
