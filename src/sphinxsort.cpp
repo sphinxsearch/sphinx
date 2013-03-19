@@ -1625,6 +1625,12 @@ public:
 			// if new entry is more relevant, update from it
 			if ( m_pComp->VirtualIsLess ( *pMatch, tEntry, m_tState ) )
 			{
+				if ( NOTIFICATIONS )
+				{
+					m_iJustPushed = tEntry.m_iDocID;
+					m_dJustPopped.Add ( pMatch->m_iDocID );
+				}
+
 				// can't use Clone() here; must keep current aggregate values
 				pMatch->m_iDocID = tEntry.m_iDocID;
 				pMatch->m_iWeight = tEntry.m_iWeight;
