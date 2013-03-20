@@ -1009,6 +1009,8 @@ inline int FindBit ( DWORD uValue )
 // INLINES, UTF-8 TOOLS
 //////////////////////////////////////////////////////////////////////////
 
+#define SPH_MAX_UTF8_BYTES 4
+
 /// decode UTF-8 codepoint
 /// advances buffer ptr in all cases but end of buffer
 ///
@@ -1035,7 +1037,7 @@ inline int sphUTF8Decode ( BYTE * & pBuf )
 	}
 
 	// check for valid number of bytes
-	if ( iBytes<2 || iBytes>4 )
+	if ( iBytes<2 || iBytes>SPH_MAX_UTF8_BYTES )
 		return -1;
 
 	int iCode = ( v >> iBytes );

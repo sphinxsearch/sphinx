@@ -1961,7 +1961,11 @@ protected:
 		assert ( m_iAccum>=0 );
 
 		// throw away everything which is over the token size
-		if ( m_iAccum<SPH_MAX_WORD_LEN )
+		bool bFit = ( m_iAccum<SPH_MAX_WORD_LEN );
+		if ( IS_UTF8 )
+			bFit &= ( m_pAccum-m_sAccum+SPH_MAX_UTF8_BYTES<=sizeof(m_sAccum));
+
+		if ( bFit )
 		{
 			if ( IS_UTF8 )
 				m_pAccum += sphUTF8Encode ( m_pAccum, iCode );
@@ -3227,7 +3231,7 @@ static int TokenizeOnWhitespace ( CSphVector<CSphString> & dTokens, BYTE * sFrom
 			// accumulate everything else
 			if ( iAccum<SPH_MAX_WORD_LEN )
 			{
-				if ( bUtf8 )
+				if ( bUtf8 && ( pAccum-sAccum+SPH_MAX_UTF8_BYTES<=sizeof(sAccum) ) )
 				{
 					pAccum += sphUTF8Encode ( pAccum, iCode );
 					iAccum++;
@@ -4532,7 +4536,11 @@ BYTE * CSphTokenizerBase2<IS_UTF8>::GetTokenSyn ( bool bQueryMode )
 
 				// the hottest accumulation point
 				// so do this manually, no function calls, that is quickest
-				if ( m_iAccum<SPH_MAX_WORD_LEN )
+				bool bFit = ( m_iAccum<SPH_MAX_WORD_LEN );
+				if ( IS_UTF8 )
+					bFit &= ( m_pAccum-m_sAccum+SPH_MAX_UTF8_BYTES<=sizeof(m_sAccum) );
+
+				if ( bFit )
 				{
 					m_iAccum++;
 					if ( IS_UTF8 )
@@ -5219,7 +5227,7 @@ BYTE * CSphTokenizer_UTF8_Base::DoGetToken ()
 		// just accumulate
 		// manual inlining of utf8 encoder gives us a few extra percent
 		// which is important here, this is a hotspot
-		if ( m_iAccum<SPH_MAX_WORD_LEN )
+		if ( m_iAccum<SPH_MAX_WORD_LEN && ( m_pAccum-m_sAccum+SPH_MAX_UTF8_BYTES<=sizeof(m_sAccum) ) )
 		{
 			iCode &= MASK_CODEPOINT;
 			m_iAccum++;
