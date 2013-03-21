@@ -133,7 +133,7 @@ int sphinx_factors_unpack ( const unsigned int * in, SPH_UDF_FACTORS * out )
 	fields = *in++;
 	out->field_tf = malloc ( fields*sizeof(int) );
 	memcpy ( out->field_tf, in, fields*sizeof(int) );
-	in += fields*sizeof(int);
+	in += fields;
 
 	// do a safety check, and return
 	return ( size!=( (int)(in-pack) * (int)sizeof(unsigned int) ) ) ? 1 : 0;
