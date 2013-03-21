@@ -355,6 +355,9 @@ INSERT INTO json_attr ( id, gid, json ) VALUES
 <sphinxql>select max(integer(json.floatkey)) from json_attr</sphinxql>
 <sphinxql>select double(json.year) as year from json_attr where year>=2002.0</sphinxql>
 <sphinxql>select integer(json.floatkey) as floatkey from json_attr where floatkey>=2</sphinxql>
+<!-- multiple conditions -->
+<sphinxql>select * from json_attr where json.year=2000 and json.floatkey>=1.01</sphinxql>
+<sphinxql>select * from json_attr where json.year=2000 and json.floatkey>=1.01 and json.username='Alice'</sphinxql>
 </sphqueries>
 
 </test>

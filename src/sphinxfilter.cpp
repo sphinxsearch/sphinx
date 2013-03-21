@@ -573,6 +573,12 @@ struct Filter_And2 : public ISphFilter
 		m_pArg1->SetMVAStorage ( pMva );
 		m_pArg2->SetMVAStorage ( pMva );
 	}
+
+	virtual void SetStringStorage ( const BYTE * pStrings )
+	{
+		m_pArg1->SetStringStorage ( pStrings );
+		m_pArg2->SetStringStorage ( pStrings );
+	}
 };
 
 
@@ -619,6 +625,13 @@ struct Filter_And3 : public ISphFilter
 		m_pArg1->SetMVAStorage ( pMva );
 		m_pArg2->SetMVAStorage ( pMva );
 		m_pArg3->SetMVAStorage ( pMva );
+	}
+
+	virtual void SetStringStorage ( const BYTE * pStrings )
+	{
+		m_pArg1->SetStringStorage ( pStrings );
+		m_pArg2->SetStringStorage ( pStrings );
+		m_pArg3->SetStringStorage ( pStrings );
 	}
 };
 
