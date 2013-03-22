@@ -810,7 +810,8 @@ public:
 			static_cast < CSphVector<int>* > ( pArg )->Add ( m_iAttr );
 	}
 
-	virtual float Eval ( const CSphMatch & tMatch ) const
+	template < typename T >
+	T TypeEval ( const CSphMatch & tMatch ) const
 	{
 		DWORD uOff = (DWORD)tMatch.GetAttr ( m_tLocator );
 		if ( !uOff )
@@ -827,60 +828,17 @@ public:
 
 		switch ( eJson )
 		{
-			case JSON_INT32:	return (float)sphJsonLoadInt ( &pVal );
-			case JSON_INT64:	return (float)sphJsonLoadBigint ( &pVal );
-			case JSON_DOUBLE:	return (float)sphQW2D ( sphJsonLoadBigint ( &pVal ) );
-			default:			return 0.0f;
+			case JSON_INT32:	return (T)sphJsonLoadInt ( &pVal );
+			case JSON_INT64:	return (T)sphJsonLoadBigint ( &pVal );
+			case JSON_DOUBLE:	return (T)sphQW2D ( sphJsonLoadBigint ( &pVal ) );
 		}
+
+		return 0;
 	}
 
-	virtual int IntEval ( const CSphMatch & tMatch ) const
-	{
-		DWORD uOff = (DWORD)tMatch.GetAttr ( m_tLocator );
-		if ( !uOff )
-			return 0;
-
-		const BYTE * pVal = NULL;
-		const BYTE * pSrc = NULL;
-		sphUnpackStr ( m_pStrings+uOff, &pSrc );
-		ESphJsonType eJson = sphJsonFindKey ( &pVal, pSrc, m_tField );
-		if ( eJson==JSON_EOF )
-			return 0;
-
-		assert ( m_pStrings+uOff<pVal );
-
-		switch ( eJson )
-		{
-			case JSON_INT32:	return sphJsonLoadInt ( &pVal );
-			case JSON_INT64:	return (int)sphJsonLoadBigint ( &pVal );
-			case JSON_DOUBLE:	return (int)sphQW2D ( sphJsonLoadBigint ( &pVal ) );
-			default:			return 0;
-		}
-	}
-
-	virtual int64_t Int64Eval ( const CSphMatch & tMatch ) const
-	{
-		DWORD uOff = (DWORD)tMatch.GetAttr ( m_tLocator );
-		if ( !uOff )
-			return 0;
-
-		const BYTE * pVal = NULL;
-		const BYTE * pSrc = NULL;
-		sphUnpackStr ( m_pStrings+uOff, &pSrc );
-		ESphJsonType eJson = sphJsonFindKey ( &pVal, pSrc, m_tField );
-		if ( eJson==JSON_EOF )
-			return 0;
-
-		assert ( m_pStrings+uOff<pVal );
-
-		switch ( eJson )
-		{
-			case JSON_INT32:	return (int64_t)sphJsonLoadInt ( &pVal );
-			case JSON_INT64:	return sphJsonLoadBigint ( &pVal );
-			case JSON_DOUBLE:	return (int64_t)sphQW2D ( sphJsonLoadBigint ( &pVal ) );
-			default:			return 0;
-		}
-	}
+	virtual float Eval ( const CSphMatch & tMatch ) const { return TypeEval<float> ( tMatch ); }
+	virtual int IntEval ( const CSphMatch & tMatch ) const { return TypeEval<int> ( tMatch ); }
+	virtual int64_t Int64Eval ( const CSphMatch & tMatch ) const { return TypeEval<int64_t> ( tMatch ); }
 };
 
 

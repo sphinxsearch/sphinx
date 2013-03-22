@@ -2387,7 +2387,7 @@ void CSphLowercaser::Reset()
 {
 	SafeDeleteArray ( m_pData );
 	m_pData = new int [ CHUNK_SIZE ];
-	memset ( m_pData, 0, CHUNK_SIZE*sizeof(int) );
+	memset ( m_pData, 0, CHUNK_SIZE*sizeof(int) ); // NOLINT sizeof(int)
 	m_iChunks = 1;
 	m_pChunk[0] = m_pData; // chunk 0 must always be allocated, for utf-8 tokenizer shortcut to work
 	for ( int i=1; i<CHUNK_COUNT; i++ )
@@ -29652,7 +29652,7 @@ bool CSphGlobalIDF::Preread ( const CSphString & sFilename, CSphString & sError 
 		for ( int64_t i=1; i<m_iTotalWords; i++ )
 		{
 			// check for interrupt (throttled for speed)
-			if ( ( i&0xffff )==0 && sphInterrupted() )
+			if ( ( i & 0xffff )==0 && sphInterrupted() )
 				return false;
 
 			DWORD uHash = (DWORD)( ( m_pWords[i].m_uWordID-uFirst ) >> iShift );
