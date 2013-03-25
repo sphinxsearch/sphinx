@@ -1864,6 +1864,8 @@ void ExprParser_t::Optimize ( int iNode )
 				}
 				pRoot->m_iToken = TOK_CONST_FLOAT;
 			}
+			pRoot->m_iLeft = -1;
+			pRoot->m_iRight = -1;
 			return;
 		}
 
@@ -2063,6 +2065,7 @@ void ExprParser_t::Optimize ( int iNode )
 	{
 		pRoot->m_iToken = TOK_ATTR_SINT;
 		pRoot->m_tLocator = pLeft->m_tLocator;
+		pRoot->m_iLeft = -1;
 	}
 
 	// NEG(const)
