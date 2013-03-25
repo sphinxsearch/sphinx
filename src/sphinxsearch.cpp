@@ -6987,6 +6987,11 @@ struct Expr_Sum_T : public ISphExpr
 		, m_pArg ( pArg )
 	{}
 
+	virtual ~Expr_Sum_T()
+	{
+		SafeRelease ( m_pArg );
+	}
+
 	float Eval ( const CSphMatch & tMatch ) const
 	{
 		m_pState->m_iCurrentField = 0;

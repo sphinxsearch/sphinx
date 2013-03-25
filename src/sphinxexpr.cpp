@@ -85,6 +85,7 @@ struct UdfCall_t
 	UdfFunc_t *			m_pUdf;
 	SPH_UDF_INIT		m_tInit;
 	SPH_UDF_ARGS		m_tArgs;
+	CSphVector<int>		m_dArrgs2Free; // these args should be freed explicitly
 
 	UdfCall_t();
 	~UdfCall_t();
@@ -789,7 +790,7 @@ public:
 struct Expr_JsonFieldConv_c : public ISphExpr
 {
 protected:
-  const BYTE *	m_pStrings;
+	const BYTE *	m_pStrings;
 	JsonKey_t		m_tField;
 	CSphAttrLocator	m_tLocator;
 	int				m_iAttr;
@@ -2139,6 +2140,7 @@ class Expr_Udf_c : public ISphExpr
 {
 public:
 	CSphVector<ISphExpr*>			m_dArgs;
+	CSphVector<int>					m_dArgs2Free;
 
 protected:
 	UdfCall_t *						m_pCall;
@@ -2158,6 +2160,7 @@ public:
 		tArgs.arg_values = new char * [ tArgs.arg_count ];
 		tArgs.str_lengths = new int [ tArgs.arg_count ];
 
+		m_dArgs2Free = pCall->m_dArrgs2Free;
 		m_dArgvals.Resize ( tArgs.arg_count );
 		ARRAY_FOREACH ( i, m_dArgvals )
 			tArgs.arg_values[i] = (char*) &m_dArgvals[i];
@@ -2195,6 +2198,12 @@ public:
 				default:						assert ( 0 ); m_dArgvals[i] = 0; break;
 			}
 		}
+	}
+
+	void FreeArgs() const
+	{
+		ARRAY_FOREACH ( i, m_dArgs2Free )
+			SafeDeleteArray ( m_pCall->m_tArgs.arg_values[i] );
 	}
 
 	virtual void Command ( ESphExprCommand eCmd, void * pArg )
@@ -2235,6 +2244,7 @@ public:
 		FillArgs ( tMatch );
 		UdfInt_fn pFn = (UdfInt_fn) m_pCall->m_pUdf->m_fnFunc;
 		int64_t iRes = (int) pFn ( &m_pCall->m_tInit, &m_pCall->m_tArgs, &m_bError );
+		FreeArgs();
 
 		if ( m_pProfiler )
 			m_pProfiler->Switch ( eOld );
@@ -2271,6 +2281,7 @@ public:
 		FillArgs ( tMatch );
 		UdfDouble_fn pFn = (UdfDouble_fn) m_pCall->m_pUdf->m_fnFunc;
 		float fRes = (float) pFn ( &m_pCall->m_tInit, &m_pCall->m_tArgs, &m_bError );
+		FreeArgs();
 
 		if ( m_pProfiler )
 			m_pProfiler->Switch ( eOld );
@@ -2320,6 +2331,7 @@ public:
 		char * pRes = pFn ( &m_pCall->m_tInit, &m_pCall->m_tArgs, &m_bError ); // owned now!
 		*ppStr = (const BYTE*) pRes;
 		int iLen = ( pRes ? strlen(pRes) : 0 );
+		FreeArgs();
 
 		if ( m_pProfiler )
 			m_pProfiler->Switch ( eOld );
@@ -3766,10 +3778,14 @@ void yyerror ( ExprParser_t * pParser, const char * sMessage )
 
 ExprParser_t::~ExprParser_t ()
 {
-	// i kinda own those constlists
+	// i kinda own those const*
 	ARRAY_FOREACH ( i, m_dNodes )
+	{
 		if ( m_dNodes[i].m_iToken==TOK_CONST_LIST )
 			SafeDelete ( m_dNodes[i].m_pConsts );
+		if ( m_dNodes[i].m_iToken==TOK_CONST_HASH )
+			SafeDelete ( m_dNodes[i].m_pConsthash );
+	}
 
 	// free any UDF calls that weren't taken over
 	ARRAY_FOREACH ( i, m_dUdfCalls )
@@ -4182,15 +4198,23 @@ int ExprParser_t::AddNodeUdf ( int iCall, int iArg )
 		{
 			if ( m_dNodes[iCur].m_iToken!=',' )
 			{
-				dArgTypes.Add ( m_dNodes[iCur].m_eRetType );
+				const ExprNode_t & tNode = m_dNodes[iCur];
+				if ( tNode.m_iToken==TOK_FUNC &&
+					( g_dFuncs[tNode.m_iFunc].m_eFunc==FUNC_PACKEDFACTORS || g_dFuncs[tNode.m_iFunc].m_eFunc==FUNC_RANKFACTORS ) )
+					pCall->m_dArrgs2Free.Add ( dArgTypes.GetLength() );
+				dArgTypes.Add ( tNode.m_eRetType );
 				break;
 			}
 
 			int iRight = m_dNodes[iCur].m_iRight;
 			if ( iRight>=0 )
 			{
-				assert ( m_dNodes[iRight].m_iToken!=',' );
-				dArgTypes.Add ( m_dNodes[iRight].m_eRetType );
+				const ExprNode_t & tNode = m_dNodes[iRight];
+				assert ( tNode.m_iToken!=',' );
+				if ( tNode.m_iToken==TOK_FUNC &&
+					( g_dFuncs[tNode.m_iFunc].m_eFunc==FUNC_PACKEDFACTORS || g_dFuncs[tNode.m_iFunc].m_eFunc==FUNC_RANKFACTORS ) )
+					pCall->m_dArrgs2Free.Add ( dArgTypes.GetLength() );
+				dArgTypes.Add ( tNode.m_eRetType );
 			}
 
 			iCur = m_dNodes[iCur].m_iLeft;
