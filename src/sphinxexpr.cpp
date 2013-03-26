@@ -2203,7 +2203,10 @@ public:
 	void FreeArgs() const
 	{
 		ARRAY_FOREACH ( i, m_dArgs2Free )
-			SafeDeleteArray ( m_pCall->m_tArgs.arg_values[i] );
+		{
+			int iAttr = m_dArgs2Free[i];
+			SafeDeleteArray ( m_pCall->m_tArgs.arg_values[iAttr] );
+		}
 	}
 
 	virtual void Command ( ESphExprCommand eCmd, void * pArg )
@@ -4262,6 +4265,9 @@ int ExprParser_t::AddNodeUdf ( int iCall, int iArg )
 					return -1;
 			}
 		}
+
+		ARRAY_FOREACH ( i, pCall->m_dArrgs2Free )
+			pCall->m_dArrgs2Free[i] = tArgs.arg_count - 1 - pCall->m_dArrgs2Free[i];
 	}
 
 	// init
