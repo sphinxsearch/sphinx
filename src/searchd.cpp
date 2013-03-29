@@ -13922,7 +13922,7 @@ void HandleMysqlInsert ( SqlRowBuffer_c & tOut, const SqlStmt_t & tStmt,
 			if ( iQuerySchemaIdx < 0 )
 			{
 				bResult = tDoc.SetDefaultAttr ( tLoc, tCol.m_eAttrType );
-				if ( tCol.m_eAttrType==SPH_ATTR_STRING )
+				if ( tCol.m_eAttrType==SPH_ATTR_STRING || tCol.m_eAttrType==SPH_ATTR_JSON )
 					dStrings.Add ( NULL );
 				if ( tCol.m_eAttrType==SPH_ATTR_UINT32SET || tCol.m_eAttrType==SPH_ATTR_INT64SET )
 					dMvas.Add ( 0 );
@@ -20614,7 +20614,7 @@ int WINAPI ServiceMain ( int argc, char **argv )
 	///////////
 
 	if ( g_eWorkers==MPM_THREADS )
-		sphRTInit( hSearchd, bTestMode );
+		sphRTInit ( hSearchd, bTestMode );
 
 	if ( hSearchd.Exists ( "snippets_file_prefix" ) )
 		g_sSnippetsFilePrefix = hSearchd["snippets_file_prefix"].cstr();
