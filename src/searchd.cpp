@@ -9243,45 +9243,23 @@ void SearchHandler_c::RunUpdates ( const CSphQuery & tQuery, const CSphString & 
 
 void SearchHandler_c::RunQueries()
 {
-	///////////////////////////////
-	// choose path and run queries
-	///////////////////////////////
-
 	// check if all queries are to the same index
-	bool bSameIndex = false;
-	if ( m_dQueries.GetLength()>1 )
-	{
-		bSameIndex = true;
-		ARRAY_FOREACH ( i, m_dQueries )
-			if ( m_dQueries[i].m_sIndexes!=m_dQueries[0].m_sIndexes )
-		{
-			bSameIndex = false;
-			break;
-		}
-	}
-
+	bool bSameIndex = ARRAY_ALL ( bSameIndex, m_dQueries, m_dQueries[_all].m_sIndexes==m_dQueries[0].m_sIndexes );
 	if ( bSameIndex )
 	{
-		///////////////////////////////
 		// batch queries to same index
-		///////////////////////////////
 		RunSubset ( 0, m_dQueries.GetLength()-1 );
 		ARRAY_FOREACH ( i, m_dQueries )
 			LogQuery ( m_dQueries[i], m_dResults[i], m_dAgentTimes[i] );
-
 	} else
 	{
-		/////////////////////////////////////////////
 		// fallback; just work each query separately
-		/////////////////////////////////////////////
-
 		ARRAY_FOREACH ( i, m_dQueries )
 		{
 			RunSubset ( i, i );
 			LogQuery ( m_dQueries[i], m_dResults[i], m_dAgentTimes[i] );
 		}
 	}
-
 	OnRunFinished();
 }
 
