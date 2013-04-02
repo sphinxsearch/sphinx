@@ -11002,7 +11002,7 @@ bool SqlParser_c::AddOption ( const SqlNode_t& tIdent, const SqlNode_t& tValue )
 
 	} else if ( sOpt=="max_predicted_time" )
 	{
-		m_pQuery->m_iMaxPredictedMsec = (int)tValue.m_iValue;
+		m_pQuery->m_iMaxPredictedMsec = int(tValue.m_iValue > INT_MAX ? INT_MAX : tValue.m_iValue);
 
 	} else if ( sOpt=="boolean_simplify" )
 	{
