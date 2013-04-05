@@ -154,6 +154,8 @@ public:
 	CSphQueryStats	m_tStats;							///< query prediction counters
 	bool			m_bHasPrediction;					///< is prediction counters set?
 
+	CSphStringBuilder	m_sTransformedTree;					///< transformed query tree
+
 public:
 	/// create empty and stopped profile
 	CSphQueryProfile()

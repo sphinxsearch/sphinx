@@ -10512,18 +10512,21 @@ enum SqlStmt_e
 	STMT_SHOW_AGENT_STATUS,
 	STMT_SHOW_INDEX_STATUS,
 	STMT_SHOW_PROFILE,
+	STMT_SHOW_PLAN,
 
 	STMT_TOTAL
 };
 
 
+// FIXME? verify or generate these automatically somehow?
 static const char * g_dSqlStmts[STMT_TOTAL] =
 {
 	"parse_error", "dummy", "select", "insert", "replace", "delete", "show_warnings",
 	"show_status", "show_meta", "set", "begin", "commit", "rollback", "call",
 	"desc", "show_tables", "update", "create_func", "drop_func", "attach_index",
 	"flush_rtindex", "show_variables", "truncate_rtindex", "select_sysvar",
-	"show_collation", "optimize_index", "show_agent_status"
+	"show_collation", "show_character_set", "optimize_index", "show_agent_status",
+	"show_index_status", "show_profile", "show_plan"
 };
 
 
@@ -15871,6 +15874,20 @@ void HandleMysqlShowProfile ( SqlRowBuffer_c & tOut, const CSphQueryProfile & p 
 }
 
 
+void HandleMysqlShowPlan ( SqlRowBuffer_c & tOut, const CSphQueryProfile & p )
+{
+	tOut.HeadBegin ( 2 );
+	tOut.HeadColumn ( "Variable" );
+	tOut.HeadColumn ( "Value" );
+	tOut.HeadEnd();
+
+	tOut.PutString ( "transformed_tree" );
+	tOut.PutString ( p.m_sTransformedTree.cstr() );
+	tOut.Commit();
+
+	tOut.Eof();
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 class CSphinxqlSession : public ISphNoncopyable
@@ -16123,7 +16140,11 @@ public:
 
 		case STMT_SHOW_PROFILE:
 			HandleMysqlShowProfile ( tOut, m_tLastProfile );
-			return false;
+			return false; // do not profile this call, keep last query profile
+
+		case STMT_SHOW_PLAN:
+			HandleMysqlShowPlan ( tOut, m_tLastProfile );
+			return false; // do not profile this call, keep last query profile
 
 		default:
 			m_sError.SetSprintf ( "internal error: unhandled statement type (value=%d)", eStmt );
