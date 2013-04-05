@@ -13345,9 +13345,14 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 </itemizedlist>
 </sect1>
 
-<sect1 id="rel207"><title>Version 2.0.7-release, 26 feb 2013</title>
+<sect1 id="rel207"><title>Version 2.0.7-release, 26 mar 2013</title>
 <bridgehead>Bug fixes</bridgehead>
 <itemizedlist>
+<listitem><para>fixed #1475, memory leak in the expression parser</para></listitem>
+<listitem><para>fixed #1457, error messages over 2KB were clipped</para></listitem>
+<listitem><para>fixed #1454, searchd did not display an error message when the binlog path did not exist</para></listitem>
+<listitem><para>fixed #1441, SHOW META in a query batch was returning the last non-batch error</para></listitem>
+<listitem><para>fixed #1435, typo in the documentation</para></listitem>
 <listitem><para>fixed #1430, rt_flush_period now works even with a disabled binlog</para></listitem>
 <listitem><para>fixed #1427, overlong 4-byte UTF-8 codes in source text could cause indexer crashes or index corruption</para></listitem>
 <listitem><para>fixed #1418, warnings from local index searches were lost with dist_threads&gt;0</para></listitem>

@@ -16268,6 +16268,11 @@ void HandleClientMySQL ( int iSock, const char * sClientIP, ThdDesc_t * pThd )
 			} while ( iAddonLen==MAX_PACKET_LEN );
 			if ( iAddonLen<0 )
 				break;
+			if ( iPacketLen<0 || iPacketLen>g_iMaxPacketSize )
+			{
+				sphWarning ( "ill-formed client request (length=%d out of bounds)", iPacketLen );
+				break;
+			}
 		}
 
 		// handle auth packet
@@ -16305,6 +16310,7 @@ void HandleClientMySQL ( int iSock, const char * sClientIP, ThdDesc_t * pThd )
 				// handle query packet
 				assert ( uMysqlCmd==MYSQL_COM_QUERY );
 				sQuery = tIn.GetRawString ( iPacketLen-1 );
+				assert ( !tIn.GetError() );
 				bKeepProfile = tSession.Execute ( sQuery, tOut, uPacketID, pThd );
 				break;
 
@@ -16818,6 +16824,7 @@ static void RotateIndexMT ( const CSphString & sIndex )
 	tNewIndex.m_pIndex = sphCreateIndexPhrase ( sIndex.cstr(), NULL );
 	tNewIndex.m_pIndex->SetEnableStar ( pRotating->m_bStar );
 	tNewIndex.m_pIndex->m_bExpandKeywords = pRotating->m_bExpand;
+	tNewIndex.m_pIndex->m_iExpansionLimit = g_iExpansionLimit;
 	tNewIndex.m_pIndex->SetPreopen ( pRotating->m_bPreopen || g_bPreopenIndexes );
 	tNewIndex.m_pIndex->SetWordlistPreload ( !pRotating->m_bOnDiskDict && !g_bOnDiskDicts );
 	tNewIndex.m_pIndex->SetGlobalIDFPath ( pRotating->m_sGlobalIDFPath );
@@ -17028,6 +17035,7 @@ void SeamlessTryToForkPrereader ()
 
 	g_pPrereading->SetEnableStar ( tServed.m_bStar );
 	g_pPrereading->m_bExpandKeywords = tServed.m_bExpand;
+	g_pPrereading->m_iExpansionLimit = g_iExpansionLimit;
 	g_pPrereading->SetPreopen ( tServed.m_bPreopen || g_bPreopenIndexes );
 	g_pPrereading->SetWordlistPreload ( !tServed.m_bOnDiskDict && !g_bOnDiskDicts );
 	g_pPrereading->SetGlobalIDFPath ( tServed.m_sGlobalIDFPath );
