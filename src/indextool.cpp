@@ -18,7 +18,10 @@
 #include "sphinxint.h"
 #include "sphinxrt.h"
 #include <time.h>
+
+#if USE_WINDOWS
 #include <io.h> // for setmode on windows
+#endif
 
 void StripStdin ( const char * sIndexAttrs, const char * sRemoveElements )
 {
