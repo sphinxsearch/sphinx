@@ -1011,21 +1011,26 @@ public:
 	virtual bool Eval ( const CSphMatch & tMatch ) const
 	{
 		const BYTE * pValue;
+		float fValue;
 		ESphJsonType eRes = GetKey ( &pValue, tMatch );
 		switch ( eRes )
 		{
+			case JSON_INT32:
+				fValue = (float)sphJsonLoadInt ( &pValue );
+				break;
+			case JSON_INT64:
+				fValue = (float)sphJsonLoadBigint ( &pValue );
+				break;
 			case JSON_DOUBLE:
-			{
-				// convert to float (fails comparison tests otherwise, e.g. 1.010>1.010f)
-				float fValue = (float)sphQW2D ( sphJsonLoadBigint ( &pValue ) );
-				if ( HAS_EQUALS )
-					return fValue>=m_fMinValue && fValue<=m_fMaxValue;
-				else
-					return fValue>m_fMinValue && fValue<m_fMaxValue;
-			}
-		default:
-			return false;
+				fValue = (float)sphQW2D ( sphJsonLoadBigint ( &pValue ) );
+				break;
+			default:
+				return false;
 		}
+		if ( HAS_EQUALS )
+			return fValue>=m_fMinValue && fValue<=m_fMaxValue;
+		else
+			return fValue>m_fMinValue && fValue<m_fMaxValue;
 	}
 };
 
