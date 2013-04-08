@@ -811,6 +811,7 @@ static inline ISphFilter * ReportError ( CSphString & sError, const char * sMess
 		case SPH_FILTER_VALUES:			sFilterName = "intvalues"; break;
 		case SPH_FILTER_RANGE:			sFilterName = "intrange"; break;
 		case SPH_FILTER_FLOATRANGE:		sFilterName = "floatrange"; break;
+		case SPH_FILTER_STRING:			sFilterName = "string"; break;
 		default:						sFilterName.SetSprintf ( "(filter-type-%d)", eFilterType ); break;
 	}
 
@@ -864,6 +865,9 @@ static ISphFilter * CreateFilter ( ESphAttr eAttrType, ESphFilter eFilterType, i
 
 		return ReportError ( sError, "unsupported filter type '%s' on float column", eFilterType );
 	}
+
+	if ( eAttrType==SPH_ATTR_STRING || eAttrType==SPH_ATTR_STRINGPTR )
+		return ReportError ( sError, "unsupported filter type '%s' on string column", eFilterType );
 
 	// non-float, non-MVA
 	switch ( eFilterType )
