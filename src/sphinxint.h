@@ -1499,6 +1499,7 @@ CSphString		sphReconstructNode ( const XQNode_t * pNode, const CSphSchema * pSch
 
 void			sphSetUnlinkOld ( bool bUnlink );
 void			sphUnlinkIndex ( const char * sName, bool bForce );
+void			sphSetDebugCheck ();
 
 void			WriteSchema ( CSphWriter & fdInfo, const CSphSchema & tSchema );
 void			ReadSchema ( CSphReader & rdInfo, CSphSchema & m_tSchema, DWORD uVersion, bool bDynamic );

@@ -1717,7 +1717,7 @@ YY_RULE_SETUP
 case 106:
 YY_RULE_SETUP
 #line 142 "sphinxql.l"
-{ YYSTOREBOUNDS; lvalp->m_sValue = yytext; return TOK_ID; }
+{ YYSTOREBOUNDS; lvalp->m_iStart++; lvalp->m_iEnd--; lvalp->m_sValue.SetBinary ( yytext+1, strlen(yytext)-2 ); return TOK_ID; }
 	YY_BREAK
 case 107:
 YY_RULE_SETUP
