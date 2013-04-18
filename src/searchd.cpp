@@ -1675,6 +1675,28 @@ static void UpdateAliveChildrenList ( CSphVector<int> & dChildren )
 #endif
 
 
+static bool SaveIndexes ()
+{
+	CSphString sError;
+	bool bAllSaved = true;
+	for ( IndexHashIterator_c it ( g_pLocalIndexes ); it.Next(); )
+	{
+		const ServedIndex_t & tServed = it.Get();
+		if ( !tServed.m_bEnabled )
+			continue;
+
+		tServed.ReadLock();
+		if ( !tServed.m_pIndex->SaveAttributes ( sError ) )
+		{
+			sphWarning ( "index %s: attrs save failed: %s", it.GetKey().cstr(), sError.cstr() );
+			bAllSaved = false;
+		}
+		tServed.Unlock();
+	}
+	return bAllSaved;
+}
+
+
 void Shutdown ()
 {
 #if !USE_WINDOWS
@@ -1772,18 +1794,7 @@ void Shutdown ()
 
 		CSphString sError;
 		// save attribute updates for all local indexes
-		for ( IndexHashIterator_c it ( g_pLocalIndexes ); it.Next(); )
-		{
-			const ServedIndex_t & tServed = it.Get();
-			if ( !tServed.m_bEnabled )
-				continue;
-
-			if ( !tServed.m_pIndex->SaveAttributes ( sError ) )
-			{
-				sphWarning ( "index %s: attrs save failed: %s", it.GetKey().cstr(), sError.cstr() );
-				bAttrsSaveOk = false;
-			}
-		}
+		bAttrsSaveOk = SaveIndexes();
 
 		// unlock indexes and release locks if needed
 		for ( IndexHashIterator_c it ( g_pLocalIndexes ); it.Next(); )
@@ -18644,23 +18655,6 @@ void CheckReopen ()
 
 
 	g_bGotSigusr1 = 0;
-}
-
-
-static void SaveIndexes ()
-{
-	CSphString sError;
-	for ( IndexHashIterator_c it ( g_pLocalIndexes ); it.Next(); )
-	{
-		const ServedIndex_t & tServed = it.Get();
-		tServed.ReadLock();
-		if ( tServed.m_bEnabled )
-		{
-			if ( !tServed.m_pIndex->SaveAttributes ( sError ) )
-				sphWarning ( "index %s: attrs save failed: %s", it.GetKey().cstr(), sError.cstr() );
-		}
-		tServed.Unlock();
-	}
 }
 
 
