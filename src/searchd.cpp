@@ -7754,12 +7754,37 @@ class CVirtualSchema : public CSphSchema
 {
 public:
 	inline CSphColumnInfo & LastColumn() { return m_dAttrs.Last(); }
-	inline CSphColumnInfo &	GetWAttr ( int iIndex ) { return m_dAttrs[iIndex]; }
-	inline CSphVector<CSphColumnInfo> & GetWAttrs () { return m_dAttrs; }
+	inline CSphColumnInfo & GetWAttr ( int iIndex ) { return m_dAttrs[iIndex]; }
+
+	inline void RemoveAttrPlain ( int iIdx )
+	{
+		if ( m_pAttrs )
+		{
+			for ( int i=iIdx+1; i<m_dAttrs.GetLength(); i++ )
+				(*m_pAttrs) [ m_dAttrs[i].m_sName ]--;
+			m_pAttrs->Delete ( m_dAttrs [ iIdx ].m_sName );
+		}
+		m_dAttrs.Remove ( iIdx );
+	}
+
 	inline void AlignSizes ( const CSphSchema& tProof )
 	{
 		m_dDynamicUsed.Resize ( tProof.GetDynamicSize() );
 		m_iStaticSize = tProof.GetStaticSize();
+	}
+
+	void InsertAttr ( int iIdx, const CSphColumnInfo & tCol )
+	{
+		if ( m_dAttrs.GetLength()==HASH_THRESH )
+			UpdateHash();
+
+		m_dAttrs.Insert ( iIdx, tCol );
+		if ( m_pAttrs )
+		{
+			m_pAttrs->Add ( iIdx, m_dAttrs [ iIdx ].m_sName );
+			for  ( int i=iIdx+1; i<m_dAttrs.GetLength(); i++ )
+				(*m_pAttrs) [ m_dAttrs[i].m_sName ]++;
+		}
 	}
 };
 
@@ -7780,7 +7805,7 @@ void AddIDAttribute ( CVirtualSchema * pSchema )
 
 	CSphColumnInfo tId;
 	MkIdAttribute ( &tId );
-	pSchema->GetWAttrs().Insert ( 0, tId );
+	pSchema->InsertAttr ( 0, tId );
 }
 
 inline bool IsIDAttribute ( const CSphColumnInfo & tTarget )
@@ -8194,7 +8219,10 @@ bool MinimizeAggrResult ( AggrResult_t & tRes, CSphQuery & tQuery, int iLocals, 
 	CVirtualSchema tInternalSchema;
 	// truly virtual schema for final result returning
 	CVirtualSchema tFrontendSchema;
-	tFrontendSchema.GetWAttrs().Resize ( pSelectItems->GetLength() );
+	CSphColumnInfo tEmpty;
+	// beware of incorrect hash inside of tFrontendSchema!
+	ARRAY_FOREACH ( i, (*pSelectItems) )
+		tFrontendSchema.InsertAttr ( i, tEmpty );
 
 	CSphVector<int> dKnownItems;
 	int iKnownItems = 0;
@@ -8217,11 +8245,13 @@ bool MinimizeAggrResult ( AggrResult_t & tRes, CSphQuery & tQuery, int iLocals, 
 							dKnownItems.Add(j);
 							++iKnownItems;
 						}
+					tFrontendSchema.UpdateHash();
 					if ( tFrontendSchema.GetAttr ( tCol.m_sName.cstr() )==NULL )
 					{
-						CSphColumnInfo & tItem = tFrontendSchema.GetWAttrs().Add();
+						CSphColumnInfo tItem;
 						tItem.m_iIndex = tInternalSchema.GetAttrsCount();
 						tItem.m_sName = tCol.m_sName;
+						tFrontendSchema.InsertAttr ( tFrontendSchema.GetAttrsCount(), tItem );
 					}
 				} else
 					ARRAY_FOREACH ( j, (*pSelectItems) )
@@ -8308,6 +8338,8 @@ bool MinimizeAggrResult ( AggrResult_t & tRes, CSphQuery & tQuery, int iLocals, 
 		bAllEqual &= ( tRes.m_tSchema.GetAttrsCount()==tInternalSchema.GetAttrsCount() );
 	}
 
+	tFrontendSchema.UpdateHash();
+
 	// check if we actually have all required columns already
 	if ( iKnownItems<pSelectItems->GetLength() )
 	{
@@ -8334,7 +8366,7 @@ bool MinimizeAggrResult ( AggrResult_t & tRes, CSphQuery & tQuery, int iLocals, 
 	// and set up the locators for the fields
 	if ( !bAgent )
 	{
-		ARRAY_FOREACH ( i, tFrontendSchema.GetWAttrs() )
+		for ( int i=0; i<tFrontendSchema.GetAttrsCount(); i++ )
 		{
 			CSphColumnInfo & tCol = tFrontendSchema.GetWAttr(i);
 			const CSphColumnInfo & tSource = tInternalSchema.GetAttr ( tCol.m_iIndex );
@@ -8571,7 +8603,7 @@ bool MinimizeAggrResultCompat ( AggrResult_t & tRes, const CSphQuery & tQuery, b
 	if ( bStar && !bHadLocalIndexes && tRes.m_tSchema.GetAttr(iStar).m_sName=="id" )
 	{
 		CVirtualSchema * pSchema = (CVirtualSchema *)&tRes.m_tSchema;
-		pSchema->GetWAttrs().Remove(iStar);
+		pSchema->RemoveAttrPlain ( iStar );
 	}
 
 	if ( !bStar && tQuery.m_dItems.GetLength() )
