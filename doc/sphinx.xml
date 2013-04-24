@@ -5423,6 +5423,35 @@ Query OK, 0 rows affected (0.05 sec)
 </sect1>
 
 
+<sect1 id="sphinxql-flush-ramchunk"><title>FLUSH RAMCHUNK syntax</title>
+<programlisting>
+FLUSH RAMCHUNK rtindex
+</programlisting>
+<para>
+FLUSH RAMCHUNK statement, added in version 2.1.2-beta, forcibly
+creates a new disk chunk in a RT index.
+</para>
+<para>
+Normally, RT index would flush and convert the contents of the
+RAM chunk into a new disk chunk automatically, once the RAM chunk
+reaches the maximum allowed
+<link linkend="conf-rt-mem-limit">rt_mem_limit</link> size.
+However, for debugging and testing it might be useful to forcibly
+create a new disk chunk, and FLUSH RAMCHUNK statement does exactly that.
+</para>
+<para>
+Note that using FLUSH RAMCHUNK increases RT index fragmentation.
+Most likely, you want to use FLUSH RTINDEX instead. We suggest that
+you abstain from using this statement unless you're absolutely sure
+what you're doing.
+</para>
+<programlisting>
+mysql> FLUSH RAMCHUNK rt;
+Query OK, 0 rows affected (0.05 sec)
+</programlisting>
+</sect1>
+
+
 <sect1 id="sphinxql-truncate-rtindex"><title>TRUNCATE RTINDEX syntax</title>
 <programlisting>
 TRUNCATE RTINDEX rtindex

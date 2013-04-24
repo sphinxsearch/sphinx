@@ -10378,6 +10378,7 @@ enum SqlStmt_e
 	STMT_DROP_FUNCTION,
 	STMT_ATTACH_INDEX,
 	STMT_FLUSH_RTINDEX,
+	STMT_FLUSH_RAMCHUNK,
 	STMT_SHOW_VARIABLES,
 	STMT_TRUNCATE_RTINDEX,
 	STMT_SELECT_SYSVAR,
@@ -10399,7 +10400,7 @@ static const char * g_dSqlStmts[STMT_TOTAL] =
 	"parse_error", "dummy", "select", "insert", "replace", "delete", "show_warnings",
 	"show_status", "show_meta", "set", "begin", "commit", "rollback", "call",
 	"desc", "show_tables", "update", "create_func", "drop_func", "attach_index",
-	"flush_rtindex", "show_variables", "truncate_rtindex", "select_sysvar",
+	"flush_rtindex", "flush_ramchunk", "show_variables", "truncate_rtindex", "select_sysvar",
 	"show_collation", "show_character_set", "optimize_index", "show_agent_status",
 	"show_index_status", "show_profile", "show_plan"
 };
@@ -15491,7 +15492,7 @@ void HandleMysqlAttach ( SqlRowBuffer_c & tOut, const SqlStmt_t & tStmt )
 }
 
 
-void HandleMysqlFlush ( SqlRowBuffer_c & tOut, const SqlStmt_t & tStmt )
+void HandleMysqlFlushRtindex ( SqlRowBuffer_c & tOut, const SqlStmt_t & tStmt )
 {
 	CSphString sError;
 	const ServedIndex_t * pIndex = g_pLocalIndexes->GetRlockedEntry ( tStmt.m_sIndex );
@@ -15508,6 +15509,28 @@ void HandleMysqlFlush ( SqlRowBuffer_c & tOut, const SqlStmt_t & tStmt )
 	assert ( pRt );
 
 	pRt->ForceRamFlush();
+	pIndex->Unlock();
+	tOut.Ok();
+}
+
+
+void HandleMysqlFlushRamchunk ( SqlRowBuffer_c & tOut, const SqlStmt_t & tStmt )
+{
+	CSphString sError;
+	const ServedIndex_t * pIndex = g_pLocalIndexes->GetRlockedEntry ( tStmt.m_sIndex );
+
+	if ( !pIndex || !pIndex->m_bEnabled || !pIndex->m_bRT )
+	{
+		if ( pIndex )
+			pIndex->Unlock();
+		tOut.Error ( tStmt.m_sStmt, "FLUSH RAMCHUNK requires an existing RT index" );
+		return;
+	}
+
+	ISphRtIndex * pRt = dynamic_cast<ISphRtIndex*> ( pIndex->m_pIndex );
+	assert ( pRt );
+
+	pRt->ForceDiskChunk();
 	pIndex->Unlock();
 	tOut.Ok();
 }
@@ -15982,7 +16005,11 @@ public:
 			return true;
 
 		case STMT_FLUSH_RTINDEX:
-			HandleMysqlFlush ( tOut, *pStmt );
+			HandleMysqlFlushRtindex ( tOut, *pStmt );
+			return true;
+
+		case STMT_FLUSH_RAMCHUNK:
+			HandleMysqlFlushRamchunk ( tOut, *pStmt );
 			return true;
 
 		case STMT_SHOW_VARIABLES:

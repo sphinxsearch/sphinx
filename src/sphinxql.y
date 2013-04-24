@@ -74,6 +74,7 @@
 %token	TOK_PLAN
 %token	TOK_PROFILE
 %token	TOK_RAND
+%token	TOK_RAMCHUNK
 %token	TOK_READ
 %token	TOK_REPEATABLE
 %token	TOK_REPLACE
@@ -149,6 +150,7 @@ statement:
 	| drop_function
 	| attach_index
 	| flush_rtindex
+	| flush_ramchunk
 	| set_transaction
 	| select_sysvar
 	| truncate
@@ -1096,6 +1098,15 @@ flush_rtindex:
 		{
 			SqlStmt_t & tStmt = *pParser->m_pStmt;
 			tStmt.m_eStmt = STMT_FLUSH_RTINDEX;
+			tStmt.m_sIndex = $3.m_sValue;
+		}
+	;
+
+flush_ramchunk:
+	TOK_FLUSH TOK_RAMCHUNK TOK_IDENT
+		{
+			SqlStmt_t & tStmt = *pParser->m_pStmt;
+			tStmt.m_eStmt = STMT_FLUSH_RAMCHUNK;
 			tStmt.m_sIndex = $3.m_sValue;
 		}
 	;

@@ -92,42 +92,43 @@
      TOK_PLAN = 318,
      TOK_PROFILE = 319,
      TOK_RAND = 320,
-     TOK_READ = 321,
-     TOK_REPEATABLE = 322,
-     TOK_REPLACE = 323,
-     TOK_RETURNS = 324,
-     TOK_ROLLBACK = 325,
-     TOK_RTINDEX = 326,
-     TOK_SELECT = 327,
-     TOK_SERIALIZABLE = 328,
-     TOK_SET = 329,
-     TOK_SESSION = 330,
-     TOK_SHOW = 331,
-     TOK_SONAME = 332,
-     TOK_START = 333,
-     TOK_STATUS = 334,
-     TOK_STRING = 335,
-     TOK_SUM = 336,
-     TOK_TABLES = 337,
-     TOK_TO = 338,
-     TOK_TRANSACTION = 339,
-     TOK_TRUE = 340,
-     TOK_TRUNCATE = 341,
-     TOK_UNCOMMITTED = 342,
-     TOK_UPDATE = 343,
-     TOK_VALUES = 344,
-     TOK_VARIABLES = 345,
-     TOK_WARNINGS = 346,
-     TOK_WEIGHT = 347,
-     TOK_WHERE = 348,
-     TOK_WITHIN = 349,
-     TOK_OR = 350,
-     TOK_AND = 351,
-     TOK_NE = 352,
-     TOK_GTE = 353,
-     TOK_LTE = 354,
-     TOK_NOT = 355,
-     TOK_NEG = 356
+     TOK_RAMCHUNK = 321,
+     TOK_READ = 322,
+     TOK_REPEATABLE = 323,
+     TOK_REPLACE = 324,
+     TOK_RETURNS = 325,
+     TOK_ROLLBACK = 326,
+     TOK_RTINDEX = 327,
+     TOK_SELECT = 328,
+     TOK_SERIALIZABLE = 329,
+     TOK_SET = 330,
+     TOK_SESSION = 331,
+     TOK_SHOW = 332,
+     TOK_SONAME = 333,
+     TOK_START = 334,
+     TOK_STATUS = 335,
+     TOK_STRING = 336,
+     TOK_SUM = 337,
+     TOK_TABLES = 338,
+     TOK_TO = 339,
+     TOK_TRANSACTION = 340,
+     TOK_TRUE = 341,
+     TOK_TRUNCATE = 342,
+     TOK_UNCOMMITTED = 343,
+     TOK_UPDATE = 344,
+     TOK_VALUES = 345,
+     TOK_VARIABLES = 346,
+     TOK_WARNINGS = 347,
+     TOK_WEIGHT = 348,
+     TOK_WHERE = 349,
+     TOK_WITHIN = 350,
+     TOK_OR = 351,
+     TOK_AND = 352,
+     TOK_NE = 353,
+     TOK_GTE = 354,
+     TOK_LTE = 355,
+     TOK_NOT = 356,
+     TOK_NEG = 357
    };
 #endif
 #define TOK_IDENT 258
@@ -193,42 +194,43 @@
 #define TOK_PLAN 318
 #define TOK_PROFILE 319
 #define TOK_RAND 320
-#define TOK_READ 321
-#define TOK_REPEATABLE 322
-#define TOK_REPLACE 323
-#define TOK_RETURNS 324
-#define TOK_ROLLBACK 325
-#define TOK_RTINDEX 326
-#define TOK_SELECT 327
-#define TOK_SERIALIZABLE 328
-#define TOK_SET 329
-#define TOK_SESSION 330
-#define TOK_SHOW 331
-#define TOK_SONAME 332
-#define TOK_START 333
-#define TOK_STATUS 334
-#define TOK_STRING 335
-#define TOK_SUM 336
-#define TOK_TABLES 337
-#define TOK_TO 338
-#define TOK_TRANSACTION 339
-#define TOK_TRUE 340
-#define TOK_TRUNCATE 341
-#define TOK_UNCOMMITTED 342
-#define TOK_UPDATE 343
-#define TOK_VALUES 344
-#define TOK_VARIABLES 345
-#define TOK_WARNINGS 346
-#define TOK_WEIGHT 347
-#define TOK_WHERE 348
-#define TOK_WITHIN 349
-#define TOK_OR 350
-#define TOK_AND 351
-#define TOK_NE 352
-#define TOK_GTE 353
-#define TOK_LTE 354
-#define TOK_NOT 355
-#define TOK_NEG 356
+#define TOK_RAMCHUNK 321
+#define TOK_READ 322
+#define TOK_REPEATABLE 323
+#define TOK_REPLACE 324
+#define TOK_RETURNS 325
+#define TOK_ROLLBACK 326
+#define TOK_RTINDEX 327
+#define TOK_SELECT 328
+#define TOK_SERIALIZABLE 329
+#define TOK_SET 330
+#define TOK_SESSION 331
+#define TOK_SHOW 332
+#define TOK_SONAME 333
+#define TOK_START 334
+#define TOK_STATUS 335
+#define TOK_STRING 336
+#define TOK_SUM 337
+#define TOK_TABLES 338
+#define TOK_TO 339
+#define TOK_TRANSACTION 340
+#define TOK_TRUE 341
+#define TOK_TRUNCATE 342
+#define TOK_UNCOMMITTED 343
+#define TOK_UPDATE 344
+#define TOK_VALUES 345
+#define TOK_VARIABLES 346
+#define TOK_WARNINGS 347
+#define TOK_WEIGHT 348
+#define TOK_WHERE 349
+#define TOK_WITHIN 350
+#define TOK_OR 351
+#define TOK_AND 352
+#define TOK_NE 353
+#define TOK_GTE 354
+#define TOK_LTE 355
+#define TOK_NOT 356
+#define TOK_NEG 357
 
 
 
