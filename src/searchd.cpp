@@ -707,7 +707,6 @@ struct AgentDesc_t
 	int				m_iDashIndex;	///< index into global searchd host stats array (1 host can hold >1 agents)
 	bool			m_bPersistent;	///< whether to keep the persistent connection to the agent.
 	RentPersistent	m_dPersPool;	///< socket number, -1 if not connected (has sense only if the connection is persistent)
-	int				m_iPersPool;	///< socket number, -1 if not connected (has sense only if the connection is persistent)
 
 public:
 	AgentDesc_t ()
@@ -716,6 +715,7 @@ public:
 		, m_iFamily ( AF_INET )
 		, m_uAddr ( 0 )
 		, m_iStatsIndex ( -1 )
+		, m_iDashIndex ( 0 )
 		, m_bPersistent ( false )
 		, m_dPersPool ( -1 )
 	{}
@@ -4000,6 +4000,7 @@ public:
 			if ( m_iSock==-2 ) // no free persistent connections. This connection will be not persistent
 				m_bPersistent = false;
 		}
+		m_bFresh = ( m_bPersistent && m_iSock<0 );
 	}
 };
 
@@ -4233,6 +4234,18 @@ void RemoteConnectToAgent ( AgentConn_t & tAgent )
 		}
 	} else
 	{
+		// connect() success
+		// send the client's proto version right now to avoid w-w-r pattern.
+		NetOutputBuffer_c tOut ( tAgent.m_iSock );
+		tOut.SendDword ( SPHINX_CLIENT_VERSION );
+		bool bFlushed = tOut.Flush (); // FIXME! handle flush failure?
+		// fix #1071
+#ifdef	TCP_NODELAY
+		int bNoDelay = 1;
+		if ( bFlushed && tAgent.m_iFamily==AF_INET )
+			setsockopt ( tAgent.m_iSock, IPPROTO_TCP, TCP_NODELAY, (char*)&bNoDelay, sizeof(bNoDelay) );
+#endif
+
 		// socket connected, ready to read hello message
 		tAgent.m_eState = AGENT_HANDSHAKE;
 	}
@@ -4385,7 +4398,7 @@ int RemoteQueryAgents ( AgentConnectionContext_t * pCtx )
 
 				NetOutputBuffer_c tOut ( tAgent.m_iSock );
 				// check if we need to reset the persistent connection
-				if ( tAgent.m_bFresh )
+				if ( tAgent.m_bFresh && tAgent.m_bPersistent )
 				{
 					tOut.SendWord ( SEARCHD_COMMAND_PERSIST );
 					tOut.SendWord ( 0 ); // dummy version
@@ -4867,7 +4880,7 @@ int RemoteQueryAgents ( AgentConnectionContext_t * pCtx )
 
 				NetOutputBuffer_c tOut ( tAgent.m_iSock );
 				// check if we need to reset the persistent connection
-				if ( tAgent.m_bFresh )
+				if ( tAgent.m_bFresh && tAgent.m_bPersistent )
 				{
 					tOut.SendWord ( SEARCHD_COMMAND_PERSIST );
 					tOut.SendWord ( 0 ); // dummy version
@@ -7782,7 +7795,7 @@ public:
 		if ( m_pAttrs )
 		{
 			m_pAttrs->Add ( iIdx, m_dAttrs [ iIdx ].m_sName );
-			for  ( int i=iIdx+1; i<m_dAttrs.GetLength(); i++ )
+			for ( int i=iIdx+1; i<m_dAttrs.GetLength(); i++ )
 				(*m_pAttrs) [ m_dAttrs[i].m_sName ]++;
 		}
 	}
