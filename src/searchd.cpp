@@ -10789,6 +10789,7 @@ public:
 		{
 			case SPH_ATTR_INTEGER:
 			case SPH_ATTR_TIMESTAMP:
+			case SPH_ATTR_BOOL:
 				CSphMatch::SetAttr ( tLoc, ToInt(tVal) );
 				break;
 			case SPH_ATTR_BIGINT:
@@ -20933,8 +20934,6 @@ int main ( int argc, char **argv )
 
 	return ServiceMain ( argc, argv );
 }
-
-
 
 //
 // $Id$
