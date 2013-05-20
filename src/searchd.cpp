@@ -2689,6 +2689,8 @@ public:
 #endif
 
 	bool		SendString ( const char * sStr );
+
+	bool		SendMysqlInt ( int iVal );
 	bool		SendMysqlString ( const char * sStr );
 
 	bool		Flush ( bool bUnfreeze=false );
@@ -2831,16 +2833,22 @@ bool NetOutputBuffer_c::SendString ( const char * sStr )
 }
 
 
+int MysqlPackedLen ( int iLen )
+{
+	if ( iLen<251 )
+		return 1;
+	if ( iLen<=0xffff )
+		return 3;
+	if ( iLen<=0xffffff )
+		return 4;
+	return 9;
+}
+
+
 int MysqlPackedLen ( const char * sStr )
 {
 	int iLen = strlen(sStr);
-	if ( iLen<251 )
-		return 1 + iLen;
-	if ( iLen<=0xffff )
-		return 3 + iLen;
-	if ( iLen<=0xffffff )
-		return 4 + iLen;
-	return 9 + iLen;
+	return MysqlPackedLen ( iLen ) + iLen;
 }
 
 
@@ -2917,6 +2925,16 @@ int MysqlUnpack ( InputBuffer_c & tReq, DWORD * pSize )
 	tReq.GetByte();
 	*pSize -= 8;
 	return iRes;
+}
+
+
+bool NetOutputBuffer_c::SendMysqlInt ( int iVal )
+{
+	if ( m_bError )
+		return false;
+	BYTE dBuf[12];
+	BYTE * pBuf = (BYTE*) MysqlPack ( dBuf, iVal );
+	return SendBytes ( dBuf, (int)( pBuf-dBuf ) );
 }
 
 
@@ -13546,8 +13564,8 @@ public:
 	// Header of the table with defined num of columns
 	inline void HeadBegin ( int iColumns )
 	{
-		m_tOut.SendLSBDword ( ((m_uPacketID++)<<24) + 2 );
-		m_tOut.SendByte ( (BYTE)iColumns ); // colunn count
+		m_tOut.SendLSBDword ( ((m_uPacketID++)<<24) + MysqlPackedLen ( iColumns ) + 1 );
+		m_tOut.SendMysqlInt ( iColumns );
 		m_tOut.SendByte ( 0 ); // extra
 		m_iSize = iColumns;
 	}
@@ -14765,14 +14783,6 @@ void SendMysqlSelectResult ( SqlRowBuffer_c & dRows, const AggrResult_t & tRes, 
 		iAttrsCount = iSchemaAttrsCount;
 		if ( g_bCompatResults )
 			iAttrsCount += 2;
-	}
-	if ( iAttrsCount>=251 )
-	{
-		// this will show up as success in query log, as the query itself was ok
-		// but we need some kind of a notice anyway, to nail down issues based on logs only
-		sphWarning ( "selecting more than 250 columns is not supported yet" );
-		dRows.Error ( NULL, "selecting more than 250 columns is not supported yet" );
-		return;
 	}
 
 	// result set header packet. We will attach EOF manually at the end.
