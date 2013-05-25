@@ -3266,6 +3266,8 @@ public:
 
 	int MvaEval ( const DWORD * pMva ) const;
 
+	virtual const DWORD * MvaEval ( const CSphMatch & ) const { assert ( 0 && "not implemented" ); return NULL; }
+
 	/// evaluate arg, check if any values are within set
 	virtual int IntEval ( const CSphMatch & tMatch ) const
 	{

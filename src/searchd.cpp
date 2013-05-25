@@ -290,7 +290,6 @@ static Mpm_e			g_eWorkers			= USE_WINDOWS ? MPM_THREADS : MPM_FORK;
 
 static int				g_iPreforkChildren	= 10;		// how much workers to keep
 static CSphVector<int>	g_dChildren;
-static volatile bool	g_bAcceptUnlocked	= true;		// whether this preforked child is guaranteed to be *not* holding a lock around accept
 static int				g_iClientFD			= -1;
 static int				g_iDistThreads		= 0;
 static int				g_iPingInterval		= 0;		// by default ping HA agents every 1 second
@@ -1596,6 +1595,7 @@ void Shutdown ()
 			DWORD uHandshakeOk = 0;
 			int iDummy; // to avoid gcc unused result warning
 			iDummy = ::write ( fdStopwait, &uHandshakeOk, sizeof(DWORD) );
+			iDummy++; // to avoid gcc set but not used variable warning
 		}
 #endif
 
@@ -1707,6 +1707,7 @@ void Shutdown ()
 			DWORD uStatus = bAttrsSaveOk;
 			int iDummy; // to avoid gcc unused result warning
 		iDummy = ::write ( fdStopwait, &uStatus, sizeof(DWORD) );
+		iDummy++; // to avoid gcc set but not used variable warning
 		::close ( fdStopwait );
 		}
 #endif
@@ -13631,7 +13632,6 @@ private:
 	char * m_pBuf;
 	int m_iLen;
 	int m_iLimit;
-	bool m_bMoreResults;
 
 private:
 	BYTE & m_uPacketID;

@@ -2311,7 +2311,6 @@ public:
 
 	DWORD CopyAttr ( const BYTE * pSrc )
 	{
-		assert ( m_dDst.GetLength()>0 && m_dDst.GetLength()<( I64C(1)<<32 ) ); // should be 32 bit offset
 		return CopyPackedString ( pSrc, m_dDst );
 	}
 };
@@ -2372,7 +2371,6 @@ public:
 
 	DWORD CopyAttr ( const DWORD * pSrc )
 	{
-		assert ( m_dDst.GetLength()>0 && m_dDst.GetLength()<( I64C(1)<<32 ) ); // should be 32 bit offset
 		return CopyMva ( pSrc, m_dDst );
 	}
 };
@@ -6314,7 +6312,7 @@ bool RtIndex_t::MultiQuery ( const CSphQuery * pQuery, CSphQueryResult * pResult
 									int k = -1;
 									int iDistance = -1;
 									ARRAY_FOREACH ( j, dOriginalJson )
-										if ( iDistance < 0 || ( uOff - dOriginalJson[j]>=0 && uOff - dOriginalJson[j] < iDistance ) )
+										if ( iDistance<0 || ( dOriginalJson[j]<=uOff && ( uOff-dOriginalJson[j] )<iDistance ) )
 										{
 											iDistance = uOff - dOriginalJson[j];
 											k = j;
