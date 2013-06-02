@@ -8283,15 +8283,23 @@ bool MinimizeAggrResult ( AggrResult_t & tRes, CSphQuery & tQuery, int iLocals, 
 				if ( *tCol.m_sName.cstr()=='@' )
 				{
 					ARRAY_FOREACH ( j, (*pSelectItems) )
-						if ( tFrontendSchema.GetAttr(j).m_iIndex<0
-							&& ( (*pSelectItems)[j].m_sExpr.cstr() && (*pSelectItems)[j].m_sExpr==tCol.m_sName ) )
+					{
+						const CSphQueryItem & tQueryItem = (*pSelectItems)[j];
+						const char * sExpr = tQueryItem.m_sExpr.cstr();
+						if ( tQueryItem.m_sExpr=="count(*)" )
+							sExpr = sCount;
+						else if ( tQueryItem.m_sExpr=="weight()" )
+							sExpr = sWeight;
+
+						if ( tFrontendSchema.GetAttr(j).m_iIndex<0 && sExpr && tCol.m_sName==sExpr )
 						{
 							CSphColumnInfo & tItem = tFrontendSchema.GetWAttr(j);
 							tItem.m_iIndex = tInternalSchema.GetAttrsCount();
-							tItem.m_sName = (*pSelectItems)[j].m_sAlias;
+							tItem.m_sName = tQueryItem.m_sAlias;
 							dKnownItems.Add(j);
 							++iKnownItems;
 						}
+					}
 					tFrontendSchema.RebuildHash();
 					if ( tFrontendSchema.GetAttr ( tCol.m_sName.cstr() )==NULL )
 					{
@@ -8325,9 +8333,17 @@ bool MinimizeAggrResult ( AggrResult_t & tRes, CSphQuery & tQuery, int iLocals, 
 					else if ( tQueryItem.m_sExpr=="groupby()" )
 						sExpr = sGroupby;
 
-					if ( tFrontendSchema.GetAttr(j).m_iIndex<0
-						&& ( ( sExpr && tCol.m_sName==sExpr && tQueryItem.m_eAggrFunc==SPH_AGGR_NONE )
-						|| ( tQueryItem.m_sAlias.cstr() && tQueryItem.m_sAlias==tCol.m_sName ) ) )
+					if ( tFrontendSchema.GetAttr(j).m_iIndex>=0 )
+						continue;
+
+					if ( ( sExpr && tCol.m_sName==sExpr && tQueryItem.m_eAggrFunc==SPH_AGGR_NONE )
+						 || ( tQueryItem.m_sAlias.cstr() && tQueryItem.m_sAlias==tCol.m_sName
+								// do not add attr2 to frontend schema in cases like this
+								// attr1 AS attr2
+								&& ( tRes.m_tSchema.GetAttrIndex ( sExpr )==-1
+								// but add attr2, not attr1 in cases like this
+								// MIN(attr1) AS attr2
+								|| tQueryItem.m_eAggrFunc!=SPH_AGGR_NONE ) ) )
 					{
 						bAdd = true;
 						dKnownItems.Add(j);
@@ -8340,7 +8356,7 @@ bool MinimizeAggrResult ( AggrResult_t & tRes, CSphQuery & tQuery, int iLocals, 
 								tItem.m_sName = tQueryItem.m_sAlias;
 							else
 								tItem.m_sName = tQueryItem.m_sExpr;
-						};
+						}
 					}
 				}
 				if ( !bAdd && pExtraSchema!=NULL )
