@@ -6873,6 +6873,9 @@ bool RtIndex_t::Truncate ( CSphString & )
 		SafeDelete ( m_pSegments[i] );
 	m_pSegments.Reset();
 
+	// we don't want kill list to work if we perform ATTACH right after this TRUNCATE
+	m_tKlist.Reset();
+
 	// done, unlock
 	Verify ( m_tRwlock.Unlock() );
 	Verify ( m_tSaveOuterMutex.Unlock() );
