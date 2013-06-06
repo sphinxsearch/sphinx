@@ -17007,11 +17007,12 @@ static void TransformBigrams ( XQNode_t * pNode, const CSphIndexSettings & tSett
 
 /// create a node from a set of lemmas
 /// WARNING, tKeyword might or might not be pointing to pNode->m_dWords[0]
-static void TransformAotFilter ( XQNode_t * pNode, const XQKeyword_t & tKeyword, bool bUtf8, const CSphWordforms * pWordforms )
+static void TransformAotFilter ( XQNode_t * pNode, const XQKeyword_t & tKeyword, bool bUtf8, const CSphWordforms * pWordforms, const CSphIndexSettings& tSettings )
 {
 	assert ( pNode->m_dWords.GetLength()<=1 );
 	assert ( pNode->m_dChildren.GetLength()==0 );
 
+	XQNode_t * pExact = NULL;
 	if ( pWordforms )
 	{
 		// do a copy, because patching in place is not an option
@@ -17042,7 +17043,17 @@ static void TransformAotFilter ( XQNode_t * pNode, const XQKeyword_t & tKeyword,
 		}
 	}
 
-	if ( dLemmas.GetLength()<=1 )
+	if ( dLemmas.GetLength() && tSettings.m_bIndexExactWords )
+	{
+		pExact = CloneKeyword ( pNode );
+		if ( !pExact->m_dWords.GetLength() )
+			pExact->m_dWords.Add ( tKeyword );
+
+		pExact->m_dWords[0].m_sWord.SetSprintf ( "=%s", tKeyword.m_sWord.cstr() );
+		pExact->m_pParent = pNode;
+	}
+
+	if ( !pExact && dLemmas.GetLength()<=1 )
 	{
 		// zero or one lemmas, update node in-place
 		if ( !pNode->m_dWords.GetLength() )
@@ -17068,6 +17079,8 @@ static void TransformAotFilter ( XQNode_t * pNode, const XQKeyword_t & tKeyword,
 			tLemma.m_bMorphed = true;
 		}
 		pNode->m_dWords.Reset();
+		if ( pExact )
+			pNode->m_dChildren.Add ( pExact );
 	}
 }
 
@@ -17076,11 +17089,11 @@ static void TransformAotFilter ( XQNode_t * pNode, const XQKeyword_t & tKeyword,
 /// replaces tokens with their respective morph guesses subtrees
 /// used in lemmatize_ru_all morphology processing mode that can generate multiple guesses
 /// in other modes, there is always exactly one morph guess, and the dictionary handles it
-void TransformAotFilter ( XQNode_t * pNode, bool bUtf8, const CSphWordforms * pWordforms )
+void TransformAotFilter ( XQNode_t * pNode, bool bUtf8, const CSphWordforms * pWordforms, const CSphIndexSettings& tSettings )
 {
 	// case one, regular operator (and empty nodes)
 	ARRAY_FOREACH ( i, pNode->m_dChildren )
-		TransformAotFilter ( pNode->m_dChildren[i], bUtf8, pWordforms );
+		TransformAotFilter ( pNode->m_dChildren[i], bUtf8, pWordforms, tSettings );
 	if ( pNode->m_dChildren.GetLength() || pNode->m_dWords.GetLength()==0 )
 		return;
 
@@ -17097,7 +17110,7 @@ void TransformAotFilter ( XQNode_t * pNode, bool bUtf8, const CSphWordforms * pW
 			pNew->m_pParent = pNode;
 			pNew->m_iAtomPos = pNode->m_dWords[i].m_iAtomPos;
 			pNode->m_dChildren.Add ( pNew );
-			TransformAotFilter ( pNew, pNode->m_dWords[i], bUtf8, pWordforms );
+			TransformAotFilter ( pNew, pNode->m_dWords[i], bUtf8, pWordforms, tSettings );
 		}
 
 		pNode->m_dWords.Reset();
@@ -17107,7 +17120,7 @@ void TransformAotFilter ( XQNode_t * pNode, bool bUtf8, const CSphWordforms * pW
 
 	// case three, plain old single keyword
 	assert ( pNode->m_dWords.GetLength()==1 );
-	TransformAotFilter ( pNode, pNode->m_dWords[0], bUtf8, pWordforms );
+	TransformAotFilter ( pNode, pNode->m_dWords[0], bUtf8, pWordforms, tSettings );
 }
 
 
@@ -17216,7 +17229,7 @@ bool CSphIndex_VLN::MultiQuery ( const CSphQuery * pQuery, CSphQueryResult * pRe
 
 	// this should be after keyword expansion
 	if ( m_tSettings.m_bAotFilter )
-		TransformAotFilter ( tParsed.m_pRoot, m_pQueryTokenizer->IsUtf8(), pDict->GetWordforms() );
+		TransformAotFilter ( tParsed.m_pRoot, m_pQueryTokenizer->IsUtf8(), pDict->GetWordforms(), m_tSettings );
 
 	// expanding prefix in word dictionary case
 	XQNode_t * pPrefixed = ExpandPrefix ( tParsed.m_pRoot, pResult->m_sError, pResult );
@@ -17310,7 +17323,7 @@ bool CSphIndex_VLN::MultiQueryEx ( int iQueries, const CSphQuery * pQueries,
 
 			// this should be after keyword expansion
 			if ( m_tSettings.m_bAotFilter )
-				TransformAotFilter ( dXQ[i].m_pRoot, m_pQueryTokenizer->IsUtf8(), pDict->GetWordforms() );
+				TransformAotFilter ( dXQ[i].m_pRoot, m_pQueryTokenizer->IsUtf8(), pDict->GetWordforms(), m_tSettings );
 
 			// expanding prefix in word dictionary case
 			XQNode_t * pPrefixed = ExpandPrefix ( dXQ[i].m_pRoot, ppResults[i]->m_sError, ppResults[i] );
