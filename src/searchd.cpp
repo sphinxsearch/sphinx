@@ -3547,7 +3547,7 @@ public:
 	{
 		// minimal probability must not fall below the original one with this coef.
 		const float fMin_coef = 0.1f;
-		float fMin_value = fMin_coef/m_dAgents.GetLength();
+		DWORD uMin_value = DWORD(65535*fMin_coef/m_dAgents.GetLength());
 
 		if ( m_pWeights && HostDashboard_t::IsHalfPeriodChanged ( &m_uTimestamp ) )
 		{
@@ -3572,11 +3572,14 @@ public:
 			ARRAY_FOREACH ( i, dTimers )
 			{
 				if ( dTimers[i] > 0 )
+				{
 					dCoefs[i] = (float)dMin/dTimers[i];
+					if ( m_pWeights[i]*dCoefs[i] < uMin_value )
+						dCoefs[i] = (float)uMin_value/m_pWeights[i]; // restrict balancing like 1/0 into 0.9/0.1
+				}
 				else
-					dCoefs[i] = fMin_value/m_pWeights[i];
-				if ( m_pWeights[i]*dCoefs[i] < fMin_value )
-					dCoefs[i] = fMin_value/m_pWeights[i]; // restrict balancing like 1/0 into 0.9/0.1
+					dCoefs[i] = (float)uMin_value/m_pWeights[i];
+				
 				fNormale += m_pWeights[i]*dCoefs[i];
 			}
 
@@ -3610,7 +3613,7 @@ public:
 		DWORD uLimit = uBound;
 		ARRAY_FOREACH ( i, dCandidates )
 			uLimit += m_pWeights[dCandidates[i]];
-		DWORD uChance = uLimit * sphRand()/0xFFFFFFFF;
+		DWORD uChance = sphRand() % uLimit;
 
 		if ( uChance<=uBound )
 			return;
