@@ -6772,6 +6772,9 @@ public:
 		m_fDocBM25A = 0.0f;
 		for ( int iWord=1; iWord<=m_iQueryWordCount; iWord++ )
 		{
+			if ( !m_tKeywordMask.BitGet(iWord) )
+				continue;
+
 			float tf = (float)m_dTF[iWord]; // OPTIMIZE? remove this vector, hook into m_uMatchHits somehow?
 			float idf = m_dIDF[iWord];
 			m_fDocBM25A += tf / (tf + m_fParamK1*(1 - m_fParamB + m_fParamB*dl/m_fAvgDocLen)) * idf;
@@ -7064,6 +7067,9 @@ struct Expr_BM25F_T : public ISphExpr
 		float fRes = 0.0f;
 		for ( int iWord=1; iWord<=m_pState->m_iMaxQpos; iWord++ )
 		{
+			if ( !m_pState->m_tKeywordMask.BitGet(iWord) )
+				continue;
+
 			// compute weighted TF
 			float tf = 0.0f;
 			for ( int i=0; i<m_pState->m_iFields; i++ )

@@ -473,6 +473,9 @@ struct Expr_BM25F_c : public ISphExpr
 		float fRes = 0.0f;
 		for ( int iWord=0; iWord<m_tRankerState.m_iMaxQpos; iWord++ )
 		{
+			if ( !tUnpacked.term[iWord].keyword_mask )
+				continue;
+
 			// compute weighted TF
 			float tf = 0.0f;
 			for ( int i=0; i<m_tRankerState.m_iFields; i++ )
@@ -1219,7 +1222,6 @@ static int FuncHashLookup ( const char * sKey )
 		79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
 		79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
 		79, 79, 79, 79, 79, 79
-
 	};
 
 	const BYTE * s = (const BYTE*) sKey;
