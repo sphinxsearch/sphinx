@@ -6722,6 +6722,7 @@ public:
 
 		m_iQueryWordCount = 0;
 		m_tKeywordMask.Init ( m_iMaxUniqQpos+1 ); // will not be tracking dupes
+		bool bGotExpanded = false;
 
 		hQwords.IterateStart();
 		while ( hQwords.IterateNext() )
@@ -6733,10 +6734,25 @@ public:
 				continue;
 
 			const int iPos = hQwords.IterateGet().m_iQueryPos;
+
+			bool bSamePos = m_tKeywordMask.BitGet ( iPos );
+			bGotExpanded |= bSamePos;
+			m_iQueryWordCount += ( bSamePos ? 0 : 1 ); // count only one term at that position
 			m_tKeywordMask.BitSet ( iPos ); // just to assert at early stage!
-			m_dIDF [ iPos ] = hQwords.IterateGet().m_fIDF;
-			m_iQueryWordCount++;
+
+			m_dIDF [ iPos ] += hQwords.IterateGet().m_fIDF;
+			m_dTF [ iPos ]++;
 		}
+
+		// FIXME!!! average IDF for expanded terms (aot morphology or dict=keywords)
+		if ( bGotExpanded )
+			ARRAY_FOREACH ( i, m_dTF )
+			{
+				if ( m_dTF[i]>1 )
+					m_dIDF[i] /= m_dTF[i];
+			}
+
+		m_dTF.Fill ( 0 );
 	}
 
 	/// finalize per-document factors that, well, need finalization
