@@ -19152,9 +19152,9 @@ bool SetWatchDog ( int iDevNull )
 			if ( WIFEXITED ( iStatus ) )
 			{
 				int iExit = WEXITSTATUS ( iStatus );
-				if ( iExit==2 ) // really crash
+				if ( iExit==2 || iExit==6 ) // really crash
 				{
-					sphInfo ( "Child process %d has been finished by CRASH_EXIT (exit code 2), %s", iPid, sWillRestart );
+					sphInfo ( "Child process %d has been finished by CRASH_EXIT (exit code %d), %s", iPid, iExit, sWillRestart );
 					iReincarnate = -1;
 				} else
 				{
