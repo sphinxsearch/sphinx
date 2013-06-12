@@ -9674,10 +9674,9 @@ void SearchHandler_c::RunLocalSearches ( ISphMatchSorter * pLocalSorter, const c
 
 		// me shortcuts
 		AggrResult_t tStats;
-		CSphQuery * pQuery = &m_dQueries[m_iStart];
+		CSphVector<CSphFilterSettings> dKlists;
 
 		// set kill-list
-		int iNumFilters = pQuery->m_dFilters.GetLength ();
 		for ( int i=iLocal+1; i<m_dLocal.GetLength (); i++ )
 		{
 			const ServedIndex_t * pServed = UseIndex ( i );
@@ -9686,9 +9685,7 @@ void SearchHandler_c::RunLocalSearches ( ISphMatchSorter * pLocalSorter, const c
 
 			if ( pServed->m_pIndex->GetKillListSize () )
 			{
-				CSphFilterSettings tKillListFilter;
-				SetupKillListFilter ( tKillListFilter, pServed->m_pIndex->GetKillList (), pServed->m_pIndex->GetKillListSize () );
-				pQuery->m_dFilters.Add ( tKillListFilter );
+				SetupKillListFilter ( dKlists.Add(), pServed->m_pIndex->GetKillList (), pServed->m_pIndex->GetKillListSize () );
 				dLocked.Add ( i );
 			} else
 			{
@@ -9703,7 +9700,7 @@ void SearchHandler_c::RunLocalSearches ( ISphMatchSorter * pLocalSorter, const c
 		{
 			tStats.m_tIOStats.Start();
 			bResult = pServed->m_pIndex->MultiQuery ( &m_dQueries[m_iStart], &tStats,
-				dSorters.GetLength(), dSorters.Begin(), NULL, 0, bNeedFactors );
+				dSorters.GetLength(), dSorters.Begin(), &dKlists, 0, bNeedFactors );
 			tStats.m_tIOStats.Stop();
 		} else
 		{
@@ -9714,7 +9711,7 @@ void SearchHandler_c::RunLocalSearches ( ISphMatchSorter * pLocalSorter, const c
 			dResults[m_iStart]->m_tIOStats.Start();
 
 			bResult = pServed->m_pIndex->MultiQueryEx ( dSorters.GetLength(),
-				&m_dQueries[m_iStart], &dResults[m_iStart], &dSorters[0], NULL, 0, bNeedFactors );
+				&m_dQueries[m_iStart], &dResults[m_iStart], &dSorters[0], &dKlists, 0, bNeedFactors );
 
 			dResults[m_iStart]->m_tIOStats.Stop();
 		}
@@ -9766,9 +9763,6 @@ void SearchHandler_c::RunLocalSearches ( ISphMatchSorter * pLocalSorter, const c
 				tStats.LeakStorages ( tRes );
 			}
 		}
-
-		// cleanup kill-list
-		pQuery->m_dFilters.Resize ( iNumFilters );
 
 		ARRAY_FOREACH ( i, dLocked )
 			ReleaseIndex ( dLocked[i] );
