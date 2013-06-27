@@ -6892,6 +6892,9 @@ public:
 		m_uDocWordCount = 0;
 		m_dWindow.Resize ( 0 );
 		m_fDocBM25A = 0;
+
+		if ( HANDLE_DUPES )
+			m_dTermsHit.Fill ( EMPTY_HIT );
 	}
 
 	void FlushMatches ()
@@ -7878,12 +7881,12 @@ public:
 
 	virtual void SetTermDupes ( const ExtQwordsHash_t & hQwords, int iMaxQpos )
 	{
-		if ( !m_pRoot )
+		if ( !this->m_pRoot )
 			return;
 
 		this->m_tState.m_dTermDupes.Resize ( iMaxQpos + 1 );
 		this->m_tState.m_dTermsHit.Resize ( iMaxQpos + 1 );
-		m_pRoot->GetTermDupes ( hQwords, this->m_tState.m_dTermDupes );
+		this->m_pRoot->GetTermDupes ( hQwords, this->m_tState.m_dTermDupes );
 		this->m_tState.m_dTermsHit.Fill ( EMPTY_HIT );
 	}
 };
