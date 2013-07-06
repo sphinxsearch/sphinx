@@ -341,7 +341,7 @@ ESphJsonType sphJsonFindKey ( const BYTE ** ppValue, const BYTE * pData, const J
 
 		// check if key matches
 		int iNameLen = sphJsonUnpackInt ( &p );
-		if ( iNameLen==tKey.m_iLen && tKey.m_uKey==sphFNV64 ( p, iNameLen, SPH_FNV64_SEED ) )
+		if ( iNameLen==tKey.m_iLen && !memcmp ( tKey.m_sKey.cstr(), p, tKey.m_iLen ) )
 		{
 			*ppValue = p + iNameLen;
 			return eType;
@@ -502,8 +502,7 @@ bool sphJsonNameSplit ( const char * sName, CSphString * sColumn, CSphString * s
 
 
 JsonKey_t::JsonKey_t ()
-	: m_uKey ( 0 )
-	, m_uMask ( 0 )
+	: m_uMask ( 0 )
 	, m_iLen ( 0 )
 {}
 
@@ -512,7 +511,7 @@ JsonKey_t::JsonKey_t ( const char * sKey )
 {
 	m_uMask = sphJsonKeyMask ( sKey );
 	m_iLen = strlen ( sKey );
-	m_uKey = sphFNV64 ( (const BYTE *)sKey, m_iLen, SPH_FNV64_SEED );
+	m_sKey.SetBinary ( sKey, m_iLen );
 }
 
 
