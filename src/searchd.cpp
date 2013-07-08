@@ -2038,7 +2038,7 @@ CrashQuery_t SphCrashLogger_c::GetQuery()
 }
 
 
-void SetSignalHandlers ()
+void SetSignalHandlers ( bool bAllowCtrlC=false )
 {
 	SphCrashLogger_c::Init();
 
@@ -2051,7 +2051,12 @@ void SetSignalHandlers ()
 	for ( ;; )
 	{
 		sa.sa_handler = sigterm;	if ( sigaction ( SIGTERM, &sa, NULL )!=0 ) break;
-		sa.sa_handler = sigterm;	if ( sigaction ( SIGINT, &sa, NULL )!=0 ) break;
+		if ( !bAllowCtrlC )
+		{
+			sa.sa_handler = sigterm;
+			if ( sigaction ( SIGINT, &sa, NULL )!=0 )
+				break;
+		}
 		sa.sa_handler = sighup;		if ( sigaction ( SIGHUP, &sa, NULL )!=0 ) break;
 		sa.sa_handler = sigusr1;	if ( sigaction ( SIGUSR1, &sa, NULL )!=0 ) break;
 		sa.sa_handler = sigchld;	if ( sigaction ( SIGCHLD, &sa, NULL )!=0 ) break;
@@ -20527,7 +20532,7 @@ int WINAPI ServiceMain ( int argc, char **argv )
 	const CSphConfigSection & hSearchd = hConf["searchd"]["searchd"];
 
 	// handle my signals
-	SetSignalHandlers ();
+	SetSignalHandlers ( g_bOptNoDetach );
 
 	// create logs
 	if ( !g_bOptNoLock )
