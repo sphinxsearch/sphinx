@@ -11026,7 +11026,7 @@ bool SqlParser_c::AddOption ( const SqlNode_t& tIdent, const SqlNode_t& tValue )
 		}
 	} else if ( sOpt=="global_idf" )
 	{
-		m_pQuery->m_bGlobalIDF = true;
+		m_pQuery->m_bGlobalIDF = ( tValue.m_iValue!=0 );
 
 	} else if ( sOpt=="ignore_nonexistent_indexes" )
 	{
