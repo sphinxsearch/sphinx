@@ -13762,6 +13762,9 @@ SphWordID_t CSphDictStar::GetWordID ( BYTE * pWord )
 
 	int iLen = strlen ( (const char*)pWord );
 	assert ( iLen < 16+3*SPH_MAX_WORD_LEN - 1 );
+	// stemmer might squeeze out the word
+	if ( iLen && !pWord[0] )
+		return 0;
 
 	memcpy ( sBuf, pWord, iLen+1 );
 
@@ -13818,6 +13821,10 @@ SphWordID_t	CSphDictStarV8::GetWordID ( BYTE * pWord )
 			return 0;
 
 		m_pDict->ApplyStemmers ( pWord );
+
+		// stemmer might squeeze out the word
+		if ( !pWord[0] )
+			return 0;
 
 		if ( !m_pDict->GetSettings().m_bStopwordsUnstemmed && IsStopWord ( pWord ) )
 			return 0;
@@ -19524,6 +19531,10 @@ SphWordID_t CSphDictCRC<CRC32DICT>::GetWordID ( BYTE * pWord )
 	if ( pWord[0]>=0x20 )
 		ApplyStemmers ( pWord );
 
+	// stemmer might squeeze out the word
+	if ( !pWord[0] )
+		return 0;
+
 	return GetSettings().m_bStopwordsUnstemmed
 		? DoCrc ( pWord )
 		: FilterStopword ( DoCrc ( pWord ) );
@@ -19542,6 +19553,9 @@ template < bool CRC32DICT >
 SphWordID_t CSphDictCRC<CRC32DICT>::GetWordIDWithMarkers ( BYTE * pWord )
 {
 	ApplyStemmers ( pWord + 1 );
+	// stemmer might squeeze out the word
+	if ( !pWord[1] )
+		return 0;
 	SphWordID_t uWordId = DoCrc ( pWord + 1 );
 	int iLength = strlen ( (const char *)(pWord + 1) );
 	pWord [iLength + 1] = MAGIC_WORD_TAIL;
