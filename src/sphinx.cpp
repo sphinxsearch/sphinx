@@ -22012,7 +22012,7 @@ public:
 			return 0;
 	}
 
-	virtual SphWordID_t		GetWordID ( const BYTE * pWord, int iLen, bool bFilterStops )
+	virtual SphWordID_t GetWordID ( const BYTE * pWord, int iLen, bool bFilterStops )
 	{
 		SphWordID_t uCRC = m_pBase->GetWordID ( pWord, iLen, bFilterStops );
 		if ( uCRC )
@@ -22034,6 +22034,10 @@ public:
 	{
 		CSphString sWord;
 		int iLen = strlen ( (const char *)pWord );
+		// stemmer might squeeze out the word
+		if ( !iLen )
+			return 0;
+
 		// fix of very long word (zones)
 		if ( iLen>=( SPH_MAX_WORD_LEN*3 ) )
 		{

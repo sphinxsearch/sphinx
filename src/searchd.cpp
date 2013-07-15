@@ -18611,6 +18611,8 @@ void CheckRotate ()
 	{
 		g_iRotateCount = Max ( 0, g_iRotateCount-1 );
 		sphWarning ( "nothing to rotate after SIGHUP ( in queue=%d )", g_iRotateCount );
+	} else
+	{
 		g_bInvokeRotationService = true;
 	}
 
