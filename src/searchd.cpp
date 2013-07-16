@@ -1142,7 +1142,10 @@ ServedIndex_t * IndexHash_c::GetWlockedEntry ( const CSphString & tKey ) const
 
 ServedIndex_t & IndexHash_c::GetUnlockedEntry ( const CSphString & tKey ) const
 {
-	return BASE::operator[] ( tKey );
+	Rlock();
+	ServedIndex_t & tRes = BASE::operator[] ( tKey );
+	Unlock();
+	return tRes;
 }
 
 
@@ -14229,6 +14232,8 @@ void HandleMysqlCallKeywords ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 	const ServedIndex_t * pServed = g_pLocalIndexes->GetRlockedEntry ( tStmt.m_dInsertValues[1].m_sVal );
 	if ( !pServed || !pServed->m_bEnabled || !pServed->m_pIndex )
 	{
+		if ( pServed )
+			pServed->Unlock();
 		sError.SetSprintf ( "no such index %s", tStmt.m_dInsertValues[1].m_sVal.cstr() );
 		tOut.Error ( tStmt.m_sStmt, sError.cstr() );
 		return;
@@ -14286,6 +14291,9 @@ void HandleMysqlDescribe ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 	DistributedIndex_t * pDistr = NULL;
 	if ( !pServed || !pServed->m_bEnabled || !pServed->m_pIndex )
 	{
+		if ( pServed )
+			pServed->Unlock();
+
 		g_tDistLock.Lock();
 		pDistr = g_hDistIndexes ( tStmt.m_sIndex );
 		g_tDistLock.Unlock();
