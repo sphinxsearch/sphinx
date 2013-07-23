@@ -6447,7 +6447,8 @@ bool RtIndex_t::GetKeywords ( CSphVector<CSphKeywordInfo> & dKeywords, const cha
 		{
 			sError.SetSprintf ( "INTERNAL ERROR: keyword count mismatch (ram=%d, disk[%d]=%d)",
 				dKeywords.GetLength(), iChunk, dKeywords2.GetLength() );
-			break;
+			m_tRwlock.Unlock();
+			return false;
 		}
 
 		ARRAY_FOREACH ( i, dKeywords )
@@ -6456,14 +6457,16 @@ bool RtIndex_t::GetKeywords ( CSphVector<CSphKeywordInfo> & dKeywords, const cha
 			{
 				sError.SetSprintf ( "INTERNAL ERROR: tokenized keyword mismatch (n=%d, ram=%s, disk[%d]=%s)",
 					i, dKeywords[i].m_sTokenized.cstr(), iChunk, dKeywords2[i].m_sTokenized.cstr() );
-				break;
+				m_tRwlock.Unlock();
+				return false;
 			}
 
 			if ( dKeywords[i].m_sNormalized!=dKeywords2[i].m_sNormalized )
 			{
 				sError.SetSprintf ( "INTERNAL ERROR: normalized keyword mismatch (n=%d, ram=%s, disk[%d]=%s)",
-					i, dKeywords[i].m_sTokenized.cstr(), iChunk, dKeywords2[i].m_sTokenized.cstr() );
-				break;
+					i, dKeywords[i].m_sNormalized.cstr(), iChunk, dKeywords2[i].m_sNormalized.cstr() );
+				m_tRwlock.Unlock();
+				return false;
 			}
 
 			dKeywords[i].m_iDocs += dKeywords2[i].m_iDocs;
