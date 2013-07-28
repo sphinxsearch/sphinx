@@ -27,6 +27,8 @@ enum ESphJsonType
 	JSON_DOUBLE			= 3,
 	JSON_STRING			= 4,
 	JSON_STRING_VECTOR	= 5,
+
+	JSON_TOTAL
 };
 
 

@@ -1500,7 +1500,7 @@ bool RtIndex_t::AddDocument ( ISphHits * pHits, const CSphMatch & tDoc, const ch
 						if ( g_bJsonStrict )
 						{
 							ARRAY_FOREACH ( i, dJsonData )
-								delete [] dJsonData[i].m_pData;
+								SafeDeleteArray ( dJsonData[i].m_pData );
 
 							return false;
 						}
@@ -4311,12 +4311,6 @@ int RtIndex_t::DebugCheck ( FILE * fp )
 		const BYTE * pCurHit = tSegment.m_dHits.Begin();
 		const BYTE * pMaxHit = pCurHit+tSegment.m_dHits.GetLength();
 
-		if ( !pCurWord )
-			LOC_FAIL(( fp, "empty dictionary detected (segment=%d)", iSegment ));
-
-		if ( !pCurDoc )
-			LOC_FAIL(( fp, "empty doclist detected (segment=%d)", iSegment ));
-
 		CSphVector<RtWordCheckpoint_t> dRefCheckpoints;
 		int nWordsRead = 0;
 		int nCheckpointWords = 0;
@@ -4839,6 +4833,7 @@ int RtIndex_t::DebugCheck ( FILE * fp )
 		CSphVector<int> dMvaItems;
 		CSphVector<CSphAttrLocator> dFloatItems;
 		CSphVector<CSphAttrLocator> dStrItems;
+		CSphVector<CSphAttrLocator> dJsonItems;
 		for ( int iAttr=0; iAttr<m_tSchema.GetAttrsCount(); iAttr++ )
 		{
 			const CSphColumnInfo & tAttr = m_tSchema.GetAttr(iAttr);
@@ -4862,6 +4857,8 @@ int RtIndex_t::DebugCheck ( FILE * fp )
 				dFloatItems.Add	( tAttr.m_tLocator );
 			else if ( tAttr.m_eAttrType==SPH_ATTR_STRING )
 				dStrItems.Add ( tAttr.m_tLocator );
+			else if ( tAttr.m_eAttrType==SPH_ATTR_JSON )
+				dJsonItems.Add ( tAttr.m_tLocator );
 		}
 		int iMva64 = dMvaItems.GetLength();
 		for ( int iAttr=0; iAttr<m_tSchema.GetAttrsCount(); iAttr++ )
@@ -4893,20 +4890,6 @@ int RtIndex_t::DebugCheck ( FILE * fp )
 
 				dStringOffsets.Add ( (DWORD)(pCurStr-pBaseStr) );
 
-				const BYTE * pStringStart = pStr;
-				while ( pStringStart-pStr < iLen )
-				{
-					if ( !*pStringStart )
-					{
-						CSphString sErrorStr;
-						sErrorStr.SetBinary ( (const char*)pStr, iLen );
-						LOC_FAIL(( fp, "embedded zero in a string (segment=%d, offset=%u, string=%s)",
-							iSegment, (DWORD)(pStringStart-pBaseStr), sErrorStr.cstr() ));
-					}
-
-					pStringStart++;
-				}
-
 				pCurStr = pStr + iLen;
 			}
 		}
@@ -4923,6 +4906,7 @@ int RtIndex_t::DebugCheck ( FILE * fp )
 		int nCalcAliveRows = 0;
 		int nCalcRows = 0;
 		int nUsedStrings = 0;
+		int nUsedJsons = 0;
 
 		for ( DWORD uRow=0; pRow<pRowMax; uRow++, pRow+=m_iStride )
 		{
@@ -5053,6 +5037,148 @@ int RtIndex_t::DebugCheck ( FILE * fp )
 				} else
 					nUsedStrings++;
 
+				const BYTE * pStr = NULL;
+				int iLen = sphUnpackStr ( tSegment.m_dStrings.Begin()+uOffset, &pStr );
+				const BYTE * pStringStart = pStr;
+				while ( pStringStart-pStr < iLen )
+				{
+					if ( !*pStringStart )
+					{
+						CSphString sErrorStr;
+						sErrorStr.SetBinary ( (const char*)pStr, iLen );
+						LOC_FAIL(( fp, "embedded zero in a string (segment=%d, offset=%u, string=%s)",
+									iSegment, uOffset, sErrorStr.cstr() ));
+					}
+
+					pStringStart++;
+				}
+
+				uLastStrOffset = uOffset;
+			}
+
+			/////////////////////////////
+			// check JSON attributes
+			/////////////////////////////
+
+			ARRAY_FOREACH ( iItem, dJsonItems )
+			{
+				const CSphRowitem * pAttrs = DOCINFO2ATTRS(pRow);
+
+				const DWORD uOffset = (DWORD)sphGetRowAttr ( pAttrs, dJsonItems[iItem] );
+				if ( uOffset>=(DWORD)tSegment.m_dStrings.GetLength() )
+				{
+					LOC_FAIL(( fp, "string(JSON) offset out of bounds (segment=%d, row=%u, stringattr=%d, docid="DOCID_FMT", index=%u)",
+						iSegment, uRow, iItem, uLastID, uOffset ));
+					continue;
+				}
+
+				if ( !uOffset )
+					continue;
+
+				if ( uLastStrOffset>=uOffset )
+					LOC_FAIL(( fp, "string(JSON) offset decreased (segment=%d, row=%u, stringattr=%d, docid="DOCID_FMT", offset=%u, last_offset=%u)",
+						iSegment, uRow, iItem, uLastID, uOffset, uLastStrOffset ));
+
+				if ( !dStringOffsets.BinarySearch ( uOffset ) )
+				{
+					LOC_FAIL(( fp, "string(JSON) offset is not a string start (segment=%d, row=%u, stringattr=%d, docid="DOCID_FMT", offset=%u)",
+						iSegment, uRow, iItem, uLastID, uOffset ));
+				} else
+					nUsedJsons++;
+
+				const BYTE * pData = NULL;
+				int iBlobLen = sphUnpackStr ( tSegment.m_dStrings.Begin()+uOffset, &pData );
+				DWORD uComputedMask = 0;
+
+#if UNALIGNED_RAM_ACCESS && USE_LITTLE_ENDIAN
+				DWORD uStoredMask = *(DWORD*)pData;
+#else
+				DWORD uStoredMask = pData[0] + ( pData[1]<<8 ) + ( pData[2]<<16 ) + ( pData[3]<<24 );
+#endif
+				const BYTE * p = ( pData+4 );
+
+				CSphVector<BYTE> dBuf(8);
+				BYTE * pBuf = dBuf.Begin();
+				for ( int iNum=0; ; iNum++ )
+				{
+					ESphJsonType eType = (ESphJsonType)*p++;
+
+					if ( eType<JSON_EOF || eType>=JSON_TOTAL )
+						LOC_FAIL(( fp, "json value type is out of bounds (type=%d)", iNum ));
+
+					if ( eType==JSON_EOF )
+						break;
+
+					int iNameLen = sphJsonUnpackInt ( &p );
+					if ( iNameLen<1 )
+						LOC_FAIL(( fp, "incorrect key length in JSON (len=%d)", iNameLen ));
+					dBuf.Reserve ( iNameLen+1 );
+					for ( int i=0; i<iNameLen; i++ )
+						pBuf[i] = *p++;		// TODO: check char values here
+					pBuf [ iNameLen ] = '\0';
+
+					uComputedMask |= sphJsonKeyMask ( (char*)pBuf );
+
+					switch ( eType )
+					{
+					case JSON_INT32:
+					{
+						// nothing to check?
+						sphJsonLoadInt ( &p );
+						break;
+					}
+					case JSON_INT64:
+					{
+						sphJsonLoadBigint ( &p );
+						break;
+					}
+					case JSON_DOUBLE:
+					{
+						sphJsonLoadBigint ( &p );
+						break;
+					}
+					case JSON_STRING:
+					{
+						int iLen = sphJsonUnpackInt ( &p );
+						if ( iLen<0 )
+							LOC_FAIL(( fp, "incorrect JSON string length (len=%d)", iLen ));
+						for ( int i=0; i<iLen; i++ )
+							p++;	// TODO: check char values here
+						break;
+					}
+					case JSON_STRING_VECTOR:
+					{
+						int iWholeLen = sphJsonUnpackInt ( &p );
+						const BYTE * p2 = p;
+						int iVals = sphJsonUnpackInt ( &p );
+						if ( iVals<0 )
+							LOC_FAIL(( fp, "incorrect vector elements count in JSON (count=%d)", iVals ));
+
+						for ( int i=0; i<iVals; i++ )
+						{
+							int iLen = sphJsonUnpackInt ( &p );
+							if ( iLen<0 )
+								LOC_FAIL(( fp, "incorrect length of JSON string (len=%d)", iLen ));
+							for ( int j=0; j<iLen; j++ )
+								p++;	// TODO: check char values here
+						}
+
+						if ( iWholeLen!=( p-p2 ) )
+							LOC_FAIL(( fp, "JSON blob string vector length mismatch (stored=%d, computed=%d)", iWholeLen, int( p-p2 ) ));
+						break;
+					}
+					case JSON_EOF:
+					case JSON_TOTAL:
+						assert ( 0 && "bug in code" );
+					}
+				}
+
+				if ( uStoredMask!=uComputedMask )
+					LOC_FAIL(( fp, "incorrect bloom mask in JSON (stored=%x, computed=%x)", uStoredMask, uComputedMask ));
+
+				if ( iBlobLen!=( p-pData ))
+					LOC_FAIL(( fp, "JSON blob length mismatch (stored=%d, actual=%d)", iBlobLen, int( p-pData ) ));
+
 				uLastStrOffset = uOffset;
 			}
 
@@ -5061,8 +5187,8 @@ int RtIndex_t::DebugCheck ( FILE * fp )
 				nCalcAliveRows++;
 		}
 
-		if ( nUsedStrings!=dStringOffsets.GetLength() )
-			LOC_FAIL(( fp, "unused string entries found (segment=%d)", iSegment ));
+		if ( ( nUsedStrings+nUsedJsons )!=dStringOffsets.GetLength() )
+			LOC_FAIL(( fp, "unused string/JSON entries found (segment=%d)", iSegment ));
 
 		if ( dMvaItems.GetLength() && pMvaCur!=pMvaMax )
 			LOC_FAIL(( fp, "unused MVA entries found (segment=%d)", iSegment ));
