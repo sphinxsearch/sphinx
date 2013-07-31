@@ -2833,7 +2833,7 @@ void BenchMisc()
 	int64_t iAvg = 0;
 	for ( int i=0; i<THREADS; i++ )
 	{
-		int64_t t = tmEnd[i] - tmStart;
+		t = tmEnd[i] - tmStart;
 		iMin = Min ( iMin, t );
 		iMax = Max ( iMax, t );
 		iAvg += t;

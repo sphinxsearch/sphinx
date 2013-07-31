@@ -1154,7 +1154,7 @@ void ExcerptGen_c::CalcPassageWeight ( Passage_t & tPass, const TokenSpan_t & tS
 	tPass.m_iQwordCount = 0;
 
 	DWORD uWords = tPass.m_uQwords;
-	for ( int iWord=0; uWords; uWords >>= 1, iWord++ )
+	for ( iWord=0; uWords; uWords >>= 1, iWord++ )
 		if ( uWords & 1 )
 	{
 		tPass.m_iQwordsWeight += m_dWords[iWord].m_iWeight;
@@ -2980,7 +2980,7 @@ private:
 		m_tPass.m_iQwordCount = 0;
 
 		DWORD uWords = m_tPass.m_uQwords;
-		for ( int iWord=0; uWords; uWords >>= 1, iWord++ )
+		for ( iWord=0; uWords; uWords >>= 1, iWord++ )
 			if ( uWords & 1 )
 			{
 				m_tPass.m_iQwordsWeight += m_tContainer.GetTermWeight(iWord);

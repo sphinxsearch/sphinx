@@ -473,8 +473,8 @@ const BYTE * sphJsonFieldFormat ( CSphVector<BYTE> & dOut, const BYTE * pData, E
 		dOut.Add ( ']' );
 		break;
 	}
-	case JSON_EOF:
-		break;
+	case JSON_EOF:		break;
+	case JSON_TOTAL:	assert(0); break;
 	}
 
 	return p;

@@ -1499,8 +1499,8 @@ bool RtIndex_t::AddDocument ( ISphHits * pHits, const CSphMatch & tDoc, const ch
 
 						if ( g_bJsonStrict )
 						{
-							ARRAY_FOREACH ( i, dJsonData )
-								SafeDeleteArray ( dJsonData[i].m_pData );
+							ARRAY_FOREACH ( j, dJsonData )
+								SafeDeleteArray ( dJsonData[j].m_pData );
 
 							return false;
 						}
@@ -1923,7 +1923,7 @@ void RtAccum_t::CleanupDuplacates ( int iRowSize )
 		int iCount = dDocHits[iHit].m_iHitCount;
 		if ( iFrom+iCount<m_dAccum.GetLength() )
 		{
-			for ( int iDst=iFrom, iSrc=iFrom+iCount; iSrc<m_dAccum.GetLength(); iSrc++, iDst++ )
+			for ( iDst=iFrom, iSrc=iFrom+iCount; iSrc<m_dAccum.GetLength(); iSrc++, iDst++ )
 				m_dAccum[iDst] = m_dAccum[iSrc];
 		}
 		m_dAccum.Resize ( m_dAccum.GetLength()-iCount );
@@ -1935,8 +1935,8 @@ void RtAccum_t::CleanupDuplacates ( int iRowSize )
 	// clean up docinfos of duplicates
 	for ( int iDoc = dDocHits.GetLength()-1; iDoc>=0; iDoc-- )
 	{
-		int iDst = dDocHits[iDoc].m_iDocIndex*iStride;
-		int iSrc = iDst+iStride;
+		iDst = dDocHits[iDoc].m_iDocIndex*iStride;
+		iSrc = iDst+iStride;
 		while ( iSrc<m_dAccumRows.GetLength() )
 		{
 			m_dAccumRows[iDst++] = m_dAccumRows[iSrc++];
@@ -2848,9 +2848,9 @@ void RtIndex_t::CommitReplayable ( RtSegment_t * pNewSeg, CSphVector<SphDocID_t>
 			if ( !bRamKilled || !bDiskKilled )
 			{
 				// check saving segments first (will be recent disk chunk)
-				for ( int i=0; i<m_iDoubleBuffer && !bKeep; i++ )
+				for ( int j=0; j<m_iDoubleBuffer && !bKeep; j++ )
 				{
-					bKeep = ( m_pSegments[i]->FindAliveRow ( uDocid )!=NULL );
+					bKeep = ( m_pSegments[j]->FindAliveRow ( uDocid )!=NULL );
 				}
 
 				// then disk chunks
@@ -4542,7 +4542,7 @@ int RtIndex_t::DebugCheck ( FILE * fp )
 			for ( DWORD uDoc=0; uDoc<tWord.m_uDocs && pCurDoc<pMaxDoc; uDoc++ )
 			{
 				bool bEmbeddedHit = false;
-				const BYTE * pIn = pCurDoc;
+				pIn = pCurDoc;
 				SphDocID_t uDeltaID;
 				pIn = UnzipDocid ( &uDeltaID, pIn );
 
@@ -5607,10 +5607,8 @@ static bool MatchBloomCheckpoint ( const uint64_t * pBloom, const uint64_t * pVa
 	}
 
 	int iMatched = 0;
-	for ( int iMatch=0; iMatch<iHashes; iMatch++ )
-	{
-		iMatched += ( dMatches[iMatch]>0 );
-	}
+	for ( int i=0; i<iHashes; i++ )
+		iMatched += ( dMatches[i]>0 );
 
 	return ( iMatched==iHashes );
 }
@@ -5792,7 +5790,7 @@ struct CSphAttrTypedLocator : public CSphAttrLocator
 // FIXME? any chance to factor out common backend agnostic code?
 // FIXME? do we need to support pExtraFilters?
 bool RtIndex_t::MultiQuery ( const CSphQuery * pQuery, CSphQueryResult * pResult, int iSorters,
-	ISphMatchSorter ** ppSorters, const CSphVector<CSphFilterSettings> *, int iTag, bool bFactors ) const
+	ISphMatchSorter ** ppSorters, const CSphVector<CSphFilterSettings> *, int iCheckTag, bool bFactors ) const
 {
 	assert ( ppSorters );
 
@@ -5815,8 +5813,8 @@ bool RtIndex_t::MultiQuery ( const CSphQuery * pQuery, CSphQueryResult * pResult
 
 	assert ( pQuery );
 	assert ( pResult );
-	assert ( iTag==0 );
-	iTag = 0; // just to avoid a compiler warning
+	assert ( iCheckTag==0 );
+	iCheckTag = 0; // just to avoid a compiler warning
 
 	MEMORY ( SPH_MEM_IDX_RT_MULTY_QUERY );
 
@@ -6018,17 +6016,17 @@ bool RtIndex_t::MultiQuery ( const CSphQuery * pQuery, CSphQueryResult * pResult
 	// expanding prefix in word dictionary case
 	if ( m_bEnableStar && m_bKeywordDict )
 	{
-		ExpansionContext_t tCtx;
-		tCtx.m_pWordlist = this;
-		tCtx.m_pBuf = NULL;
-		tCtx.m_pResult = pResult;
-		tCtx.m_iFD = -1;
-		tCtx.m_iMinPrefixLen = m_tSettings.m_iMinPrefixLen;
-		tCtx.m_iMinInfixLen = m_tSettings.m_iMinInfixLen;
-		tCtx.m_iExpansionLimit = m_iExpansionLimit;
-		tCtx.m_bHasMorphology = m_pDict->HasMorphology();
-		tCtx.m_bMergeSingles = false;
-		tParsed.m_pRoot = sphExpandXQNode ( tParsed.m_pRoot, tCtx );
+		ExpansionContext_t tExpCtx;
+		tExpCtx.m_pWordlist = this;
+		tExpCtx.m_pBuf = NULL;
+		tExpCtx.m_pResult = pResult;
+		tExpCtx.m_iFD = -1;
+		tExpCtx.m_iMinPrefixLen = m_tSettings.m_iMinPrefixLen;
+		tExpCtx.m_iMinInfixLen = m_tSettings.m_iMinInfixLen;
+		tExpCtx.m_iExpansionLimit = m_iExpansionLimit;
+		tExpCtx.m_bHasMorphology = m_pDict->HasMorphology();
+		tExpCtx.m_bMergeSingles = false;
+		tParsed.m_pRoot = sphExpandXQNode ( tParsed.m_pRoot, tExpCtx );
 	}
 
 	if ( !sphCheckQueryHeight ( tParsed.m_pRoot, pResult->m_sError ) )
@@ -6108,10 +6106,6 @@ bool RtIndex_t::MultiQuery ( const CSphQuery * pQuery, CSphQueryResult * pResult
 			CSphMatch tMatch;
 			tMatch.Reset ( pResult->m_tSchema.GetDynamicSize() );
 			tMatch.m_iWeight = pQuery->GetIndexWeight ( m_sIndexName.cstr() );
-
-			int iCutoff = pQuery->m_iCutoff;
-			if ( iCutoff<=0 )
-				iCutoff = -1;
 
 			ARRAY_FOREACH ( iSeg, m_pSegments )
 			{
@@ -6394,10 +6388,10 @@ bool RtIndex_t::MultiQuery ( const CSphQuery * pQuery, CSphQueryResult * pResult
 				dOriginalJson.Reset();
 				dMovedJson.Reset();
 
-				ARRAY_FOREACH ( i, dGetLoc )
+				ARRAY_FOREACH ( iLocIdx, dGetLoc )
 				{
 					int64_t iAttr = 0;
-					const CSphAttrTypedLocator& tLoc = dGetLoc[i];
+					const CSphAttrTypedLocator& tLoc = dGetLoc [ iLocIdx ];
 
 					switch ( tLoc.m_eAttrType )
 					{
@@ -6463,7 +6457,7 @@ bool RtIndex_t::MultiQuery ( const CSphQuery * pQuery, CSphQueryResult * pResult
 						break;
 					}
 
-					const CSphAttrLocator & tSet = dSetLoc[i];
+					const CSphAttrLocator & tSet = dSetLoc [ iLocIdx ];
 					assert ( !tSet.m_bDynamic || tSet.GetMaxRowitem() < (int)tMatch.m_pDynamic[-1] );
 					sphSetRowAttr ( tSet.m_bDynamic ? tMatch.m_pDynamic : const_cast<CSphRowitem*>( tMatch.m_pStatic ), tSet, iAttr );
 				}
@@ -6631,11 +6625,11 @@ int RtIndex_t::UpdateAttributes ( const CSphAttrUpdate & tUpd, int iIndex, CSphS
 	uint64_t uDst64 = 0;
 	ARRAY_FOREACH ( i, tUpd.m_dAttrs )
 	{
-		int iIndex = m_tSchema.GetAttrIndex ( tUpd.m_dAttrs[i].m_sName.cstr() );
-		if ( iIndex>=0 )
+		int iIdx = m_tSchema.GetAttrIndex ( tUpd.m_dAttrs[i].m_sName.cstr() );
+		if ( iIdx>=0 )
 		{
 			// forbid updates on non-int columns
-			const CSphColumnInfo & tCol = m_tSchema.GetAttr(iIndex);
+			const CSphColumnInfo & tCol = m_tSchema.GetAttr(iIdx);
 			if ( !( tCol.m_eAttrType==SPH_ATTR_BOOL || tCol.m_eAttrType==SPH_ATTR_INTEGER || tCol.m_eAttrType==SPH_ATTR_TIMESTAMP
 				|| tCol.m_eAttrType==SPH_ATTR_UINT32SET || tCol.m_eAttrType==SPH_ATTR_INT64SET
 				|| tCol.m_eAttrType==SPH_ATTR_BIGINT || tCol.m_eAttrType==SPH_ATTR_FLOAT ))
@@ -6676,13 +6670,13 @@ int RtIndex_t::UpdateAttributes ( const CSphAttrUpdate & tUpd, int iIndex, CSphS
 		dBigints.Add ( tUpd.m_dAttrs[i].m_eAttrType==SPH_ATTR_BIGINT );
 
 		// find dupes to optimize
-		ARRAY_FOREACH ( i, dIndexes )
-			if ( dIndexes[i]==iIndex )
+		ARRAY_FOREACH ( j, dIndexes )
+			if ( dIndexes[j]==iIdx )
 			{
-				dIndexes[i] = -1;
+				dIndexes[j] = -1;
 				break;
 			}
-		dIndexes.Add ( iIndex );
+		dIndexes.Add ( iIdx );
 	}
 	assert ( tUpd.m_bIgnoreNonexistent || ( dLocators.GetLength()==tUpd.m_dAttrs.GetLength() ) );
 
