@@ -1000,7 +1000,7 @@ void sphAotLemmatizeRu ( CSphVector<CSphString> & dLemmas, const BYTE * pWord, b
 	if ( iFormLen<=1 )
 		return;
 
-	if ( IsFreq2(sForm) || IsFreq3(sForm) )
+	if ( IsFreq2(sForm) || ( iFormLen==3 && IsFreq3(sForm) ) )
 		return;
 
 	DWORD FindResults[12]; // max results is like 6

@@ -3430,7 +3430,7 @@ bool ISphTokenizer::EnableSentenceIndexing ( CSphString & sError )
 
 bool ISphTokenizer::EnableZoneIndexing ( CSphString & sError )
 {
-	const char sSpecials[] = { MAGIC_CODE_ZONE, 0 };
+	static const char sSpecials[] = { MAGIC_CODE_ZONE, 0 };
 	return AddSpecialsSPZ ( sSpecials, "index_zones", sError );
 }
 
@@ -13194,7 +13194,7 @@ bool CSphIndex_VLN::MergeWords ( const CSphIndex_VLN * pDstIndex, const CSphInde
 
 	int iWords = 0;
 	int iHitlistsDiscarded = 0;
-	while ( bDstWord || bSrcWord )
+	for ( ; bDstWord || bSrcWord; iWords++ )
 	{
 		if ( iWords==1000 )
 		{
@@ -13213,7 +13213,6 @@ bool CSphIndex_VLN::MergeWords ( const CSphIndex_VLN * pDstIndex, const CSphInde
 			// transfer documents and hits from destination
 			CSphMerger::PrepareQword<QWORDDST> ( tDstQword, tDstReader, iDstMinID, bWordDict );
 			tMerger.TransferData<QWORDDST> ( tDstQword, tDstReader.m_iWordID, tDstReader.GetWord(), pDstIndex, pFilter, pForceTerminate );
-			iWords++;
 			bDstWord = tDstReader.Read();
 
 		} else if ( !bDstWord || ( bSrcWord && iCmp>0 ) )
@@ -13221,7 +13220,6 @@ bool CSphIndex_VLN::MergeWords ( const CSphIndex_VLN * pDstIndex, const CSphInde
 			// transfer documents and hits from source
 			CSphMerger::PrepareQword<QWORDSRC> ( tSrcQword, tSrcReader, iSrcMinID, bWordDict );
 			tMerger.TransferData<QWORDSRC> ( tSrcQword, tSrcReader.m_iWordID, tSrcReader.GetWord(), pSrcIndex, NULL, pForceTerminate );
-			iWords++;
 			bSrcWord = tSrcReader.Read();
 
 		} else // merge documents and hits inside the word
@@ -13342,7 +13340,6 @@ bool CSphIndex_VLN::MergeWords ( const CSphIndex_VLN * pDstIndex, const CSphInde
 			// next word
 			bDstWord = tDstReader.Read();
 			bSrcWord = tSrcReader.Read();
-			iWords++;
 		}
 	}
 
@@ -24701,7 +24698,7 @@ static bool HookQueryRange ( const char* szCommand, SphDocID_t* pMin, SphDocID_t
 	pStart = scannumber ( pStart, pEnd, pMin );
 	// whitespace and 2-nd number
 	pStart = skipspace ( pStart, pEnd );
-	pStart = scannumber ( pStart, pEnd, pMax );
+	scannumber ( pStart, pEnd, pMax );
 	return true;
 }
 

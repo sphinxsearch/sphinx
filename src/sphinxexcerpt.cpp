@@ -4091,7 +4091,6 @@ void sphBuildExcerpt ( ExcerptQuery_t & tOptions, const CSphIndex * pIndex, cons
 
 	char * pData = const_cast<char*> ( tOptions.m_sSource.cstr() );
 	CSphFixedVector<char> pBuffer ( 0 );
-	int iDataLen = 0;
 
 	if ( tOptions.m_iLoadFiles )
 	{
@@ -4120,8 +4119,7 @@ void sphBuildExcerpt ( ExcerptQuery_t & tOptions, const CSphIndex * pIndex, cons
 		if ( iFileSize<0 )
 			return;
 
-		iDataLen = iFileSize+1;
-		pBuffer.Reset ( iDataLen );
+		pBuffer.Reset ( iFileSize+1 );
 		if ( !tFile.Read ( pBuffer.Begin(), iFileSize, sError ) )
 			return;
 
@@ -4137,7 +4135,7 @@ void sphBuildExcerpt ( ExcerptQuery_t & tOptions, const CSphIndex * pIndex, cons
 		pStripper = NULL;
 
 	// FIXME!!! check on real data (~100 Mb) as stripper changes len
-	iDataLen = strlen ( pData );
+	int iDataLen = strlen ( pData );
 
 	bool bCanFastPathed = ( !tOptions.m_bUseBoundaries && !tOptions.m_bWeightOrder && tOptions.m_ePassageSPZ==SPH_SPZ_NONE && !tOptions.m_bEmitZones );
 
