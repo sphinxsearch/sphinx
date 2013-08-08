@@ -17545,7 +17545,8 @@ bool CSphIndex_VLN::ParsedMultiQuery ( const CSphQuery * pQuery, CSphQueryResult
 	// bind weights
 	tCtx.BindWeights ( pQuery, m_tSchema, iIndexWeight );
 
-	SmallStringHash_T<CSphQueryResultMeta::WordStat_t> hPrevWordStat = pResult->m_hWordStats;
+	SphWordStatChecker_t tStatDiff;
+	tStatDiff.Set ( pResult->m_hWordStats );
 
 	// setup query
 	// must happen before index-level reject, in order to build proper keyword stats
@@ -17553,10 +17554,10 @@ bool CSphIndex_VLN::ParsedMultiQuery ( const CSphQuery * pQuery, CSphQueryResult
 	if ( !pRanker.Ptr() )
 		return false;
 
+	tStatDiff.DumpDiffer ( pResult->m_hWordStats, m_sIndexName.cstr(), pResult->m_sWarning );
+
 	if ( bFactors && pQuery->m_eRanker!=SPH_RANK_EXPR )
 		pResult->m_sWarning.SetSprintf ( "packedfactors() and bm25f() requires using an expression ranker" );
-
-	sphCheckWordStats ( hPrevWordStat, pResult->m_hWordStats, m_sIndexName.cstr(), pResult->m_sWarning );
 
 	tCtx.SetupExtraData ( pRanker.Ptr() );
 
@@ -28975,33 +28976,49 @@ void CWordlist::GetInfixedWords ( const char * sInfix, int iBytes, const char * 
 }
 
 
-void sphCheckWordStats ( const SmallStringHash_T<CSphQueryResultMeta::WordStat_t> & hDst, const SmallStringHash_T<CSphQueryResultMeta::WordStat_t> & hSrc, const char * sIndex, CSphString & sWarning )
+// all indexes should produce same terms for same query
+void SphWordStatChecker_t::Set ( const SmallStringHash_T<CSphQueryResultMeta::WordStat_t> & hStat )
 {
-	if ( !hDst.GetLength() )
+	m_dSrcWords.Reserve ( hStat.GetLength() );
+	hStat.IterateStart();
+	while ( hStat.IterateNext() )
+	{
+		if ( hStat.IterateGet().m_bExpanded )
+			continue;
+
+		m_dSrcWords.Add ( sphFNV64 ( (const BYTE*)hStat.IterateGetKey().cstr() ) );
+	}
+	m_dSrcWords.Sort();
+}
+
+
+void SphWordStatChecker_t::DumpDiffer ( const SmallStringHash_T<CSphQueryResultMeta::WordStat_t> & hStat, const char * sIndex, CSphString & sWarning )
+{
+	if ( !m_dSrcWords.GetLength() )
 		return;
 
-	bool bHasHead = false;
-	hSrc.IterateStart();
-	while ( hSrc.IterateNext() )
-	{
-		const CSphQueryResultMeta::WordStat_t * pDstStat = hDst ( hSrc.IterateGetKey() );
-		const CSphQueryResultMeta::WordStat_t & tSrcStat = hSrc.IterateGet();
+	bool bGotHead = false;
 
-		// all indexes should produce same terms for same query
-		if ( !pDstStat && !tSrcStat.m_bExpanded )
+	hStat.IterateStart();
+	while ( hStat.IterateNext() )
+	{
+		if ( hStat.IterateGet().m_bExpanded )
+			continue;
+
+		uint64_t uHash = sphFNV64 ( (const BYTE *)hStat.IterateGetKey().cstr() );
+		if ( !m_dSrcWords.BinarySearch ( uHash ) )
 		{
-			if ( !bHasHead )
+			if ( !bGotHead )
 			{
-				sWarning.SetSprintf ( "index '%s': query word(s) mismatch: %s", sIndex, hSrc.IterateGetKey().cstr() );
-				bHasHead = true;
+				sWarning.SetSprintf ( "index '%s': query word(s) mismatch: %s", sIndex, hStat.IterateGetKey().cstr() );
+				bGotHead = true;
 			} else
 			{
-				sWarning.SetSprintf ( "%s, %s", sWarning.cstr(), hSrc.IterateGetKey().cstr() );
+				sWarning.SetSprintf ( "%s, %s", sWarning.cstr(), hStat.IterateGetKey().cstr() );
 			}
 		}
 	}
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 // CSphQueryResultMeta
