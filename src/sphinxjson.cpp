@@ -32,6 +32,7 @@ struct JsonNode_t
 	CSphVector<CSphString>	m_dValue; // !COMMIT warning! slow!! implement Swap!!!
 
 	JsonNode_t ()
+		: m_eType ( JSON_TOTAL )
 	{}
 };
 #define YYSTYPE JsonNode_t
