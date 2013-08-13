@@ -1100,8 +1100,8 @@ public:
 	virtual bool				Prealloc ( bool bMlock, bool bStripPath, CSphString & sWarning );
 	virtual void				Dealloc () {}
 	virtual bool				Preread ();
-	virtual void				SetBase ( const char * sNewBase ) {}
-	virtual bool				Rename ( const char * sNewBase ) { return true; }
+	virtual void				SetBase ( const char * ) {}
+	virtual bool				Rename ( const char * ) { return true; }
 	virtual bool				Lock () { return true; }
 	virtual void				Unlock () {}
 	virtual bool				Mlock () { return true; }
@@ -1112,9 +1112,9 @@ public:
 	virtual bool				SaveAttributes ( CSphString & sError ) const;
 	virtual DWORD				GetAttributeStatus () const { return m_uDiskAttrStatus; }
 
-	virtual void				DebugDumpHeader ( FILE * fp, const char * sHeaderName, bool bConfig ) {}
-	virtual void				DebugDumpDocids ( FILE * fp ) {}
-	virtual void				DebugDumpHitlist ( FILE * fp, const char * sKeyword, bool bID ) {}
+	virtual void				DebugDumpHeader ( FILE * , const char * , bool ) {}
+	virtual void				DebugDumpDocids ( FILE * ) {}
+	virtual void				DebugDumpHitlist ( FILE * , const char * , bool ) {}
 	virtual void				DebugDumpDict ( FILE * fp ) {}
 	virtual int					DebugCheck ( FILE * fp );
 #if USE_WINDOWS

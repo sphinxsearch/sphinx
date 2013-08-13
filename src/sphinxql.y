@@ -28,6 +28,7 @@
 %token	TOK_AVG
 %token	TOK_BEGIN
 %token	TOK_BETWEEN
+%token	TOK_BIGINT
 %token	TOK_BY
 %token	TOK_CALL
 %token	TOK_CHARACTER
@@ -653,6 +654,7 @@ expr:
 function:
 	TOK_IDENT '(' arglist ')'	{ $$ = $1; $$.m_iEnd = $4.m_iEnd; }
 	| TOK_IN '(' arglist ')'	{ $$ = $1; $$.m_iEnd = $4.m_iEnd; }			// handle exception from 'ident' rule
+	| TOK_BIGINT '(' arglist ')'	{ $$ = $1; $$.m_iEnd = $4.m_iEnd; }
 	| TOK_IDENT '(' ')'			{ $$ = $1; $$.m_iEnd = $3.m_iEnd }
 	| TOK_MIN '(' expr ',' expr ')'		{ $$ = $1; $$.m_iEnd = $6.m_iEnd }	// handle clash with aggregate functions
 	| TOK_MAX '(' expr ',' expr ')'		{ $$ = $1; $$.m_iEnd = $6.m_iEnd }
@@ -1066,6 +1068,7 @@ create_function:
 
 udf_type:
 	TOK_INT			{ $$ = SPH_ATTR_INTEGER; }
+	| TOK_BIGINT	{ $$ = SPH_ATTR_BIGINT; }
 	| TOK_FLOAT		{ $$ = SPH_ATTR_FLOAT; }
 	| TOK_STRING	{ $$ = SPH_ATTR_STRINGPTR; }
 	;
