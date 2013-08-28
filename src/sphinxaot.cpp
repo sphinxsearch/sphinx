@@ -21,7 +21,7 @@
 #include "sphinxutils.h"
 
 //////////////////////////////////////////////////////////////////////////
-// LEMMATIZER 
+// LEMMATIZER
 //////////////////////////////////////////////////////////////////////////
 
 const BYTE	AOT_POS_UNKNOWN				= 0xff;
@@ -735,9 +735,9 @@ inline void CreateLemma ( BYTE * sOut, const BYTE * sBase, int iBaseLen, bool bF
 	if ( m_bFound
 		|| (
 		( m_InputWordBase.substr ( 0, LemmPrefix.length() )==LemmPrefix ) &&
-		( m_InputWordBase.substr ( LemmPrefix.length(), F.m_PrefixStr.length() ) == F.m_PrefixStr ) ) )
+		( m_InputWordBase.substr ( LemmPrefix.length(), F.m_PrefixStr.length() )==F.m_PrefixStr ) ) )
 	{
-		m_InputWordBase.erase(0, LemmPrefix.length()+ M.m_PrefixStr.length());
+		m_InputWordBase.erase ( 0, LemmPrefix.length()+ M.m_PrefixStr.length() );
 		m_bPrefixesWereCut = true;
 	}
 #endif
@@ -1100,7 +1100,7 @@ public:
 
 	BYTE * GetToken()
 	{
-		m_eTokenMorph = SPH_TOKEN_MORPH_GUESS;
+		m_eTokenMorph = SPH_TOKEN_MORPH_RAW;
 
 		// any pending lemmas left?
 		if ( m_iCurrent>=0 )
@@ -1130,7 +1130,8 @@ public:
 			if ( m_pWordforms && m_pWordforms->m_bHavePostMorphNF )
 				m_pWordforms->ToNormalForm ( m_sToken, false );
 
-			return m_sToken;			
+			m_eTokenMorph = SPH_TOKEN_MORPH_GUESS;
+			return m_sToken;
 		}
 
 		// ok, time to work on a next word
@@ -1216,6 +1217,7 @@ public:
 		if ( m_pWordforms && m_pWordforms->m_bHavePostMorphNF )
 			m_pWordforms->ToNormalForm ( pToken, false );
 
+		m_eTokenMorph = SPH_TOKEN_MORPH_GUESS;
 		return pToken;
 	}
 };
