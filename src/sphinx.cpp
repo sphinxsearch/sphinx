@@ -11147,6 +11147,10 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 	CSphVector<int> dStringAttrs;
 	CSphVector<int> dWordcountAttrs;
 
+	// Sphinx-BSON storage
+	CSphVector<BYTE> dBson;
+	dBson.Reserve ( 1024 );
+
 	for ( int i=0; i<m_tSchema.GetAttrsCount(); i++ )
 	{
 		const CSphColumnInfo & tCol = m_tSchema.GetAttr(i);
@@ -11674,7 +11678,6 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 					}
 
 					// handle JSON
-					CSphVector<BYTE> dBuf; // FIXME? optimize?
 					if ( m_tSchema.GetAttr ( dStringAttrs[i] ).m_eAttrType==SPH_ATTR_JSON ) // FIXME? optimize?
 					{
 						// WARNING, tricky bit
@@ -11684,7 +11687,8 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 						char * pData = const_cast<char*>(sData);
 						pData[iLen+1] = '\0';
 
-						if ( !sphJsonParse ( dBuf, pData, g_bJsonAutoconvNumbers, g_bJsonKeynamesToLowercase, m_sLastError ) )
+						dBson.Resize (0);
+						if ( !sphJsonParse ( dBson, pData, g_bJsonAutoconvNumbers, g_bJsonKeynamesToLowercase, m_sLastError ) )
 						{
 							m_sLastError.SetSprintf ( "document " DOCID_FMT ", attribute %s: JSON error: %s",
 								pSource->m_tDocInfo.m_iDocID, m_tSchema.GetAttr ( dStringAttrs[i] ).m_sName.cstr(),
@@ -11700,7 +11704,7 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 							pSource->m_tDocInfo.SetAttr ( m_tSchema.GetAttr ( dStringAttrs[i] ).m_tLocator, 0 );
 							continue;
 						}
-						if ( !dBuf.GetLength() )
+						if ( !dBson.GetLength() )
 						{
 							// empty SphinxBSON, need not save any data
 							pSource->m_tDocInfo.SetAttr ( m_tSchema.GetAttr ( dStringAttrs[i] ).m_tLocator, 0 );
@@ -11708,8 +11712,8 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 						}
 
 						// let's go save the newly built SphinxBSON blob
-						sData = (const char*)dBuf.Begin();
-						iLen = dBuf.GetLength();
+						sData = (const char*)dBson.Begin();
+						iLen = dBson.GetLength();
 					}
 
 					// calc offset, do sanity checks
