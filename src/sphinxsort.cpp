@@ -292,14 +292,12 @@ public:
 template < typename COMP >
 struct MatchSort_fn
 {
-	typedef CSphMatch			MEDIAN_TYPE;
+	typedef CSphMatch MEDIAN_TYPE;
 
 	CSphMatchComparatorState	m_tState;
-	const CSphSchema *			m_pCloner;
 
-	MatchSort_fn ( const CSphMatchComparatorState & tState, const CSphSchema& dCloner )
+	explicit MatchSort_fn ( const CSphMatchComparatorState & tState )
 		: m_tState ( tState )
-		, m_pCloner ( &dCloner )
 	{}
 
 	bool IsLess ( const CSphMatch & a, const CSphMatch & b )
@@ -312,10 +310,15 @@ struct MatchSort_fn
 		return *a;
 	}
 
+	// Do not deep copy here. It is not only requires more time but furthermore leads to memleaks.
+	// SPH_ATTR_STRINGPTR needs to be freed by FreeStringPtrs(), which ~CSphMatch() does not call.
+	// Refer to the code of sphSort() and look at pivot variable x. It is a potential memleak.
 	void CopyKey ( CSphMatch * pMed, CSphMatch * pVal ) const
 	{
-		assert ( m_pCloner );
-		m_pCloner->CloneMatch ( pMed, *pVal );
+		pMed->m_iDocID = pVal->m_iDocID;
+		pMed->m_iWeight = pVal->m_iWeight;
+		pMed->m_pStatic = pVal->m_pStatic;
+		pMed->m_pDynamic = pVal->m_pDynamic;
 	}
 
 	void Swap ( CSphMatch * a, CSphMatch * b ) const
@@ -399,7 +402,7 @@ public:
 		if ( m_iTotal==m_iSize )
 		{
 			assert ( m_iUsed==m_iSize && !m_pWorst );
-			MatchSort_fn<COMP> tComp ( m_tState, m_tSchema );
+			MatchSort_fn<COMP> tComp ( m_tState );
 			sphSort ( m_pEnd-m_iSize, m_iSize, tComp, tComp );
 			m_pWorst = m_pEnd-m_iSize;
 			return true;
@@ -408,7 +411,7 @@ public:
 		// do the sort/cut when the K-buffer is full
 		if ( m_iUsed==m_iSize*COEFF )
 		{
-			MatchSort_fn<COMP> tComp ( m_tState, m_tSchema );
+			MatchSort_fn<COMP> tComp ( m_tState );
 			sphSort ( m_pData, m_iUsed, tComp, tComp );
 
 			if ( NOTIFICATIONS )
@@ -440,7 +443,7 @@ public:
 		}
 		if ( m_iUsed )
 		{
-			MatchSort_fn<COMP> tComp ( m_tState, m_tSchema );
+			MatchSort_fn<COMP> tComp ( m_tState );
 			sphSort ( m_pEnd-m_iUsed, m_iUsed, tComp, tComp );
 		}
 		m_iUsed = Min ( m_iUsed, m_iSize );
@@ -1369,21 +1372,24 @@ public:
 
 /// group sorting functor
 template < typename COMPGROUP >
-struct GroupSorter_fn : public CSphMatchComparatorState, public SphAccessor_T<CSphMatch>
+struct GroupSorter_fn : public CSphMatchComparatorState
 {
 	typedef CSphMatch MEDIAN_TYPE;
 
-	const CSphSchema* m_pCloner;
-
-	GroupSorter_fn ()
+	CSphMatch & Key ( CSphMatch * a )
 	{
-		m_pCloner = NULL;
+		return *a;
 	}
 
+	// Do not deep copy here. It is not only requires more time but furthermore leads to memleaks.
+	// SPH_ATTR_STRINGPTR needs to be freed by FreeStringPtrs(), which ~CSphMatch() does not call.
+	// Refer to the code of sphSort() and look at pivot variable x. It is a potential memleak.
 	void CopyKey ( MEDIAN_TYPE * pMed, CSphMatch * pVal ) const
 	{
-		assert ( m_pCloner );
-		m_pCloner->CloneMatch ( pMed, *pVal );
+		pMed->m_iDocID = pVal->m_iDocID;
+		pMed->m_iWeight = pVal->m_iWeight;
+		pMed->m_pStatic = pVal->m_pStatic;
+		pMed->m_pDynamic = pVal->m_pDynamic;
 	}
 
 	bool IsLess ( const CSphMatch & a, const CSphMatch & b ) const
@@ -1391,10 +1397,19 @@ struct GroupSorter_fn : public CSphMatchComparatorState, public SphAccessor_T<CS
 		return COMPGROUP::IsLess ( b, a, *this );
 	}
 
-	// inherited swap does not work on gcc
 	void Swap ( CSphMatch * a, CSphMatch * b ) const
 	{
 		::Swap ( *a, *b );
+	}
+
+	CSphMatch * Add ( CSphMatch * p, int i ) const
+	{
+		return p+i;
+	}
+
+	int Sub ( CSphMatch * b, CSphMatch * a ) const
+	{
+		return (int)(b-a);
 	}
 };
 
@@ -1447,7 +1462,6 @@ public:
 	virtual void SetSchema ( const CSphSchema & tSchema )
 	{
 		m_tSchema = tSchema;
-		m_tGroupSorter.m_pCloner = &m_tSchema;
 
 		bool bAggrStarted = false;
 		for ( int i=0; i<m_tSchema.GetAttrsCount(); i++ )
