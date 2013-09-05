@@ -40,6 +40,8 @@ index test
 
 <sphinxql>SELECT *, GROUPBY(), COUNT(*) FROM test GROUP BY group_id, group_id2</sphinxql>
 <sphinxql>SELECT *, GROUPBY(), COUNT(*) FROM test GROUP BY group_id2, group_id, group_id2</sphinxql>
+<sphinxql>SELECT COUNT(*) FROM test</sphinxql>
+<sphinxql>SELECT id id1, COUNT(DISTINCT id1) FROM test</sphinxql>
 </sphqueries>
 
 <db_create>
