@@ -5,7 +5,7 @@
 ]>
 <book lang="en">
 
-<title>Sphinx 2.1.2-dev reference manual</title>
+<title>Sphinx 2.1.2-release reference manual</title>
 <subtitle>Free open-source SQL full-text search engine</subtitle>
 
 <bookinfo>
@@ -2224,6 +2224,7 @@ Here's the complete reference list for quick access.
 <listitem><para><link linkend="expr-func-if">IF()</link></para></listitem>
 <listitem><para><link linkend="expr-func-in">IN()</link></para></listitem>
 <listitem><para><link linkend="expr-func-interval">INTERVAL()</link></para></listitem>
+<listitem><para><link linkend="expr-func-length">LENGTH()</link></para></listitem>
 <listitem><para><link linkend="expr-func-ln">LN()</link></para></listitem>
 <listitem><para><link linkend="expr-func-log10">LOG10()</link></para></listitem>
 <listitem><para><link linkend="expr-func-log2">LOG2()</link></para></listitem>
@@ -2651,6 +2652,15 @@ is simply formatted as plain text, which can be used to manually assess the rank
 factors. Note that this feature is not currently supported by the Sphinx API.
 </para>	
 </listitem>
+</varlistentry>
+
+<varlistentry>
+<term id="expr-func-length">LENGTH()</term>
+<listitem><para>
+LENGTH(attr_mva) function, introduced in version 2.1.2-stable,
+returns amount of elements in MVA set. It works with both 32-bit and
+64-bit MVA attributes.
+</para></listitem>
 </varlistentry>
 	
 </variablelist>
@@ -5428,7 +5438,7 @@ Query OK, 0 rows affected (0.05 sec)
 FLUSH RAMCHUNK rtindex
 </programlisting>
 <para>
-FLUSH RAMCHUNK statement, added in version 2.1.2-beta, forcibly
+FLUSH RAMCHUNK statement, added in version 2.1.2-release, forcibly
 creates a new disk chunk in a RT index.
 </para>
 <para>
@@ -5807,7 +5817,7 @@ Query OK, 0 rows affected (0.00 sec)
 SHOW PLAN
 </programlisting>
 <para>
-SHOW PLAN statement, added in 2.1.2-beta, displays the execution plan
+SHOW PLAN statement, added in 2.1.2-release, displays the execution plan
 of the previous SELECT statment. The plan gets generated and stored
 during the actual execution, so profiling must be enabled in the current
 session <b>before</b> running that statement. That can be done
@@ -11426,7 +11436,7 @@ rt_attr_uint = gid
 Boolean attribute declaration.
 Multi-value (there might be multiple attributes declared), optional.
 Declares a 1-bit unsigned integer attribute.
-Introduced in version 2.1.2-beta.
+Introduced in version 2.1.2-release.
 </para>
 <bridgehead>Example:</bridgehead>
 <programlisting>
