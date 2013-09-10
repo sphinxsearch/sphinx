@@ -8558,6 +8558,7 @@ sql_attr_timestamp = added_ts
 
 <sect2 id="conf-sql-attr-str2ordinal"><title>sql_attr_str2ordinal</title>
 <para>
+Deprecated.
 Ordinal string number <link linkend="attributes">attribute</link> declaration.
 Multi-value (there might be multiple attributes declared), optional.
 Applies to SQL source types (<option>mysql</option>, <option>pgsql</option>, <option>mssql</option>) only.
@@ -8736,6 +8737,7 @@ sql_attr_json = properties
 
 <sect2 id="conf-sql-attr-str2wordcount"><title>sql_attr_str2wordcount</title>
 <para>
+Deprecated.
 Word-count attribute declaration.
 Multi-value (ie. there may be more than one such attribute declared), optional.
 Applies to SQL source types (<option>mysql</option>, <option>pgsql</option>, <option>mssql</option>) only.
@@ -8815,6 +8817,7 @@ sql_field_string = title # will be both indexed and stored
 
 <sect2 id="conf-sql-field-str2wordcount"><title>sql_field_str2wordcount</title>
 <para>
+Deprecated.
 Combined word-count attribute and full-text field declaration.
 Multi-value (ie. there may be more than one such attribute declared), optional.
 Applies to SQL source types (<option>mysql</option>, <option>pgsql</option>, <option>mssql</option>) only.
@@ -9064,6 +9067,7 @@ xmlpipe_attr_timestamp = published
 
 <sect2 id="conf-xmlpipe-attr-str2ordinal"><title>xmlpipe_attr_str2ordinal</title>
 <para>
+Deprecated.
 xmlpipe string ordinal attribute declaration.
 Multi-value, optional.
 Applies to <option>xmlpipe2</option> source type only.
@@ -11414,6 +11418,19 @@ Introduced in version 1.10-beta.
 <bridgehead>Example:</bridgehead>
 <programlisting>
 rt_attr_uint = gid
+</programlisting>
+</sect2>
+
+<sect2 id="conf-rt-attr-bool"><title>rt_attr_bool</title>
+<para>
+Boolean attribute declaration.
+Multi-value (there might be multiple attributes declared), optional.
+Declares a 1-bit unsigned integer attribute.
+Introduced in version 2.1.2-beta.
+</para>
+<bridgehead>Example:</bridgehead>
+<programlisting>
+rt_attr_bool = available
 </programlisting>
 </sect2>
 
