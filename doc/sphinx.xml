@@ -4151,12 +4151,14 @@ Its general usage is:
 indextool &lt;command&gt; [options]
 </programlisting>
 <para>
-The only currently available option applies to all commands
-and lets you specify the configuration file:
+Options apply to all commands:
 <itemizedlist>
 <listitem><para><option>--config &lt;file&gt;</option> (<option>-c &lt;file&gt;</option> for short)
 overrides the built-in config file names.
 </para></listitem>
+<listitem><para><option>--quite</option> (<option>-q</option> for short)
+keep indextool quite - it will not output banner, etc.
+</para>
 </itemizedlist>
 </para>
 <para>
@@ -4203,6 +4205,12 @@ specified as text.
 <listitem><para><option>--dumphitlist INDEXNAME --wordid ID</option> dumps all
 the hits (occurences) of a given keyword in a given index, with keyword
 specified as internal numeric ID.
+</para></listitem>
+<listitem><para><option>--fold INDEXNAME OPTFILE</option>
+This options is useful too see how actually tokenizer proceeds input.
+You can feed indextool with text from file if specified or from stdin otherwise.
+The output will contain spaces instead of separators (accordingly to your
+charset_table settings) and lowercased letters in words.
 </para></listitem>
 <listitem><para><option>--htmlstrip INDEXNAME</option> filters stdin using
 HTML stripper settings for a given index, and prints the filtering
