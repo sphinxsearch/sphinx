@@ -1056,7 +1056,7 @@ XML elements (tags) recognized by xmlpipe2 (and their attributes where applicabl
         Known attributes are:
         <itemizedlist>
         <listitem><para>"name", specifies the element name that should be treated as an attribute in the subsequent documents.</para></listitem>
-        <listitem><para>"type", specifies the attribute type. Possible values are "int", "timestamp", "str2ordinal", "bool", "float" and "multi".</para></listitem>
+        <listitem><para>"type", specifies the attribute type. Possible values are "int", "timestamp", "str2ordinal", "bool", "float", "multi" and "json".</para></listitem>
         <listitem><para>"bits", specifies the bit size for "int" attribute type. Valid values are 1 to 32.</para></listitem>
         <listitem><para>"default", specifies the default value for this attribute that should be used if the attribute's element is not present in the document.</para></listitem>
         </itemizedlist>
