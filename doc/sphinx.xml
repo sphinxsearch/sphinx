@@ -4156,8 +4156,8 @@ Options apply to all commands:
 <listitem><para><option>--config &lt;file&gt;</option> (<option>-c &lt;file&gt;</option> for short)
 overrides the built-in config file names.
 </para></listitem>
-<listitem><para><option>--quite</option> (<option>-q</option> for short)
-keep indextool quite - it will not output banner, etc.
+<listitem><para><option>--quiet</option> (<option>-q</option> for short)
+keep indextool quiet - it will not output banner, etc.
 </para>
 </itemizedlist>
 </para>
