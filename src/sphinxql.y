@@ -154,6 +154,7 @@ statement:
 	| flush_ramchunk
 	| set_transaction
 	| select_sysvar
+	| select_dual
 	| truncate
 	| optimize_index
 	;
@@ -1129,6 +1130,15 @@ sysvar_name:
 	| TOK_SYSVAR '.' TOK_IDENT
 		{
 			$$.m_sValue.SetSprintf ( "%s.%s", $1.m_sValue.cstr(), $3.m_sValue.cstr() );
+		}
+	;
+
+select_dual:
+	TOK_SELECT expr
+		{
+			pParser->m_pStmt->m_eStmt = STMT_SELECT_DUAL;
+			pParser->m_pStmt->m_tQuery.m_sQuery.SetBinary ( pParser->m_pBuf+$2.m_iStart,
+				$2.m_iEnd-$2.m_iStart );
 		}
 	;
 

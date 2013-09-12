@@ -10447,6 +10447,7 @@ enum SqlStmt_e
 	STMT_SHOW_INDEX_STATUS,
 	STMT_SHOW_PROFILE,
 	STMT_SHOW_PLAN,
+	STMT_SELECT_DUAL,
 
 	STMT_TOTAL
 };
@@ -13316,7 +13317,7 @@ void SendMysqlFieldPacket ( NetOutputBuffer_c & tOut, BYTE uPacketID, const char
 	tOut.SendMysqlString ( sCol ); // org_name
 
 	tOut.SendByte ( 12 ); // filler, must be 12 (following pseudo-string length)
-	tOut.SendByte ( 8 ); // charset_nr, 8 is latin1
+	tOut.SendByte ( 0x21 ); // charset_nr, 0x21 is utf8
 	tOut.SendByte ( 0 ); // charset_nr
 	tOut.SendLSBDword ( iColLen ); // length
 	tOut.SendByte ( BYTE(eType) ); // type (0=decimal)
@@ -15664,6 +15665,52 @@ void HandleMysqlSelectSysvar ( SqlRowBuffer_c & tOut, const SqlStmt_t & tStmt )
 	}
 }
 
+
+void HandleMysqlSelectDual ( SqlRowBuffer_c & tOut, const SqlStmt_t & tStmt )
+{
+	CSphString sVar = tStmt.m_tQuery.m_sQuery;
+	CSphSchema	tSchema;
+	ESphAttr eAttrType;
+	CSphString sError;
+
+	ISphExpr * pExpr = sphExprParse ( sVar.cstr(), tSchema, &eAttrType, NULL, sError, NULL );
+
+	if ( !pExpr )
+	{
+		tOut.Error ( tStmt.m_sStmt, sError.cstr() );
+		return;
+	}
+
+	tOut.HeadBegin(1);
+	tOut.HeadColumn ( sVar.cstr(), MYSQL_COL_STRING );
+	tOut.HeadEnd();
+
+	CSphMatch tMatch;
+	const BYTE * pStr = NULL;
+
+	switch ( eAttrType )
+	{
+	case SPH_ATTR_STRINGPTR:
+		pExpr->StringEval ( tMatch, &pStr );
+		tOut.PutString ( (const char*)pStr );
+		SafeDelete ( pStr );
+		break;
+	case SPH_ATTR_INTEGER:	tOut.PutNumeric<int> ( "%d", pExpr->IntEval ( tMatch ) ); break;
+	case SPH_ATTR_BIGINT:	tOut.PutNumeric<SphAttr_t> ( INT64_FMT, pExpr->Int64Eval ( tMatch ) ); break;
+	case SPH_ATTR_FLOAT:	tOut.PutNumeric<float> ( "%f", pExpr->Eval ( tMatch ) ); break;
+	default:
+		tOut.PutNULL();
+		break;
+	}
+
+	SafeDelete ( pExpr );
+
+	// done
+	tOut.Commit();
+	tOut.Eof();
+}
+
+
 void HandleMysqlShowCollations ( SqlRowBuffer_c & tOut )
 {
 	// MySQL Connector/J really expects an answer here
@@ -15679,7 +15726,7 @@ void HandleMysqlShowCollations ( SqlRowBuffer_c & tOut )
 
 	// data packets
 	tOut.PutString ( "utf8_general_ci" );
-	tOut.PutString ( "utf-8" );
+	tOut.PutString ( "utf8" );
 	tOut.PutString ( "33" );
 	tOut.PutString ( "Yes" );
 	tOut.PutString ( "Yes" );
@@ -15754,6 +15801,8 @@ void HandleMysqlShowVariables ( SqlRowBuffer_c & tOut, SessionVars_t & tVars )
 	tOut.DataTuplet ( "query_log_format", g_eLogFormat==LOG_FORMAT_PLAIN ? "plain" : "sphinxql" );
 	tOut.DataTuplet ( "log_level", LogLevelName ( g_eLogLevel ) );
 	tOut.DataTuplet ( "max_allowed_packet", g_iMaxPacketSize );
+	tOut.DataTuplet ( "character_set_client", "utf8" );
+	tOut.DataTuplet ( "character_set_connection", "utf8" );
 
 	// cleanup
 	tOut.Eof();
@@ -16102,6 +16151,10 @@ public:
 		case STMT_SHOW_PLAN:
 			HandleMysqlShowPlan ( tOut, m_tLastProfile );
 			return false; // do not profile this call, keep last query profile
+
+		case STMT_SELECT_DUAL:
+			HandleMysqlSelectDual ( tOut, *pStmt );
+			return true;
 
 		default:
 			m_sError.SetSprintf ( "internal error: unhandled statement type (value=%d)", eStmt );
