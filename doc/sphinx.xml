@@ -4159,6 +4159,7 @@ overrides the built-in config file names.
 <listitem><para><option>--quiet</option> (<option>-q</option> for short)
 keep indextool quiet - it will not output banner, etc.
 </para>
+</listitem>
 </itemizedlist>
 </para>
 <para>
