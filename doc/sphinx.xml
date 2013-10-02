@@ -13384,93 +13384,85 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 
 <appendix id="changelog"><title>Sphinx revision history</title>
 
-<sect1 id="rel212"><title>Version 2.1.2-beta, FIXME!!! sep 2013</title>
-<bridgehead>Major changes</bridgehead>
+<sect1 id="rel212"><title>Version 2.1.2-release, XX oct 2013</title>
+<bridgehead>New features</bridgehead>
 <itemizedlist>
-  <listitem><para>added FLUSH RAMCHUNK statement</para></listitem>
-  <listitem><para>added SHOW PLAN statement</para></listitem>
-</itemizedlist>
-
-<bridgehead>Minor changes</bridgehead>
-<itemizedlist>
-  <listitem><para>deprecated custom sort, str2ordinal and str2wordcount attributes</para></listitem>
-  <listitem><para>added JSON debug check to RAM part of RT indexes</para></listitem>
-  <listitem><para>optimizations for JSON attributes</para></listitem>
-  <listitem><para>optimizations for xmlpipe2 indexing</para></listitem>
-  <listitem><para>backported test suite changes (index mutator, multiqueries)</para></listitem>
+  <listitem><para>added <link linkend="sphinxql-flush-ramchunk">FLUSH RAMCHUNK</link> statement</para></listitem>
+  <listitem><para>added <link linkend="sphinxql-show-plan">SHOW PLAN</link> statement</para></listitem>
+  <listitem><para>added support for <link linkend="sphinxql-select">GROUP BY</link> on multiple attributes</para></listitem>
+  <listitem><para>added <link linkend="expression-ranker">BM25F()</link> function to SELECT expressions (now works with the expression based ranker)</para></listitem>
+  <listitem><para>added <link linkend="ref-indextool">indextool</link> <option>--fold</option> command and <option>-q</option> switch</para></listitem>
+  <listitem><para>added <code>JSON</code> debug check for RT index RAM chunk</para></listitem>
+  <listitem><para>added <link linkend="expr-func-length">LENGTH()</link> function for MVA</para></listitem>
+  <listitem><para>added missing <link linkend="conf-rt-attr-bool">rt_attr_bool</link> directive</para></listitem> 
   <listitem><para>added support for selecting over 250 columns via SphinxQL</para></listitem>
-  <listitem><para>added missing rt_attr_bool</para></listitem>
-  <listitem><para>optimizations for indexes with huge amount of attributes</para></listitem>
-  <listitem><para>added LENGTH() function for MVA</para></listitem>
-  <listitem><para>added indextool --fold command and -q switch</para></listitem>
-  <listitem><para>added BM25F() function (now works with the expression based ranker)</para></listitem>
-  <listitem><para>added #1453, initial GROUP BY on multiple attributes support</para></listitem>
-  <listitem><para>added warnings/errors when hooks are failed</para></listitem>
+  <listitem><para>deprecated custom sort mode, and <link linkend="conf-sql-attr-str2ordinal">str2ordinal</link> and <link linkend="conf-sql-attr-str2wordcount">str2wordcount</link> attribute types</para></listitem>
+  <listitem><para>optimized SELECT, UPDATE for indexes with many attributes (up to 3.5x speedup in extreme cases)</para></listitem>
+  <listitem><para><code>JSON</code> attributes (up to 5-20% faster SELECTs using JSON objects)</para></listitem>
+  <listitem><para>optimized <link linkend="xmlpipe2">xmlpipe2</link> indexing (up to 9 times faster on some schemas)</para></listitem>
 </itemizedlist>
 
 <bridgehead>Bug fixes</bridgehead>
 <itemizedlist>
   <listitem><para>fixed #1684, COUNT(DISTINCT smth) with implicit GROUP BY returns correct value now</para></listitem>
-  <listitem><para>fixed memory leak in sphSort()</para></listitem>
   <listitem><para>fixed #1672, exact token AOT vs lemma (indexer skips exact form of token that passed AOT through tokenizer)</para></listitem>
-  <listitem><para>fixed infix indexing with dict=keywords</para></listitem>
   <listitem><para>fixed #1659, fail while loading empty infix dictionary with dict=keywords</para></listitem>
-  <listitem><para>fixed saving id32 RT index with id64 daemon</para></listitem>
-  <listitem><para>fixed #1638 force explicit JSON type conversion for aggregate functions</para></listitem>
-  <listitem><para>fixed ATTACH vs wordforms or stopwords; after daemon was restarted this setting was getting lost in RT indexes</para></listitem>
-  <listitem><para>fixed #1628 GROUP_CONCAT() and GROUPBY() support for distributed agents</para></listitem>
-  <listitem><para>fixed #1578, SORT BY string attribute via API attr_asc \ attr_desc</para></listitem>
+  <listitem><para>fixed #1638, force explicit JSON type conversion for aggregate functions</para></listitem>
+  <listitem><para>fixed #1628, GROUP_CONCAT() and GROUPBY() support for distributed agents</para></listitem>
   <listitem><para>fixed #1619, INTEGER() conversion function doesn't support signed integers</para></listitem>
-  <listitem><para>fixed stemmer vs RT index INSERT</para></listitem>
-  <listitem><para>fixed rotation of global IDF for workers=threads and seamless_rotate=1</para></listitem>
   <listitem><para>fixed #1615, global IDF vs exact term (=term) fixed global IDF for missed terms fixed SphinxQL option global_idf=0</para></listitem>
-  <listitem><para>fixed string case error with JSON attributes in select list of a query</para></listitem>
   <listitem><para>fixed #1607, now ignoring binlog when running daemon with --console flag</para></listitem>
   <listitem><para>fixed #1606, hard interruption of the daemon by Ctrl+C (SIGINT) signal</para></listitem>
   <listitem><para>fixed #1592, duplicates vs expression ranker</para></listitem>
+  <listitem><para>fixed #1578, SORT BY string attribute via API attr_asc \ attr_desc</para></listitem>
   <listitem><para>fixed #1575, crash of daemon on MVA receive from agents with dist_threads enabled</para></listitem>
   <listitem><para>fixed #1574, agent got kill list of local indexes of distributed index</para></listitem>
   <listitem><para>fixed #1573, ranker expression vs expanded terms</para></listitem>
   <listitem><para>fixed #1572, bm25f vs negative terms</para></listitem>
-  <listitem><para>fixed balancing of agents in HA</para></listitem>
-  <listitem><para>fixed co-working of index_exact_word + AOT lemmatizer</para></listitem>
-  <listitem><para>fixed RT kill list survives TRUNCATE and works in newly ATTACHed index</para></listitem>
   <listitem><para>fixed #1550, float got cut at full-text part of a query</para></listitem>
-  <listitem><para>fixed #1508, #1522, distributed index query lasts up to agent_connect_timeout with epoll path</para></listitem>
   <listitem><para>fixed #1541, BM25F expression in distributes indexes</para></listitem>
+  <listitem><para>fixed #1508, #1522, distributed index query lasts up to agent_connect_timeout with epoll path</para></listitem>
   <listitem><para>fixed #1508, master failed to connect waiting agents up to agent_connect_timeout time</para></listitem>
-  <listitem><para>fixed #1485, index_exact_words vs keyword dict with infix</para></listitem>
-  <listitem><para>fixed #1399, filter error message on string attribute</para></listitem>
   <listitem><para>fixed #1489, filtering by integer field in JSON using floating point precision</para></listitem>
-  <listitem><para>fixed max_predicted_time integer overflows</para></listitem>
+  <listitem><para>fixed #1485, index_exact_words vs keyword dict with infix</para></listitem>
   <listitem><para>fixed #1484, INSERT into RT vs no JSON attribute</para></listitem>
   <listitem><para>fixed #1478, memory leaks at daemon PACKEDFACTORS() as UDF argument, index query tokenizer, expression ranker SUM()</para></listitem>
   <listitem><para>fixed #1470, broken UDF unpack (since r3738 UDF version 2)</para></listitem>
   <listitem><para>fixed #1468, multiple conditions in WHERE for JSON attributes</para></listitem>
-  <listitem><para>fixed #1466 index_field_lengths vs XML data source</para></listitem>
-  <listitem><para>fixed PACKEDFACTORS() to work in different GROUP BY queries</para></listitem>
-  <listitem><para>fixed #1463 daemon shutdown vs RT index optimize (added forced terminate of long merging operation)</para></listitem>
-  <listitem><para>fixed incorrect handling of wildcards in tokenizer</para></listitem>
+  <listitem><para>fixed #1466, index_field_lengths vs XML data source</para></listitem>
+  <listitem><para>fixed #1463, daemon shutdown vs RT index optimize (added forced terminate of long merging operation)</para></listitem>
   <listitem><para>fixed #1460, aggregate functions AVG(), MAX(), MIN(), SUM() do not work for JSON attributes</para></listitem>
   <listitem><para>fixed #1459, bm25f doesn't work with field_string fields</para></listitem>
   <listitem><para>fixed #1458, factors to copy field_tf at UDF</para></listitem>
-  <listitem><para>fixed preprocessor definitions for RE2 in VS solution</para></listitem>
-  <listitem><para>fixed random garbage in unused fields after sphinx_factors_unpack()</para></listitem>
-  <listitem><para>fixed memory error in tokenizer</para></listitem>
-  <listitem><para>fixed rotation of old indexes</para></listitem>
   <listitem><para>fixed #1450, garbage in JSON fields when selecting them from a rt-index</para></listitem>
   <listitem><para>fixed #1449, broken build on Mac OS due to absent strnlen() function</para></listitem>
   <listitem><para>fixed #1446, WEIGHT() did not work in SELECT expressions</para></listitem>
   <listitem><para>fixed #1445, field-start/field-end modifiers did not work for star-expanded keywords</para></listitem>
   <listitem><para>fixed #1443, morphology=lemmatizer_ru_all now works with index_exact_words=1 (exact forms can be matches></para></listitem>
-  <listitem><para>fixed test suite, --ignore-weight now works for SphinxQL queries too</para></listitem>
   <listitem><para>fixed #1442, incorrect COUNT(*) value in queries to distributed indexes with implicit GROUP BY</para></listitem>
-  <listitem><para>fixed test_208 in test suite</para></listitem>
   <listitem><para>fixed #1439, filters on float values in JSON issue, string values quoting issue</para></listitem>
+  <listitem><para>fixed #1399, filter error message on string attribute</para></listitem>
   <listitem><para>fixed #1384, added possibility to define any own DSN line with source=mssql (like as in source=odbc)</para></listitem>
-  <listitem><para>fixed hook_ranges to be involved only for docs ranges</para></listitem>
-  <listitem><para>fixed TOP_COUNT usage in misc/suggest and updated to PHP 5.3 and UTF-8</para></listitem>
+  <listitem><para>fixed ATTACH vs wordforms or stopwords; after daemon was restarted this setting was getting lost in RT indexes</para></listitem>  
+  <listitem><para>fixed balancing of agents in HA</para></listitem>
+  <listitem><para>fixed co-working of index_exact_word + AOT lemmatizer</para></listitem>
   <listitem><para>fixed epoll invoking and turned on by default</para></listitem>
+  <listitem><para>fixed hook_ranges to be involved only for docs ranges</para></listitem>
+  <listitem><para>fixed incorrect handling of wildcards in tokenizer</para></listitem>
+  <listitem><para>fixed infix indexing with dict=keywords</para></listitem>
+  <listitem><para>fixed max_predicted_time integer overflows</para></listitem>
+  <listitem><para>fixed memory error in tokenizer</para></listitem>
+  <listitem><para>fixed memory leak in sphSort()</para></listitem>
+  <listitem><para>fixed PACKEDFACTORS() to work in different GROUP BY queries</para></listitem>
+  <listitem><para>fixed preprocessor definitions for RE2 in VS solution</para></listitem>
+  <listitem><para>fixed random garbage in unused fields after sphinx_factors_unpack()</para></listitem>
+  <listitem><para>fixed rotation of global IDF for workers=threads and seamless_rotate=1</para></listitem>
+  <listitem><para>fixed rotation of old indexes</para></listitem>
+  <listitem><para>fixed RT kill list survives TRUNCATE and works in newly ATTACHed index</para></listitem>
+  <listitem><para>fixed saving id32 RT index with id64 daemon</para></listitem>  
+  <listitem><para>fixed stemmer vs RT index INSERT</para></listitem>
+  <listitem><para>fixed string case error with JSON attributes in select list of a query</para></listitem>
+  <listitem><para>fixed TOP_COUNT usage in misc/suggest and updated to PHP 5.3 and UTF-8</para></listitem>
 </itemizedlist>
 </sect1>
 
