@@ -9990,6 +9990,15 @@ int CSphHitBuilder::cidxWriteRawVLB ( int fd, CSphWordHit * pHit, int iHits, DWO
 			continue;
 		}
 
+		// replacement of hit itself by field-end form
+		if ( d1==0 && d2==0 && HITMAN::GetLCS ( pHit->m_iWordPos )==HITMAN::GetLCS ( l3 ) )
+		{
+			l3 = pHit->m_iWordPos;
+			pHit++;
+			continue;
+		}
+
+
 		// non-zero delta restarts all the fields after it
 		// because their deltas might now be negative
 		if ( d1 ) d2 = pHit->m_iDocID;
@@ -21000,6 +21009,10 @@ void InfixBuilder_c<SIZE>::SaveEntries ( CSphWriter & wrDict )
 		}
 	}
 
+	// put end marker
+	if ( iBlock )
+		wrDict.PutByte ( 0 );
+
 	const char * pBlockWords = (const char *)m_dBlocksWords.Begin();
 	ARRAY_FOREACH ( i, m_dBlocks )
 		m_dBlocks[i].m_sInfix = pBlockWords+m_dBlocks[i].m_iInfixOffset;
@@ -24111,7 +24124,7 @@ void CSphSource_Document::BuildSubstringHits ( SphDocID_t uDocid, bool bPayload,
 	while ( ( m_iMaxHits==0 || m_tHits.m_dData.GetLength()+iIterHitCount<m_iMaxHits )
 		&& ( sWord = m_pTokenizer->GetToken() )!=NULL )
 	{
-		iBlendedHitsStart = TrackBlendedStart ( m_pTokenizer, iBlendedHitsStart, m_tHits.Length() );
+		int iLastBlendedStart = TrackBlendedStart ( m_pTokenizer, iBlendedHitsStart, m_tHits.Length() );
 
 		if ( !bPayload )
 		{
@@ -24146,6 +24159,7 @@ void CSphSource_Document::BuildSubstringHits ( SphDocID_t uDocid, bool bPayload,
 			m_tState.m_iBuildLastStep = m_iStopwordStep;
 			continue;
 		}
+		iBlendedHitsStart = iLastBlendedStart;
 		m_tHits.AddHit ( uDocid, iWord, m_tState.m_iHitPos );
 		m_tState.m_iBuildLastStep = m_pTokenizer->TokenIsBlended() ? 0 : 1;
 
@@ -24254,7 +24268,7 @@ void CSphSource_Document::BuildRegularHits ( SphDocID_t uDocid, bool bPayload, b
 	while ( ( m_iMaxHits==0 || m_tHits.m_dData.GetLength()+BUILD_REGULAR_HITS_COUNT<m_iMaxHits )
 		&& ( sWord = m_pTokenizer->GetToken() )!=NULL )
 	{
-		iBlendedHitsStart = TrackBlendedStart ( m_pTokenizer, iBlendedHitsStart, m_tHits.Length() );
+		int iLastBlendedStart = TrackBlendedStart ( m_pTokenizer, iBlendedHitsStart, m_tHits.Length() );
 
 		if ( !bPayload )
 		{
@@ -24299,6 +24313,7 @@ void CSphSource_Document::BuildRegularHits ( SphDocID_t uDocid, bool bPayload, b
 				printf ( "\n" );
 			printf ( "doc %d. pos %d. %s\n", uDocid, HITMAN::GetPos ( m_tState.m_iHitPos ), sWord );
 #endif
+			iBlendedHitsStart = iLastBlendedStart;
 			m_tHits.AddHit ( uDocid, iWord, m_tState.m_iHitPos );
 			m_tState.m_iBuildLastStep = m_pTokenizer->TokenIsBlended() ? 0 : 1;
 		} else
