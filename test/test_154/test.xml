@@ -34,6 +34,8 @@ index plain
 	stopwords		= <this_test/>/stopwords.txt
 	blend_chars = .
 	blend_mode = trim_both, trim_head	
+	blend_chars = .
+	blend_mode = trim_both, trim_head	
 }
 
 index rt
