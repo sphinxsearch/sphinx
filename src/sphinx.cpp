@@ -11462,7 +11462,6 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 
 		// joined filter
 		bool bGotJoined = ( m_tSettings.m_eDocinfo!=SPH_DOCINFO_INLINE ) && pSource->HasJoinedFields();
-		CSphVector<SphDocID_t> dAllIds; // FIXME! unlimited RAM use..
 
 		// fetch documents
 		for ( ;; )
@@ -11482,9 +11481,6 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 			// check for eof
 			if ( !pSource->m_tDocInfo.m_iDocID )
 				break;
-
-			if ( bGotJoined )
-				dAllIds.Add ( pSource->m_tDocInfo.m_iDocID );
 
 			// show progress bar
 			if ( ( pSource->GetStats().m_iTotalDocuments % 1000 )==0 )
@@ -11906,10 +11902,19 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 		// fetch joined fields
 		if ( bGotJoined )
 		{
-			dAllIds.Uniq();
-
-			SphDocID_t uLastID = 0;
-			bool bLastFound = 0;
+			// flush tail of regular hits
+			int iHits = pHits - dHits.Begin();
+			if ( iDictSize && m_pDict->HitblockGetMemUse() && iHits )
+			{
+				sphSort ( dHits.Begin(), iHits, CmpHit_fn() );
+				m_pDict->HitblockPatch ( dHits.Begin(), iHits );
+				pHits = dHits.Begin();
+				m_tProgress.m_iHitsTotal += iHits;
+				dHitBlocks.Add ( tHitBuilder.cidxWriteRawVLB ( fdHits.GetFD(), dHits.Begin(), iHits, NULL, 0, 0 ) );
+				if ( dHitBlocks.Last()<0 )
+					return 0;
+				m_pDict->HitblockReset ();
+			}
 
 			for ( ;; )
 			{
@@ -11929,63 +11934,26 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 				if ( !pSource->m_tDocInfo.m_iDocID )
 					break;
 
-				// filter and store hits
-				for ( const CSphWordHit * pHit = pJoinedHits->First(); pHit<=pJoinedHits->Last(); pHit++ )
-				{
-					// flush if needed
-					if ( pHits>=pHitsMax )
-					{
-						// sort hits
-						int iHits = pHits - dHits.Begin();
-						{
-							// PROFILE ( sort_hits );
-							sphSort ( dHits.Begin(), iHits, CmpHit_fn() );
-							m_pDict->HitblockPatch ( dHits.Begin(), iHits );
-						}
-						pHits = dHits.Begin();
-						m_tProgress.m_iHitsTotal += iHits;
+				int iJoinedHits = pJoinedHits->Length();
+				memcpy ( pHits, pJoinedHits->First(), iJoinedHits*sizeof(CSphWordHit) );
+				pHits += iJoinedHits;
 
-						// we're not inlining, so only flush hits, docs are flushed independently
-						dHitBlocks.Add ( tHitBuilder.cidxWriteRawVLB ( fdHits.GetFD(), dHits.Begin(), iHits,
-							NULL, 0, 0 ) );
+				// check if we need to flush
+				if ( pHits<pHitsMax && !( iDictSize && m_pDict->HitblockGetMemUse() > iDictSize ) )
+					continue;
 
-						if ( dHitBlocks.Last()<0 )
-							return 0;
-					}
+				// store hits
+				int iHits = pHits - dHits.Begin();
+				sphSort ( dHits.Begin(), iHits, CmpHit_fn() );
+				m_pDict->HitblockPatch ( dHits.Begin(), iHits );
 
-					// filter
-					SphDocID_t uHitID = pHit->m_iDocID;
-					if ( uHitID!=uLastID )
-					{
-						uLastID = uHitID;
-						bLastFound = ( dAllIds.BinarySearch ( uHitID )!=NULL );
-					}
+				pHits = dHits.Begin();
+				m_tProgress.m_iHitsTotal += iHits;
 
-					// copy next hit
-					if ( bLastFound )
-						*pHits++ = *pHit;
-				}
-
-				// reset keywords only after all collected hits processed
-				if ( iDictSize && m_pDict->HitblockGetMemUse()>iDictSize )
-				{
-					int iHits = pHits - dHits.Begin();
-					{
-						// PROFILE ( sort_hits );
-						sphSort ( dHits.Begin(), iHits, CmpHit_fn() );
-						m_pDict->HitblockPatch ( dHits.Begin(), iHits );
-					}
-					pHits = dHits.Begin();
-					m_tProgress.m_iHitsTotal += iHits;
-					if ( iHits )
-					{
-						dHitBlocks.Add ( tHitBuilder.cidxWriteRawVLB ( fdHits.GetFD(), dHits.Begin(), iHits, NULL, 0, 0 ) );
-						if ( dHitBlocks.Last()<0 )
-							return 0;
-					}
-
-					m_pDict->HitblockReset ();
-				}
+				dHitBlocks.Add ( tHitBuilder.cidxWriteRawVLB ( fdHits.GetFD(), dHits.Begin(), iHits, NULL, 0, 0 ) );
+				if ( dHitBlocks.Last()<0 )
+					return 0;
+				m_pDict->HitblockReset ();
 			}
 		}
 
@@ -23807,6 +23775,7 @@ CSphSource_Document::CSphSource_Document ( const char * sName )
 	, m_fpDumpRows ( NULL )
 	, m_iPlainFieldsLength ( 0 )
 	, m_pFieldLengthAttrs ( NULL )
+	, m_bIdsSorted ( false )
 	, m_iMaxHits ( MAX_SOURCE_HITS )
 {
 }
@@ -23837,6 +23806,8 @@ bool CSphSource_Document::IterateDocument ( CSphString & sError )
 	for ( ;; )
 	{
 		m_tState.m_dFields = NextDocument ( sError );
+		if ( HasJoinedFields() )
+			m_dAllIds.Add ( m_tDocInfo.m_iDocID );
 		if ( m_tDocInfo.m_iDocID==0 )
 			return true;
 
@@ -25544,6 +25515,13 @@ const char * CSphSource_SQL::SqlUnpackColumn ( int iFieldIndex, ESphUnpackFormat
 
 ISphHits * CSphSource_SQL::IterateJoinedHits ( CSphString & sError )
 {
+	// iterating of joined hits happens after iterating hits from main query
+	// so we may be sure at this moment no new IDs will be put in m_dAllIds
+	if ( !m_bIdsSorted )
+	{
+		m_dAllIds.Uniq();
+		m_bIdsSorted = true;
+	}
 	m_tHits.m_dData.Resize ( 0 );
 
 	// eof check
@@ -25562,6 +25540,10 @@ ISphHits * CSphSource_SQL::IterateJoinedHits ( CSphString & sError )
 		{
 			// next row
 			m_tDocInfo.m_iDocID = sphToDocid ( SqlColumn(0) ); // FIXME! handle conversion errors and zero/max values?
+
+			// lets skip joined document totally if there was no such document ID returned by main query
+			if ( !m_dAllIds.BinarySearch ( m_tDocInfo.m_iDocID ) )
+				continue;
 
 			// field start? restart ids
 			if ( !m_iJoinedHitID )
