@@ -14988,7 +14988,8 @@ bool CSphIndex_VLN::LoadHeader ( const char * sHeaderName, bool bStripPath, CSph
 	{
 		CSphFieldFilterSettings tFieldFilterSettings;
 		LoadFieldFilterSettings ( rdInfo, tFieldFilterSettings );
-		SetFieldFilter ( sphCreateFieldFilter ( tFieldFilterSettings, sWarning ) );
+		if ( tFieldFilterSettings.m_dRegexps.GetLength() )
+			SetFieldFilter ( sphCreateFieldFilter ( tFieldFilterSettings, sWarning ) );
 	}
 
 	if ( m_uVersion>=35 && m_tSettings.m_bIndexFieldLens )
@@ -29460,7 +29461,8 @@ void sphDictBuildSkiplists ( const char * sPath )
 	{
 		CSphFieldFilterSettings tFieldFilterSettings;
 		LoadFieldFilterSettings ( rdHeader, tFieldFilterSettings );
-		pFieldFilter = sphCreateFieldFilter ( tFieldFilterSettings, sError );
+		if ( tFieldFilterSettings.m_dRegexps.GetLength() )
+			pFieldFilter = sphCreateFieldFilter ( tFieldFilterSettings, sError );
 	}
 
 	CSphFixedVector<uint64_t> dFieldLens ( tSchema.m_dFields.GetLength() );
