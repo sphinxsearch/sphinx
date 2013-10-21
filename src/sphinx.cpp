@@ -17246,9 +17246,10 @@ bool CSphIndex_VLN::MultiQuery ( const CSphQuery * pQuery, CSphQueryResult * pRe
 	CSphScopedPtr<CSphDict> tDict2 ( NULL );
 	pDict = SetupExactDict ( tDict2, pDict );
 
+	CSphVector<BYTE> dFiltered;
 	const BYTE * sModifiedQuery = (BYTE *)pQuery->m_sQuery.cstr();
-	if ( m_pFieldFilter )
-		sModifiedQuery = m_pFieldFilter->Apply ( sModifiedQuery );
+	if ( m_pFieldFilter && m_pFieldFilter->Apply ( sModifiedQuery, 0, dFiltered ) )
+		sModifiedQuery = dFiltered.Begin();
 
 	// parse query
 	if ( pProfile )
@@ -23410,8 +23411,7 @@ public:
 	explicit				CSphFieldRegExps ( bool bUTF8 );
 	virtual					~CSphFieldRegExps ();
 
-	virtual	const BYTE *	Apply ( const BYTE * sField, int iLength = 0 );
-	virtual int				GetResultLength () const;
+	virtual	int				Apply ( const BYTE * sField, int iLength, CSphVector<BYTE> & dStorage );
 	virtual	void			GetSettings ( CSphFieldFilterSettings & tSettings ) const;
 
 	bool					AddRegExp ( const char * sRegExp, CSphString & sError );
@@ -23427,8 +23427,6 @@ private:
 
 	CSphVector<RegExp_t>	m_dRegexps;
 	bool					m_bUTF8;
-
-	std::string				m_sField;
 };
 
 
@@ -23443,26 +23441,27 @@ CSphFieldRegExps::~CSphFieldRegExps ()
 		SafeDelete ( m_dRegexps[i].m_pRE2 );
 }
 
-const BYTE * CSphFieldRegExps::Apply ( const BYTE * sField, int iLength )
+int CSphFieldRegExps::Apply ( const BYTE * sField, int iLength, CSphVector<BYTE> & dStorage )
 {
+	dStorage.Resize ( 0 );
 	if ( !sField || !*sField )
-		return sField;
+		return 0;
 
 	bool bReplaced = false;
-	m_sField = iLength ? std::string ( (char *) sField, iLength ) : (char *) sField;
+	std::string sRe2 = ( iLength ? std::string ( (char *) sField, iLength ) : (char *) sField );
 	ARRAY_FOREACH ( i, m_dRegexps )
 	{
 		assert ( m_dRegexps[i].m_pRE2 );
-		if ( RE2::GlobalReplace ( &m_sField, *m_dRegexps[i].m_pRE2, m_dRegexps[i].m_sTo.cstr() ) )
-			bReplaced = true;
+		bReplaced |= ( RE2::GlobalReplace ( &sRe2, *m_dRegexps[i].m_pRE2, m_dRegexps[i].m_sTo.cstr() )>0 );
 	}
 
-	return bReplaced ? (const BYTE *)m_sField.c_str () : sField;
-}
+	if ( !bReplaced )
+		return 0;
 
-int	CSphFieldRegExps::GetResultLength () const
-{
-	return m_sField.length();
+	int iDstLen = sRe2.length();
+	dStorage.Resize ( iDstLen+4 ); // string SAFETY_GAP
+	strncpy ( (char *)dStorage.Begin(), sRe2.c_str(), dStorage.GetLength() );
+	return iDstLen;
 }
 
 void CSphFieldRegExps::GetSettings ( CSphFieldFilterSettings & tSettings ) const
@@ -23854,20 +23853,16 @@ bool CSphSource_Document::IterateDocument ( CSphString & sError )
 					continue;
 				}
 
-				BYTE * sValue = m_tState.m_dFields[iField];
-				const BYTE * sResult = m_pFieldFilter->Apply ( sValue );
-				if ( sResult!=sValue )
+				CSphVector<BYTE> dFiltered;
+				if ( m_pFieldFilter->Apply ( m_tState.m_dFields[iField], 0, dFiltered ) )
 				{
-					// emulate CString's safety gap
-					const int FAKE_SAFETY_GAP = 4;
-					int iResultLen = m_pFieldFilter->GetResultLength();
-					m_tState.m_dTmpFieldStorage[iField] = new BYTE [iResultLen + 1 + FAKE_SAFETY_GAP];
-					memcpy ( m_tState.m_dTmpFieldStorage[iField], sResult, iResultLen );
-					m_tState.m_dTmpFieldStorage[iField][iResultLen] = '\0';
+					m_tState.m_dTmpFieldStorage[iField] = dFiltered.LeakData();
 					m_tState.m_dTmpFieldPtrs[iField] = m_tState.m_dTmpFieldStorage[iField];
 					bHaveModifiedFields = true;
 				} else
+				{
 					m_tState.m_dTmpFieldPtrs[iField] = m_tState.m_dFields[iField];
+				}
 			}
 
 			if ( bHaveModifiedFields )
@@ -24319,6 +24314,7 @@ void CSphSource_Document::BuildHits ( CSphString & sError, bool bSkipEndMarker )
 {
 	SphDocID_t uDocid = m_tDocInfo.m_iDocID;
 
+	CSphVector<BYTE> dFiltered;
 	for ( ; m_tState.m_iField<m_tState.m_iEndField; m_tState.m_iField++ )
 	{
 		if ( !m_tState.m_bProcessingHits )
@@ -24335,10 +24331,16 @@ void CSphSource_Document::BuildHits ( CSphString & sError, bool bSkipEndMarker )
 			{
 				LoadFileField ( &sField, sError );
 				sTextToIndex = sField;
-				if ( m_pFieldFilter )
-					sTextToIndex = m_pFieldFilter->Apply ( sTextToIndex );
-
-				iFieldBytes = sTextToIndex!=sField ? m_pFieldFilter->GetResultLength() : (int) strlen ( (char*)sField );
+				iFieldBytes = (int) strlen ( (char*)sField );
+				if ( m_pFieldFilter && iFieldBytes )
+				{
+					int iFiltered = m_pFieldFilter->Apply ( sTextToIndex, iFieldBytes, dFiltered );
+					if ( iFiltered )
+					{
+						sTextToIndex = dFiltered.Begin();
+						iFieldBytes = iFiltered;
+					}
+				}
 			} else
 			{
 				iFieldBytes = (int) strlen ( (char*)sField );
@@ -26134,6 +26136,7 @@ bool CSphSource_XMLPipe::IterateDocument ( CSphString & sError )
 {
 	// PROFILE ( src_xmlpipe );
 	char sTitle [ 1024 ]; // FIXME?
+	CSphVector<BYTE> dFiltered;
 
 	assert ( m_pPipe );
 	assert ( m_pTokenizer );
@@ -26171,16 +26174,16 @@ bool CSphSource_XMLPipe::IterateDocument ( CSphString & sError )
 	// index title
 	{
 		const BYTE * sTextToIndex = (BYTE *)sTitle;
-		int iLen = -1;
-		if ( m_pFieldFilter )
+		int iLen = (int)strlen ( (char *)sTextToIndex );
+		if ( m_pFieldFilter && iLen )
 		{
-			sTextToIndex = m_pFieldFilter->Apply ( sTextToIndex );
-			if ( sTextToIndex!=(BYTE *)sTitle )
-				iLen = m_pFieldFilter->GetResultLength();
+			int iFiltered = m_pFieldFilter->Apply ( sTextToIndex, iLen, dFiltered );
+			if ( iFiltered )
+			{
+				sTextToIndex = dFiltered.Begin();
+				iLen = iFiltered;
+			}
 		}
-
-		if ( iLen==-1 )
-			iLen = (int)strlen ( (char *)sTextToIndex );
 
 		Hitpos_t iPos = HITMAN::Create ( 0, 1 );
 		BYTE * sWord;
@@ -26249,12 +26252,19 @@ bool CSphSource_XMLPipe::IterateDocument ( CSphString & sError )
 		}
 	}
 
-	const BYTE * sTextToIndex = m_pFieldFilter ? m_pFieldFilter->Apply ( m_pBuffer, p-m_pBuffer ) : m_pBuffer;
+	BYTE * sTextToIndex = m_pBuffer;
+	int iLen = p-m_pBuffer;
+	if ( m_pFieldFilter && iLen )
+	{
+		int iFiltered = m_pFieldFilter->Apply ( sTextToIndex, iLen, dFiltered );
+		if ( iFiltered )
+		{
+			sTextToIndex = dFiltered.Begin();
+			iLen = iFiltered;
+		}
+	}
 
-	if ( sTextToIndex!=m_pBuffer )
-		m_pTokenizer->SetBuffer ( (BYTE*)sTextToIndex, m_pFieldFilter->GetResultLength() );
-	else
-		m_pTokenizer->SetBuffer ( m_pBuffer, p-m_pBuffer );
+	m_pTokenizer->SetBuffer ( sTextToIndex, iLen );
 
 	// tokenize
 	BYTE * sWord;
