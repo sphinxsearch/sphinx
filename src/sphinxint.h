@@ -732,6 +732,7 @@ AttrIndexBuilder_t<DOCID>::AttrIndexBuilder_t ( const CSphSchema & tSchema )
 		case SPH_ATTR_TIMESTAMP:
 		case SPH_ATTR_BOOL:
 		case SPH_ATTR_BIGINT:
+		case SPH_ATTR_TOKENCOUNT:
 			m_dIntAttrs.Add ( tCol.m_tLocator );
 			break;
 
