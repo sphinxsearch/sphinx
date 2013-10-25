@@ -17072,6 +17072,8 @@ static void TransformAotFilter ( XQNode_t * pNode, const XQKeyword_t & tKeyword,
 		strncpy ( sBuf, tKeyword.m_sWord.cstr(), sizeof(sBuf) );
 		if ( pWordforms->ToNormalForm ( (BYTE*)sBuf, true ) )
 		{
+			if ( !pNode->m_dWords.GetLength() )
+				pNode->m_dWords.Add ( tKeyword );
 			pNode->m_dWords[0].m_sWord = sBuf;
 			pNode->m_dWords[0].m_bMorphed = true;
 			return;
