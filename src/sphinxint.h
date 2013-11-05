@@ -662,9 +662,9 @@ void AttrIndexBuilder_t<DOCID>::FlushComputed ()
 {
 	assert ( m_pOutBuffer );
 	DWORD * pMinEntry = m_pOutBuffer + 2 * m_uElements * m_uStride;
-	DWORD * pMinAttrs = DOCINFO2ATTRS ( pMinEntry );
 	DWORD * pMaxEntry = pMinEntry + m_uStride;
-	DWORD * pMaxAttrs = pMinAttrs + m_uStride;
+	CSphRowitem * pMinAttrs = DOCINFO2ATTRS_T<DOCID> ( pMinEntry );
+	CSphRowitem * pMaxAttrs = pMinAttrs + m_uStride;
 
 	assert ( pMaxEntry+m_uStride<=m_pOutMax );
 	assert ( pMaxAttrs+m_uStride-DOCINFO_IDSIZE<=m_pOutMax );
@@ -903,8 +903,8 @@ void AttrIndexBuilder_t<DOCID>::FinishCollect ()
 	DWORD * pMinEntry = m_pOutBuffer + 2 * m_uElements * m_uStride;
 	DWORD * pMaxEntry = pMinEntry + m_uStride;
 	CSphRowitem * pMinAttrs = DOCINFO2ATTRS_T<DOCID> ( pMinEntry );
-	CSphRowitem * pMaxAttrs = DOCINFO2ATTRS_T<DOCID> ( pMaxEntry );
-
+	CSphRowitem * pMaxAttrs = pMinAttrs + m_uStride;
+	
 	assert ( pMaxEntry+m_uStride<=m_pOutMax );
 	assert ( pMaxAttrs+m_uStride-DWSIZEOF(DOCID)<=m_pOutMax );
 
