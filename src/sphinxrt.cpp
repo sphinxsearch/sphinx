@@ -3761,6 +3761,13 @@ void RtIndex_t::SaveDiskChunk ( int64_t iTID, const CSphVector<RtSegment_t *> & 
 	m_dNewSegmentKlist.Reset();
 	m_dDiskChunkKlist.Reset ( 0 );
 
+	// abandon .ram file
+	CSphString sChunk;
+	sChunk.SetSprintf ( "%s.ram", m_sPath.cstr() );
+	if ( ::unlink ( sChunk.cstr() ) )
+		sphWarning ( "failed to unlink ram chunk (file=%s, errno=%d, error=%s)",
+		sChunk.cstr(), errno, strerror(errno) );
+
 	m_iDoubleBuffer = 0;
 	m_iSavedTID = iTID;
 	m_iSavedRam = 0;
