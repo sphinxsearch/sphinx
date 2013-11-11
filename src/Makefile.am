@@ -22,14 +22,6 @@ BUILT_SOURCES = extract-version
 extract-version:
 	/bin/sh svnxrev.sh ..
 
-if USE_RE2
-LIBRE2_LIBS = $(top_srcdir)/libre2/obj/libre2.a
-LIBRE2_INC = -I$(top_srcdir)/libre2
-else
-LIBRE2_LIBS =
-LIBRE2_INC =
-endif
-
-AM_CPPFLAGS = $(LIBRE2_INC) -DSYSCONFDIR="\"$(sysconfdir)\"" -DDATADIR="\"$(localstatedir)/data\""
+AM_CPPFLAGS = $(LIBRE2_CFLAGS) -DSYSCONFDIR="\"$(sysconfdir)\"" -DDATADIR="\"$(localstatedir)/data\""
 COMMON_LIBS = libsphinx.a $(LIBSTEMMER_LIBS) $(MYSQL_LIBS) $(PGSQL_LIBS) $(LIBRE2_LIBS)
 LDADD = $(COMMON_LIBS)
