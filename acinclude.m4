@@ -414,7 +414,7 @@ if test [ -n "$ac_cv_use_re2" -a x$ac_cv_use_re2 != xyes]; then
 else
 
 # Check if there any sources in ./libre2 path
-	if test -d $top_srcdir/libre2 && test -f $top_srcdir/libre2/re2/re2.h; then
+	if test -d ./libre2 && test -f ./libre2/re2/re2.h; then
 	       	ac_cv_use_re2=yes
 	        LIBRE2_LIBS="\$(top_srcdir)/libre2/obj/libre2.a"
 	        LIBRE2_CFLAGS="-I\$(top_srcdir)/libre2"
