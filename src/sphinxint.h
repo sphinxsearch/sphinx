@@ -107,6 +107,7 @@ struct CSphQueryStats
 	SPH_QUERY_STATE ( IO,			"io" ) \
 	SPH_QUERY_STATE ( DIST_CONNECT,	"dist_connect" ) \
 	SPH_QUERY_STATE ( SQL_PARSE,	"sql_parse" ) \
+	SPH_QUERY_STATE ( FULLSCAN,		"fullscan" ) \
 	SPH_QUERY_STATE ( DICT_SETUP,	"dict_setup" ) \
 	SPH_QUERY_STATE ( PARSE,		"parse" ) \
 	SPH_QUERY_STATE ( TRANSFORMS,	"transforms" ) \
