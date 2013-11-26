@@ -1607,7 +1607,7 @@ static int ParseNumeric ( YYSTYPE * lvalp, const char ** ppStr )
 
 static uint64_t sphPackAttrLocator ( const CSphAttrLocator & tLoc, int iLocator )
 {
-	assert ( iLocator>=0 && iLocator<=0xff );
+	assert ( iLocator>=0 && iLocator<=0x7fff );
 	uint64_t uIndex = 0;
 	uIndex = ( tLoc.m_iBitOffset<<16 ) + tLoc.m_iBitCount + ( (uint64_t)iLocator<<32 );
 	if ( tLoc.m_bDynamic )
@@ -1623,7 +1623,7 @@ static void sphUnpackAttrLocator ( uint64_t uIndex, ExprNode_t * pNode )
 	pNode->m_tLocator.m_iBitCount = (int)( uIndex & 0xffff );
 	pNode->m_tLocator.m_bDynamic = ( ( uIndex & ( U64C(1)<<63 ) )!=0 );
 
-	pNode->m_iLocator = (int)( ( uIndex>>32 ) & 0xff );
+	pNode->m_iLocator = (int)( ( uIndex>>32 ) & 0x7fff );
 }
 
 int ExprParser_t::ParseAttr ( int iAttr, const char* sTok, YYSTYPE * lvalp )
