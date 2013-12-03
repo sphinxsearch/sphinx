@@ -22991,15 +22991,16 @@ void CSphHTMLStripper::Strip ( BYTE * sData ) const
 			if ( s[1]=='#' )
 			{
 				// handle "&#number;" form
-				int iCode = 0;
+				DWORD uCode = 0;
 				s += 2;
 				while ( isdigit(*s) )
-					iCode = iCode*10 + (*s++) - '0';
+					uCode = uCode*10 + (*s++) - '0';
+				uCode %= 0x110000; // there is no uniode codepoints bigger than this value
 
-				if ( ( iCode>=0 && iCode<=0x1f ) || *s!=';' ) // 0-31 are reserved codes
+				if ( uCode<=0x1f || *s!=';' ) // 0-31 are reserved codes
 					continue;
 
-				d += sphUTF8Encode ( d, iCode );
+				d += sphUTF8Encode ( d, (int)uCode );
 				s++;
 
 			} else
