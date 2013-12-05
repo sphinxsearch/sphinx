@@ -6652,14 +6652,14 @@ int RtIndex_t::UpdateAttributes ( const CSphAttrUpdate & tUpd, int iIndex, CSphS
 		return 0;
 
 	// remap update schema to index schema
-	CSphVector<CSphAttrLocator> dLocators;
-	CSphVector<int> dIndexes;
-	CSphVector<bool> dFloats;
-	CSphVector<bool> dBigints;
-	dLocators.Reserve ( tUpd.m_dAttrs.GetLength() );
-	dIndexes.Reserve ( tUpd.m_dAttrs.GetLength() );
-	dFloats.Reserve ( tUpd.m_dAttrs.GetLength() );
-	dBigints.Reserve ( tUpd.m_dAttrs.GetLength() ); // bigint flags for *source* schema.
+	int iUpdLen = tUpd.m_dAttrs.GetLength();
+	CSphVector<CSphAttrLocator> dLocators ( iUpdLen );
+	CSphVector<int> dIndexes ( iUpdLen );
+	CSphVector<bool> dFloats ( iUpdLen );
+	CSphVector<bool> dBigints ( iUpdLen );
+	memset ( dLocators.Begin(), 0, dLocators.GetSizeBytes() );
+	memset ( dFloats.Begin(), 0, dFloats.GetSizeBytes() );
+	memset ( dBigints.Begin(), 0, dBigints.GetSizeBytes() );
 
 	uint64_t uDst64 = 0;
 	ARRAY_FOREACH ( i, tUpd.m_dAttrs )
@@ -6696,8 +6696,8 @@ int RtIndex_t::UpdateAttributes ( const CSphAttrUpdate & tUpd, int iIndex, CSphS
 			if ( tCol.m_eAttrType==SPH_ATTR_INT64SET )
 				uDst64 |= ( U64C(1)<<i );
 
-			dFloats.Add ( tCol.m_eAttrType==SPH_ATTR_FLOAT );
-			dLocators.Add ( tCol.m_tLocator );
+			dFloats[i] = ( tCol.m_eAttrType==SPH_ATTR_FLOAT );
+			dLocators[i] = tCol.m_tLocator;
 			bHasMva |= ( tCol.m_eAttrType==SPH_ATTR_UINT32SET || tCol.m_eAttrType==SPH_ATTR_INT64SET );
 
 		} else if ( !tUpd.m_bIgnoreNonexistent )
@@ -6706,7 +6706,7 @@ int RtIndex_t::UpdateAttributes ( const CSphAttrUpdate & tUpd, int iIndex, CSphS
 			return -1;
 		}
 
-		dBigints.Add ( tUpd.m_dAttrs[i].m_eAttrType==SPH_ATTR_BIGINT );
+		dBigints[i] = ( tUpd.m_dAttrs[i].m_eAttrType==SPH_ATTR_BIGINT );
 
 		// find dupes to optimize
 		ARRAY_FOREACH ( j, dIndexes )
@@ -6715,7 +6715,7 @@ int RtIndex_t::UpdateAttributes ( const CSphAttrUpdate & tUpd, int iIndex, CSphS
 				dIndexes[j] = -1;
 				break;
 			}
-		dIndexes.Add ( iIdx );
+		dIndexes[i] = iIdx;
 	}
 	assert ( tUpd.m_bIgnoreNonexistent || ( dLocators.GetLength()==tUpd.m_dAttrs.GetLength() ) );
 
