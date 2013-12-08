@@ -13818,8 +13818,9 @@ SphWordID_t	CSphDictStarV8::GetWordID ( BYTE * pWord )
 
 	bool bHeadStar = ( pWord[0]=='*' );
 	bool bTailStar = ( pWord[iLen-1]=='*' ) && ( iLen>1 );
+	bool bMagic = ( pWord[0]<' ' );
 
-	if ( !bHeadStar && !bTailStar )
+	if ( !bHeadStar && !bTailStar && !bMagic )
 	{
 		if ( m_pDict->GetSettings().m_bStopwordsUnstemmed && IsStopWord ( pWord ) )
 			return 0;
@@ -13840,7 +13841,12 @@ SphWordID_t	CSphDictStarV8::GetWordID ( BYTE * pWord )
 	if ( !iLen || ( bHeadStar && iLen==1 ) )
 		return 0;
 
-	if ( m_bInfixes )
+	if ( bMagic ) // pass throu MAGIC_* words
+	{
+		memcpy ( sBuf, pWord, iLen );
+		sBuf[iLen] = '\0';
+
+	} else if ( m_bInfixes )
 	{
 		////////////////////////////////////
 		// infix or mixed infix+prefix mode
