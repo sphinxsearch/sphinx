@@ -83,6 +83,19 @@ index star
 	charset_type = utf-8
 	min_infix_len = 1
 	enable_star = 1
+	dict = crc
+}
+
+index star_kw
+{
+	source	= test
+	path	= <data_path/>/star_kw
+
+	blend_chars = @, ., !, (, ), [, ], {, }
+	charset_type = utf-8
+	min_infix_len = 2
+	enable_star = 1
+	dict = keywords
 }
 
 source test3
@@ -229,6 +242,9 @@ INSERT INTO test_table VALUES
 	<query mode="extended2" index="star">^*g*</query>
 	<query mode="extended2" index="star">^*h*</query>
 	<query mode="extended2" index="star">*c*$</query>
+	<!--regression for missed field modifier vs tiny expanded -->
+	<query mode="extended2" index="star_kw">*hh*</query>
+	<query mode="extended2" index="star_kw">*hh*$</query>
 </queries>
 
 <sphqueries>

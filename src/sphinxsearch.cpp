@@ -1648,7 +1648,7 @@ void ExtCached_c::PopulateCache ( const ISphQwordSetup & tSetup, bool bFillStat 
 				// apply field-start/field-end modifiers
 				if ( tWord.m_bFieldStart && HITMAN::GetPos(uHit)!=1 )
 					continue;
-				if ( tWord.m_bFieldEnd && HITMAN::IsEnd(uHit) )
+				if ( tWord.m_bFieldEnd && !HITMAN::IsEnd(uHit) )
 					continue;
 
 				// ok, this hit works, copy it
