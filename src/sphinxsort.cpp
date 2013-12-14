@@ -2547,7 +2547,7 @@ protected:
 	char ToLower ( char c )
 	{
 		// 0..9, A..Z->a..z, _, a..z, @, .
-		if ( ( c>='0' && c<='9' ) || ( c>='a' && c<='z' ) || c=='_' || c=='@' || c=='.' )
+		if ( ( c>='0' && c<='9' ) || ( c>='a' && c<='z' ) || c=='_' || c=='@' || c=='.' || c=='(' || c==')' )
 			return c;
 		if ( c>='A' && c<='Z' )
 			return c-'A'+'a';
@@ -2662,7 +2662,8 @@ ESortClauseParseResult sphParseSortClause ( const CSphQuery * pQuery, const char
 
 		if ( !strcasecmp ( pTok, "@relevance" )
 			|| !strcasecmp ( pTok, "@rank" )
-			|| !strcasecmp ( pTok, "@weight" ) )
+			|| !strcasecmp ( pTok, "@weight" )
+			|| !strcasecmp ( pTok, "weight()" ) )
 		{
 			tState.m_eKeypart[iField] = SPH_KEYPART_WEIGHT;
 

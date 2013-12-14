@@ -110,6 +110,7 @@ INSERT INTO test_table VALUES
 <sphinxql>select *, weight() as w, packedfactors() as p from kw where match('t* starts h*') option ranker=expr('sum(lcs)*1000+bm25')</sphinxql>
 <sphinxql>select *, weight() as w, packedfactors() as p from kw where match('t* from h*') option ranker=expr('sum(lcs)*1000+bm25')</sphinxql>
 <sphinxql>select *, weight() as w, packedfactors() as p from kw where match('t* ( starts | from ) h*') option ranker=expr('sum(lcs)*1000+bm25')</sphinxql>
+<sphinxql>select id from kw order by weight() asc</sphinxql>
 </sphqueries>
 
 </test>
