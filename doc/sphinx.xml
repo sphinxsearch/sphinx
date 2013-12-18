@@ -5,7 +5,7 @@
 ]>
 <book lang="en">
 
-<title>Sphinx 2.1.4-dev reference manual</title>
+<title>Sphinx 2.1.4-release reference manual</title>
 <subtitle>Free open-source SQL full-text search engine</subtitle>
 
 <bookinfo>
@@ -13384,15 +13384,15 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 
 <appendix id="changelog"><title>Sphinx revision history</title>
 
-<sect1 id="rel214"><title>Version 2.1.4-release, 15 dec 2013</title>
+<sect1 id="rel214"><title>Version 2.1.4-release, 18 dec 2013</title>
 <bridgehead>Bug fixes</bridgehead>
 <itemizedlist>
-  <listitem><para>fixed #1778 indexes with more than 255 attributes</para></listitem>
-  <listitem><para>fixed #1777 ORDER BY WEIGHT()</para></listitem>
-  <listitem><para>fixed #1796 missing results in queries with quorum operator of indexes with some lemmatizer</para></listitem>
-  <listitem><para>fixed #1780 incorrect results while querying indexes with wordforms, some lemmatizer and enable_star=1</para></listitem>
-  <listitem><para>fixed SHOW PROFILE for fullscan queries</para></listitem>
-  <listitem><para>fixed --with-re2 check</para></listitem>
+  <listitem><para>fixed #1778, indexes with more than 255 attributes</para></listitem>
+  <listitem><para>fixed #1777, <link linkend="sphinxql-select">ORDER BY WEIGHT()</link></para></listitem>
+  <listitem><para>fixed #1796, missing results in queries with quorum operator of indexes with some lemmatizer</para></listitem>
+  <listitem><para>fixed #1780, incorrect results while querying indexes with wordforms, some lemmatizer and enable_star=1</para></listitem>
+  <listitem><para>fixed, SHOW PROFILE for fullscan queries</para></listitem>
+  <listitem><para>fixed, --with-re2 check</para></listitem>
 </itemizedlist>
 </sect1>
 
