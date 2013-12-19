@@ -8981,7 +8981,7 @@ protected:
 	void							RunLocalSearches ( ISphMatchSorter * pLocalSorter, const char * sDistName, bool bFactors );
 	void							RunLocalSearchesMT ();
 	bool							RunLocalSearch ( int iLocal, ISphMatchSorter ** ppSorters, CSphQueryResult ** pResults, bool * pMulti ) const;
-	bool							HasExpresions ( int iStart, int iEnd ) const;
+	bool							AllowsMulti ( int iStart, int iEnd ) const;
 
 	int								m_iStart;		///< subset start
 	int								m_iEnd;			///< subset end
@@ -9604,7 +9604,8 @@ void SearchHandler_c::RunLocalSearches ( ISphMatchSorter * pLocalSorter, const c
 				{
 					m_dFailuresSet[iQuery].Submit ( sLocal, sError.cstr() );
 					continue;
-				} else if ( m_bMultiQueue )
+				}
+				if ( m_bMultiQueue )
 				{
 					// can't use multi-query for sorter with string attribute at group by or sort
 					m_bMultiQueue = pSorter->CanMulti();
@@ -9621,6 +9622,10 @@ void SearchHandler_c::RunLocalSearches ( ISphMatchSorter * pLocalSorter, const c
 			ReleaseIndex ( iLocal );
 			continue;
 		}
+
+		// if sorter schemes have dynamic part, its lengths should be the same for queries to be optimized
+		for ( int i=m_iStart+1; i<=m_iEnd && m_bMultiQueue; i++ )
+			m_bMultiQueue = dSorters [ m_iStart ]->GetSchema().GetDynamicSize()==dSorters[i]->GetSchema().GetDynamicSize();
 
 		// me shortcuts
 		AggrResult_t tStats;
@@ -9731,8 +9736,32 @@ void SearchHandler_c::RunLocalSearches ( ISphMatchSorter * pLocalSorter, const c
 
 
 // check expressions into a query to make sure that it's ready for multi query optimization
-bool SearchHandler_c::HasExpresions ( int iStart, int iEnd ) const
+bool SearchHandler_c::AllowsMulti ( int iStart, int iEnd ) const
 {
+	// in some cases the same select list allows queries to be multi query optimized
+	// but we need to check dynamic parts size equality and we do it later in RunLocalSearches()
+	const CSphVector<CSphQueryItem> & tFirstQueryItems = m_dQueries [ iStart ].m_dItems;
+	bool bItemsSameLen = true;
+	for ( int i=iStart+1; i<=iEnd && bItemsSameLen; i++ )
+		bItemsSameLen = ( tFirstQueryItems.GetLength()==m_dQueries[i].m_dItems.GetLength() );
+	if ( bItemsSameLen )
+	{
+		bool bSameItems = true;
+		ARRAY_FOREACH_COND ( i, tFirstQueryItems, bSameItems )
+		{
+			const CSphQueryItem & tItem1 = tFirstQueryItems[i];
+			for ( int j=iStart+1; j<=iEnd && bSameItems; j++ )
+			{
+				const CSphQueryItem & tItem2 = m_dQueries[j].m_dItems[i];
+				bSameItems = tItem1.m_sExpr==tItem2.m_sExpr && tItem1.m_eAggrFunc==tItem2.m_eAggrFunc;
+			}
+		}
+
+		if ( bSameItems )
+			return true;
+	}
+
+	// if select lists do not contain any expressions we can optimize queries too
 	ARRAY_FOREACH ( i, m_dLocal )
 	{
 		const ServedIndex_t * pServedIndex = UseIndex ( i );
@@ -9753,9 +9782,9 @@ bool SearchHandler_c::HasExpresions ( int iStart, int iEnd ) const
 		ReleaseIndex ( i );
 
 		if ( bHasExpression )
-			return true;
+			return false;
 	}
-	return false;
+	return true;
 }
 
 
@@ -9989,9 +10018,7 @@ void SearchHandler_c::RunSubset ( int iStart, int iEnd )
 
 	// select lists must have no expressions
 	if ( m_bMultiQueue )
-	{
-		m_bMultiQueue = !HasExpresions ( iStart, iEnd );
-	}
+		m_bMultiQueue = AllowsMulti ( iStart, iEnd );
 
 	// these are mutual exclusive
 	assert ( !( m_bMultiQueue && pLocalSorter ) );

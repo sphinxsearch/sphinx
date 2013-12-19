@@ -4352,9 +4352,12 @@ bool sphHasExpressions ( const CSphQuery & tQuery, const CSphSchema & tSchema )
 		const CSphQueryItem & tItem = tQuery.m_dItems[i];
 		const CSphString & sExpr = tItem.m_sExpr;
 
+		// all expressions that come from parser are automatically aliased
+		assert ( !tItem.m_sAlias.IsEmpty() );
+
 		if ( !( sExpr=="*"
-			|| ( tSchema.GetAttrIndex ( sExpr.cstr() )>=0 && tItem.m_eAggrFunc==SPH_AGGR_NONE && ( tItem.m_sAlias.IsEmpty() || tItem.m_sAlias==sExpr ) )
-			|| IsGroupbyMagic(sExpr) ) )
+			|| ( tSchema.GetAttrIndex ( sExpr.cstr() )>=0 && tItem.m_eAggrFunc==SPH_AGGR_NONE && tItem.m_sAlias==sExpr )
+			|| IsGroupbyMagic ( sExpr ) ) )
 			return true;
 	}
 
