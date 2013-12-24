@@ -13597,7 +13597,7 @@ public:
 		assert ( sMsg );
 
 		int iLen = sMsg ? strlen ( sMsg ) : 0;
-		Reserve ( 1+iLen );
+		Reserve ( 9+iLen ); // 9 is taken from MysqlPack() implementation (max possible offset)
 		char * pBegin = Get();
 		char * pStr = (char *)MysqlPack ( pBegin, iLen );
 		if ( pStr>pBegin )
