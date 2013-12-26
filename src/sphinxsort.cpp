@@ -733,14 +733,13 @@ template <class PRED>
 class CSphGrouperMulti : public CSphGrouper, public PRED
 {
 public:
-	CSphGrouperMulti ( const CSphVector<CSphAttrLocator> & dLocators, const CSphVector<ESphAttr> & dAttrTypes, const CSphVector<CSphString> & dJsonKeys )
+	CSphGrouperMulti ( const CSphVector<CSphAttrLocator> & dLocators, const CSphVector<ESphAttr> & dAttrTypes, const CSphVector<JsonKey_t> & dJsonKeys )
 		: m_dLocators ( dLocators )
 		, m_dAttrTypes ( dAttrTypes )
+		, m_dJsonKeys ( dJsonKeys )
 	{
 		assert ( m_dLocators.GetLength()>1 );
 		assert ( m_dLocators.GetLength()==m_dAttrTypes.GetLength() && m_dLocators.GetLength()==dJsonKeys.GetLength() );
-		ARRAY_FOREACH ( i, dJsonKeys )
-			m_dJsonKeys.Add ( JsonKey_t ( dJsonKeys[i].cstr() ) );
 	}
 
 	virtual SphGroupKey_t KeyFromMatch ( const CSphMatch & tMatch ) const
@@ -2925,10 +2924,10 @@ void ExprGeodist_t::Command ( ESphExprCommand eCmd, void * pArg ) const
 
 static CSphGrouper * sphCreateGrouperString ( const CSphAttrLocator & tLoc, ESphCollation eCollation );
 static CSphGrouper * sphCreateGrouperMulti ( const CSphVector<CSphAttrLocator> & dLocators, const CSphVector<ESphAttr> & dAttrTypes,
-											const CSphVector<CSphString> & dJsonKeys, ESphCollation eCollation);
+											const CSphVector<JsonKey_t> & dJsonKeys, ESphCollation eCollation);
 
 static bool SetupGroupbySettings ( const CSphQuery * pQuery, const CSphSchema & tSchema,
-								CSphGroupSorterSettings & tSettings, CSphString & sJsonColumn, CSphString & sError, bool bImplicit )
+								CSphGroupSorterSettings & tSettings, CSphVector<int> & dGroupColumns, CSphString & sError, bool bImplicit )
 {
 	tSettings.m_tDistinctLoc.m_iBitOffset = -1;
 
@@ -2941,12 +2940,13 @@ static bool SetupGroupbySettings ( const CSphQuery * pQuery, const CSphSchema & 
 		return false;
 	}
 
+	CSphString sJsonColumn;
 	CSphString sJsonKey;
 	if ( pQuery->m_eGroupFunc==SPH_GROUPBY_MULTIPLE )
 	{
 		CSphVector<CSphAttrLocator> dLocators;
 		CSphVector<ESphAttr> dAttrTypes;
-		CSphVector<CSphString> dJsonKeys;
+		CSphVector<JsonKey_t> dJsonKeys;
 
 		CSphVector<CSphString> dGroupBy;
 		const char * a = pQuery->m_sGroupBy.cstr();
@@ -2963,15 +2963,19 @@ static bool SetupGroupbySettings ( const CSphQuery * pQuery, const CSphSchema & 
 		}
 		dGroupBy.Uniq();
 
-		for ( int i=0; i<dGroupBy.GetLength(); i++ )
+		ARRAY_FOREACH ( i, dGroupBy )
 		{
-			bool bJson = sphJsonNameSplit ( dGroupBy[i].cstr(), &sJsonColumn, &sJsonKey );
-			const CSphString & sGroupBy = bJson ? sJsonColumn : dGroupBy[i];
+			dJsonKeys.Add ( JsonKey_t() );
+			if ( sphJsonNameSplit ( dGroupBy[i].cstr(), &sJsonColumn, &sJsonKey ) )
+			{
+				dGroupBy[i] = sJsonColumn;
+				dJsonKeys[i] = JsonKey_t ( sJsonKey.cstr() );
+			}
 
-			const int iAttr = tSchema.GetAttrIndex ( sGroupBy.cstr() );
+			const int iAttr = tSchema.GetAttrIndex ( dGroupBy[i].cstr() );
 			if ( iAttr<0 )
 			{
-				sError.SetSprintf ( "group-by attribute '%s' not found", sGroupBy.cstr() );
+				sError.SetSprintf ( "group-by attribute '%s' not found", dGroupBy[i].cstr() );
 				return false;
 			}
 
@@ -2984,7 +2988,7 @@ static bool SetupGroupbySettings ( const CSphQuery * pQuery, const CSphSchema & 
 
 			dLocators.Add ( tSchema.GetAttr ( iAttr ).m_tLocator );
 			dAttrTypes.Add ( eType );
-			dJsonKeys.Add ( bJson ? sJsonKey : "" );
+			dGroupColumns.Add ( iAttr );
 		}
 
 		tSettings.m_pGrouper = sphCreateGrouperMulti ( dLocators, dAttrTypes, dJsonKeys, pQuery->m_eCollation );
@@ -3009,6 +3013,8 @@ static bool SetupGroupbySettings ( const CSphQuery * pQuery, const CSphSchema & 
 			sError.SetSprintf ( "groupby: legacy groupby modes are not supported on JSON attributes" );
 			return false;
 		}
+
+		dGroupColumns.Add ( iAttr );
 
 		// FIXME! handle collations here?
 		tSettings.m_pGrouper = new CSphGrouperJson ( tSchema.GetAttr(iAttr).m_tLocator, sJsonKey.cstr() );
@@ -3048,6 +3054,7 @@ static bool SetupGroupbySettings ( const CSphQuery * pQuery, const CSphSchema & 
 
 		tSettings.m_bMVA = ( eType==SPH_ATTR_UINT32SET || eType==SPH_ATTR_INT64SET );
 		tSettings.m_bMva64 = ( eType==SPH_ATTR_INT64SET );
+		dGroupColumns.Add ( iGroupBy );
 	}
 
 	// setup distinct attr
@@ -3268,7 +3275,7 @@ static void SetupSortRemap ( CSphSchema & tSorterSchema, CSphMatchComparatorStat
 
 		assert ( tState.m_dAttrs[i]>=0 && tState.m_dAttrs[i]<iColWasCount );
 
-		bool bIsJson = ( tState.m_tSubKeys[i].m_sKey.cstr() );
+		bool bIsJson = !tState.m_tSubKeys[i].m_sKey.IsEmpty();
 		CSphString sRemapCol;
 		if ( bIsJson )
 			sRemapCol.SetSprintf ( "%s%s%s", g_sIntAttrPrefix, tSorterSchema.GetAttr ( tState.m_dAttrs[i] ).m_sName.cstr(), tState.m_tSubKeys[i].m_sKey.cstr() );
@@ -3719,7 +3726,7 @@ CSphGrouper * sphCreateGrouperString ( const CSphAttrLocator & tLoc, ESphCollati
 }
 
 CSphGrouper * sphCreateGrouperMulti ( const CSphVector<CSphAttrLocator> & dLocators, const CSphVector<ESphAttr> & dAttrTypes,
-									const CSphVector<CSphString> & dJsonKeys, ESphCollation eCollation)
+									const CSphVector<JsonKey_t> & dJsonKeys, ESphCollation eCollation)
 {
 	if ( eCollation==SPH_COLLATION_UTF8_GENERAL_CI )
 		return new CSphGrouperMulti<Utf8CIHash_fn> ( dLocators, dAttrTypes, dJsonKeys );
@@ -4081,7 +4088,7 @@ ISphMatchSorter * sphCreateQueue ( const CSphQuery * pQuery, const CSphSchema & 
 	// setup groupby settings, create shortcuts
 	////////////////////////////////////////////
 
-	CSphString sJsonColumn;
+	CSphVector<int> dGroupColumns;
 	CSphGroupSorterSettings tSettings;
 	bool bImplicit = false;
 
@@ -4092,7 +4099,7 @@ ISphMatchSorter * sphCreateQueue ( const CSphQuery * pQuery, const CSphSchema & 
 			bImplicit = ( t.m_eAggrFunc!=SPH_AGGR_NONE ) || t.m_sExpr=="count(*)" || t.m_sExpr=="@distinct";
 		}
 
-	if ( !SetupGroupbySettings ( pQuery, tSorterSchema, tSettings, sJsonColumn, sError, bImplicit ) )
+	if ( !SetupGroupbySettings ( pQuery, tSorterSchema, tSettings, dGroupColumns, sError, bImplicit ) )
 		return NULL;
 
 	const bool bGotGroupby = !pQuery->m_sGroupBy.IsEmpty() || tSettings.m_bImplicit; // or else, check in SetupGroupbySettings() would already fail
@@ -4253,20 +4260,25 @@ ISphMatchSorter * sphCreateQueue ( const CSphQuery * pQuery, const CSphSchema & 
 
 		ExtraAddSortkeys ( pExtra, tSorterSchema, tStateGroup.m_dAttrs );
 
-		enum { E_CREATE_GROUP_BY = 0, E_CREATE_DISTINCT = 1, E_CREATE_COUNT = 2 };
-		int dGroupAttrs[E_CREATE_COUNT];
-		dGroupAttrs[E_CREATE_GROUP_BY] = tSorterSchema.GetAttrIndex ( sJsonColumn.IsEmpty() ? pQuery->m_sGroupBy.cstr() : sJsonColumn.cstr() );
+		assert ( dGroupColumns.GetLength() || tSettings.m_bImplicit );
 		if ( pExtra && !tSettings.m_bImplicit )
-			pExtra->AddAttr ( tSorterSchema.GetAttr ( dGroupAttrs[E_CREATE_GROUP_BY] ), true );
+		{
+			ARRAY_FOREACH ( i, dGroupColumns )
+				pExtra->AddAttr ( tSorterSchema.GetAttr ( dGroupColumns[i] ), true );
+		}
 
 		if ( bGotDistinct )
 		{
-			dGroupAttrs[E_CREATE_DISTINCT] = tSorterSchema.GetAttrIndex ( pQuery->m_sGroupDistinct.cstr() );
+			dGroupColumns.Add ( tSorterSchema.GetAttrIndex ( pQuery->m_sGroupDistinct.cstr() ) );
+			assert ( dGroupColumns.Last()>=0 );
 			if ( pExtra )
-				pExtra->AddAttr ( tSorterSchema.GetAttr ( dGroupAttrs[E_CREATE_DISTINCT] ), true );
+				pExtra->AddAttr ( tSorterSchema.GetAttr ( dGroupColumns.Last() ), true );
 		}
 
-		FixupDependency ( tSorterSchema, dGroupAttrs, bGotDistinct ? 2 : 1 );
+		if ( dGroupColumns.GetLength() ) // implicit case
+		{
+			FixupDependency ( tSorterSchema, dGroupColumns.Begin(), dGroupColumns.GetLength() );
+		}
 		FixupDependency ( tSorterSchema, tStateGroup.m_dAttrs, CSphMatchComparatorState::MAX_ATTRS );
 
 		// GroupSortBy str attributes setup
