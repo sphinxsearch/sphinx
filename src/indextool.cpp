@@ -962,12 +962,8 @@ int main ( int argc, char ** argv )
 		if ( eCommand==CMD_BUILDIDF || eCommand==CMD_MERGEIDF )
 			break;
 
-		if ( eCommand==CMD_DUMPDICT )
-		{
-			if ( sDumpDict.Ends ( ".spi" ) )
-				break;
-			sIndex = sDumpDict;
-		}
+		if ( eCommand==CMD_DUMPDICT && !sDumpDict.Ends ( ".spi" ) )
+				sIndex = sDumpDict;
 
 		sphLoadConfig ( sOptConfig, bQuiet, cp );
 		break;
@@ -1025,6 +1021,14 @@ int main ( int argc, char ** argv )
 
 
 	// common part for several commands, check and preload index
+
+	if ( hConf("indexer") && hConf["indexer"]("indexer") )
+	{
+		if ( hConf["indexer"]["indexer"]("lemmatizer_base") )
+			g_sLemmatizerBase = hConf["indexer"]["indexer"]["lemmatizer_base"];
+		sphAotSetCacheSize ( hConf["indexer"]["indexer"].GetSize ( "lemmatizer_cache", 262144 ) );
+	}
+
 	CSphIndex * pIndex = NULL;
 	while ( !sIndex.IsEmpty() && eCommand!=CMD_OPTIMIZEKLISTS )
 	{
@@ -1212,7 +1216,7 @@ int main ( int argc, char ** argv )
 		{
 			CSphString sError;
 			if ( !BuildIDF ( sOut, dFiles, sError, bSkipUnique ) )
-				fprintf ( stdout, "ERROR: %s\n", sError.cstr() );
+				sphDie ( "ERROR: %s\n", sError.cstr() );
 			break;
 		}
 
@@ -1220,7 +1224,7 @@ int main ( int argc, char ** argv )
 		{
 			CSphString sError;
 			if ( !MergeIDF ( sOut, dFiles, sError, bSkipUnique ) )
-				fprintf ( stdout, "ERROR: %s\n", sError.cstr() );
+				sphDie ( "ERROR: %s\n", sError.cstr() );
 			break;
 		}
 
