@@ -2714,7 +2714,7 @@ These segments are hardcoded, but it is trivial to change them if necessary.
 <para>
 This mode was added to support searching through blogs, news headlines, etc.
 When using time segments, recent records would be ranked higher because of segment,
-but withing the same segment, more relevant records would be ranked higher -
+but within the same segment, more relevant records would be ranked higher -
 unlike sorting by just the timestamp attribute, which would not take relevance
 into account at all.
 </para>
@@ -8703,7 +8703,7 @@ will currently cache all the values in RAM, which is an additional implicit limi
 </para>
 <para>
 Starting from 2.0.1-beta string attributes can be used for sorting and
-grouping(ORDER BY, GROUP BY, WITHING GROUP ORDER BY). Note that attributes
+grouping(ORDER BY, GROUP BY, WITHIN GROUP ORDER BY). Note that attributes
 declared using <option>sql_attr_string</option> will <b>not</b> be full-text
 indexed; you can use <link linkend="conf-sql-field-string">sql_field_string</link>
 directive for that.
@@ -13985,7 +13985,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <listitem><para>added remapping support to <link linkend="conf-blend-chars">blend_chars</link> directive</para></listitem>
 <listitem><para>added multi-threaded snippet batches support (requires a batch sent via API, <link linkend="conf-dist-threads">dist_threads</link>, and <code>load_files</code>)</para></listitem>
 <listitem><para>added collations (<link linkend="conf-collation-server">collation_server</link>, <link linkend="conf-collation-libc-locale">collation_libc_locale directives</link>)</para></listitem>
-<listitem><para>added support for sorting and grouping on string attributes (<code>ORDER BY</code>, <code>GROUP BY</code>, <code>WITHING GROUP ORDER BY</code>)</para></listitem>
+<listitem><para>added support for sorting and grouping on string attributes (<code>ORDER BY</code>, <code>GROUP BY</code>, <code>WITHIN GROUP ORDER BY</code>)</para></listitem>
 <listitem><para>added UDF support (<link linkend="conf-plugin-dir">plugin_dir</link> directive; <link linkend="sphinxql-create-function">CREATE FUNCTION</link>, <link linkend="sphinxql-drop-function">DROP FUNCTION</link> statements)</para></listitem>
 <listitem><para>added <link linkend="conf-query-log-format">query_log_format</link> directive, <link linkend="sphinxql-set">SET GLOBAL query_log_format | log_level = ...</link> statements; and connection id tracking</para></listitem>
 <listitem><para>added <link linkend="conf-sql-column-buffers">sql_column_buffers</link> directive, fixed out-of-buffer column handling in ODBC/MS SQL sources</para></listitem>
