@@ -8467,10 +8467,7 @@ void sphRTConfigure ( const CSphConfigSection & hSearchd, bool bTestMode )
 	assert ( g_pBinlog );
 	g_pRtBinlog->Configure ( hSearchd, bTestMode );
 	g_iRtFlushPeriod = hSearchd.GetInt ( "rt_flush_period", (int)g_iRtFlushPeriod );
-
-	// clip period to range ( 10 sec, million years )
 	g_iRtFlushPeriod = Max ( g_iRtFlushPeriod, 10 );
-	g_iRtFlushPeriod = Min ( g_iRtFlushPeriod, INT64_MAX );
 }
 
 
