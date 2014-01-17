@@ -13384,6 +13384,15 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 
 <appendix id="changelog"><title>Sphinx revision history</title>
 
+<sect1 id="rel215"><title>Version 2.1.5-release, ??? jan 2014</title>
+<bridgehead>Bug fixes</bridgehead>
+<itemizedlist>
+  <listitem><para>fixed #1799 crash in queries to distributed indexes with GROUP BY on multiple values</para></listitem>
+  <listitem><para>fixed #1823 indextool fails to handle indexes with lemmatizer morphology</para></listitem>
+  <listitem><para>fixed network protocol issue which results in timeouts of libmysqlclient for big Sphinx responses</para></listitem>
+</itemizedlist>
+</sect1>
+
 <sect1 id="rel214"><title>Version 2.1.4-release, 18 dec 2013</title>
 <bridgehead>Bug fixes</bridgehead>
 <itemizedlist>
