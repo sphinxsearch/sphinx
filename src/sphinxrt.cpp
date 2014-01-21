@@ -1083,7 +1083,7 @@ private:
 	bool						SaveRamChunk ();
 
 	virtual void				GetPrefixedWords ( const char * sPrefix, int iPrefix, const char * sWildcard, CSphVector<CSphNamedInt> & dPrefixedWords, BYTE * pDictBuf, int iFD ) const;
-	virtual void				GetInfixedWords ( const char * sInfix, int iInfix, const char * sWildcard, CSphVector<CSphNamedInt> & dPrefixedWords ) const;
+	virtual void				GetInfixedWords ( const char * sInfix, int iInfix, const char * sWildcard, CSphVector<CSphNamedInt> & dPrefixedWords, bool bHasMorphology ) const;
 
 public:
 #if USE_WINDOWS
@@ -4187,28 +4187,28 @@ bool RtIndex_t::LoadRamChunk ( DWORD uVersion, bool bRebuildInfixes )
 		// (the Stride for id32 is 1 DWORD shorter than for id64)
 		// the only usage of this BLOB is to save id32 disk-chunk.
 		LoadVector ( rdChunk, pSeg->m_dRows );
-		if (!m_bId32to64)
-		{	
+		if ( !m_bId32to64 )
+		{
 			LoadVector ( rdChunk, pSeg->m_dKlist );
- 		} else
- 		{
+		} else
+		{
 			// shrink Klist from id32 to id64 on-the-fly
- 			pSeg->m_dKlist.Resize ( rdChunk.GetDword() );
- 			if ( pSeg->m_dKlist.GetLength() )
- 			{
- 				// init 1-st elem with zero - if we load only 1 dword, the high part of id64 will be defined anyway
- 				pSeg->m_dKlist[0] = 0;
- 				// yes, we load tight (id32) array into wide (id64) vector, filling exactly half of it
+			pSeg->m_dKlist.Resize ( rdChunk.GetDword() );
+			if ( pSeg->m_dKlist.GetLength() )
+			{
+				// init 1-st elem with zero - if we load only 1 dword, the high part of id64 will be defined anyway
+				pSeg->m_dKlist[0] = 0;
+				// yes, we load tight (id32) array into wide (id64) vector, filling exactly half of it
 				rdChunk.GetBytes ( pSeg->m_dKlist.Begin(), pSeg->m_dKlist.GetLength()*sizeof(DWORD) );
- 				// now we have to expand n ID32s into n ID64s
- 				DWORD* dId32s = (DWORD*)pSeg->m_dKlist.Begin();
- 				for ( int i=pSeg->m_dKlist.GetLength()-1; i>0; --i ) /// i>0 since for i=0 id is already in place
- 				{
- 					pSeg->m_dKlist[i] = dId32s[i];
- 					dId32s[i] = 0;
- 				}
- 			}
- 		}
+				// now we have to expand n ID32s into n ID64s
+				DWORD* dId32s = (DWORD*)pSeg->m_dKlist.Begin();
+				for ( int i=pSeg->m_dKlist.GetLength()-1; i>0; --i ) /// i>0 since for i=0 id is already in place
+				{
+					pSeg->m_dKlist[i] = dId32s[i];
+					dId32s[i] = 0;
+				}
+			}
+		}
 		LoadVector ( rdChunk, pSeg->m_dStrings );
 		if ( uVersion>=3 )
 			LoadVector ( rdChunk, pSeg->m_dMvas );
@@ -5657,7 +5657,7 @@ static bool ExtractInfixCheckpoints ( const char * sInfix, int iBytes, int iMaxC
 }
 
 
-void RtIndex_t::GetInfixedWords ( const char * sInfix, int iBytes, const char * sWildcard, CSphVector<CSphNamedInt> & dExpanded ) const
+void RtIndex_t::GetInfixedWords ( const char * sInfix, int iBytes, const char * sWildcard, CSphVector<CSphNamedInt> & dExpanded, bool bHasMorphology ) const
 {
 	// sanity checks
 	if ( !sInfix || iBytes<=0 )
@@ -5665,6 +5665,7 @@ void RtIndex_t::GetInfixedWords ( const char * sInfix, int iBytes, const char * 
 
 	// find those prefixes
 	CSphVector<int> dPoints;
+	const int iSkipMagic = ( bHasMorphology ? 1 : 0 ); // whether to skip heading magic chars in the prefix, like NONSTEMMED maker
 
 	SmallStringHash_T<DocHitPair_t> hWords;
 	ARRAY_FOREACH ( iSeg, m_pSegments )
@@ -5692,8 +5693,11 @@ void RtIndex_t::GetInfixedWords ( const char * sInfix, int iBytes, const char * 
 			const RtWord_t * pWord = NULL;
 			while ( ( pWord = tReader.UnzipWord() )!=NULL )
 			{
+				if ( bHasMorphology && pWord->m_sWord[1]!=MAGIC_WORD_HEAD_NONSTEMMED )
+					continue;
+
 				// check it
-				if ( !sphWildcardMatch ( (const char*)pWord->m_sWord+1, sWildcard ) )
+				if ( !sphWildcardMatch ( (const char*)pWord->m_sWord+1+iSkipMagic, sWildcard ) )
 					continue;
 
 				iMatches++;

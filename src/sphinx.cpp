@@ -1190,7 +1190,7 @@ public:
 
 	const BYTE *						AcquireDict ( const CSphWordlistCheckpoint * pCheckpoint, int iFD, BYTE * pDictBuf ) const;
 	virtual void						GetPrefixedWords ( const char * sPrefix, int iPrefixLen, const char * sWildcard, CSphVector<CSphNamedInt> & dExpanded, BYTE * pDictBuf, int iFD ) const;
-	virtual void						GetInfixedWords ( const char * sInfix, int iInfix, const char * sWildcard, CSphVector<CSphNamedInt> & dPrefixedWords ) const;
+	virtual void						GetInfixedWords ( const char * sInfix, int iInfix, const char * sWildcard, CSphVector<CSphNamedInt> & dPrefixedWords, bool bHasMorphology ) const;
 
 private:
 	bool								m_bWordDict;
@@ -16847,7 +16847,7 @@ XQNode_t * sphExpandXQNode ( XQNode_t * pNode, ExpansionContext_t & tCtx )
 			return pNode;
 
 		// ignore heading star
-		tCtx.m_pWordlist->GetInfixedWords ( sMaxInfix, iMaxInfix, sFull, dExpanded );
+		tCtx.m_pWordlist->GetInfixedWords ( sMaxInfix, iMaxInfix, sFull, dExpanded, tCtx.m_bHasMorphology );
 	}
 
 	// no real expansions?
@@ -29015,7 +29015,7 @@ int sphGetInfixLength ( const char * sInfix, int iBytes, int iInfixCodepointByte
 }
 
 
-void CWordlist::GetInfixedWords ( const char * sInfix, int iBytes, const char * sWildcard, CSphVector<CSphNamedInt> & dExpanded ) const
+void CWordlist::GetInfixedWords ( const char * sInfix, int iBytes, const char * sWildcard, CSphVector<CSphNamedInt> & dExpanded, bool bHasMorphology ) const
 {
 	// dict must be of keywords type, and fully cached
 	// mmap()ed in the worst case, should we ever banish it to disk again
@@ -29031,14 +29031,22 @@ void CWordlist::GetInfixedWords ( const char * sInfix, int iBytes, const char * 
 	if ( !sphLookupInfixCheckpoints ( sInfix, iBytes1, m_pBuf.GetWritePtr(), m_dInfixBlocks, m_iInfixCodepointBytes, dPoints ) )
 		return;
 
+	const int iSkipMagic = ( bHasMorphology ? 1 : 0 ); // whether to skip heading magic chars in the prefix, like NONSTEMMED maker
+
 	// walk those checkpoints, check all their words
 	ARRAY_FOREACH ( i, dPoints )
 	{
 		// OPTIMIZE? add a quicker path than a generic wildcard for "*infix*" case?
 		KeywordsBlockReader_c tCtx ( m_pBuf.GetWritePtr() + m_dCheckpoints[dPoints[i]-1].m_iWordlistOffset, m_bHaveSkips );
 		while ( tCtx.UnpackWord() )
-			if ( sphWildcardMatch ( tCtx.GetWord(), sWildcard ) )
+		{
+			// stemmed terms should not match suffixes
+			if ( bHasMorphology && tCtx.GetWord()[0]!=MAGIC_WORD_HEAD_NONSTEMMED )
+				continue;
+
+			if ( sphWildcardMatch ( tCtx.GetWord()+iSkipMagic, sWildcard ) )
 				AddExpansion ( dExpanded, tCtx );
+		}
 	}
 }
 
