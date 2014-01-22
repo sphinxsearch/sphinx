@@ -5,7 +5,7 @@
 ]>
 <book lang="en">
 
-<title>Sphinx 2.1.5-dev reference manual</title>
+<title>Sphinx 2.1.5-release reference manual</title>
 <subtitle>Free open-source SQL full-text search engine</subtitle>
 
 <bookinfo>
@@ -13384,15 +13384,15 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 
 <appendix id="changelog"><title>Sphinx revision history</title>
 
-<sect1 id="rel215"><title>Version 2.1.5-release, ??? jan 2014</title>
+<sect1 id="rel215"><title>Version 2.1.5-release, 22 jan 2014</title>
 <bridgehead>Bug fixes</bridgehead>
 <itemizedlist>
-  <listitem><para>fixed #1799 crash in queries to distributed indexes with GROUP BY on multiple values</para></listitem>
-  <listitem><para>fixed #1823 indextool fails to handle indexes with lemmatizer morphology</para></listitem>
-  <listitem><para>fixed network protocol issue which results in timeouts of libmysqlclient for big Sphinx responses</para></listitem>
-  <listitem><para>fixed documentation on rt_flush_period</para></listitem>
-  <listitem><para>fixed #1718 expand_keywords option lost in disk chunks of RT indexes</para></listitem>
-  <listitem><para>fixed #1848 infixes and morphology clash</para></listitem>
+  <listitem><para>fixed #1848, infixes and morphology clash</para></listitem>
+  <listitem><para>fixed #1823, <filename>indextool</filename> fails to handle indexes with lemmatizer morphology</para></listitem>
+  <listitem><para>fixed #1799, crash in queries to distributed indexes with <link linkend="sphinxql-select">GROUP BY</link> on multiple values</para></listitem>
+  <listitem><para>fixed #1718, <option>expand_keywords</option> option lost in disk chunks of RT indexes</para></listitem>
+  <listitem><para>fixed documentation on <link linkend="conf-rt-flush-period">rt_flush_period</link></para></listitem>
+  <listitem><para>fixed network protocol issue which results in timeouts of <filename>libmysqlclient</filename> for big Sphinx responses</para></listitem>  
 </itemizedlist>
 </sect1>
 
