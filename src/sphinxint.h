@@ -412,6 +412,8 @@ private:
 };
 
 
+class UservarIntSet_c;
+
 /// per-query search context
 /// everything that index needs to compute/create to process the query
 class CSphQueryContext
@@ -468,6 +470,9 @@ public:
 	void						SetStringPool ( const BYTE * pStrings );
 	void						SetMVAPool ( const DWORD * pMva );
 	void						SetupExtraData ( ISphExtra * pData );
+
+private:
+	CSphVector<const UservarIntSet_c*>		m_dUserVals;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -905,7 +910,7 @@ void AttrIndexBuilder_t<DOCID>::FinishCollect ()
 	DWORD * pMaxEntry = pMinEntry + m_uStride;
 	CSphRowitem * pMinAttrs = DOCINFO2ATTRS_T<DOCID> ( pMinEntry );
 	CSphRowitem * pMaxAttrs = pMinAttrs + m_uStride;
-	
+
 	assert ( pMaxEntry+m_uStride<=m_pOutMax );
 	assert ( pMaxAttrs+m_uStride-DWSIZEOF(DOCID)<=m_pOutMax );
 
@@ -1396,7 +1401,7 @@ public:
 	virtual int			SetMorphology ( const char * szMorph, bool bUseUTF8, CSphString & sMessage ) { return m_pDict->SetMorphology ( szMorph, bUseUTF8, sMessage ); }
 
 	virtual SphWordID_t	GetWordID ( const BYTE * pWord, int iLen, bool bFilterStops ) { return m_pDict->GetWordID ( pWord, iLen, bFilterStops ); }
-	virtual SphWordID_t GetWordID ( BYTE * ) { assert ( 0 && "not implemented" ); return 0; }
+	virtual SphWordID_t GetWordID ( BYTE * ) { assert ( 0 && "not implemented" ); return 0; } // NOLINT
 
 	virtual void		Setup ( const CSphDictSettings & ) {}
 	virtual const CSphDictSettings & GetSettings () const { return m_pDict->GetSettings (); }
@@ -1497,6 +1502,8 @@ public:
 class UservarIntSet_c : public CSphVector<SphAttr_t>, public ISphRefcountedMT
 {
 };
+
+extern UservarIntSet_c * ( *g_pUservarsHook )( const CSphString & sUservar );
 
 //////////////////////////////////////////////////////////////////////////
 // BINLOG INTERNALS
