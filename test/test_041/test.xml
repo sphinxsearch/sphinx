@@ -234,6 +234,10 @@ REPLACE INTO rt (id, id1, title) VALUES ( 1, 1, 'work worked working workings wo
 <sphinxql>SELECT * FROM rt_i WHERE MATCH('*feet*')</sphinxql>
 <sphinxql>show meta</sphinxql>
 
+<!-- regression sword with exact modifier that breaks infix builder -->
+<sphinxql>REPLACE INTO rt_i (id, idd, title) VALUES (20,11,'long word ___________________________________________ that crashed')</sphinxql>
+<sphinxql>FLUSH RAMCHUNK rt_i</sphinxql>
+
 </sphqueries>
 
 <db_create>
