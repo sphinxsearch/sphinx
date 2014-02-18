@@ -20805,6 +20805,10 @@ void InfixBuilder_c<SIZE>::AddWord ( const BYTE * pWord, int iWordLength, int iC
 		if ( !iLen )
 			iLen = 1;
 
+		// skip word with large codepoints
+		if ( iLen>SIZE )
+			return;
+
 		assert ( iLen>=1 && iLen<=4 );
 		p += iLen;
 
