@@ -12,7 +12,7 @@ indexer
 searchd
 {
 	<searchd_settings/>
-compat_sphinxql_magics = 1
+	compat_sphinxql_magics = 1
 	workers = threads
 	binlog_path =
 }
@@ -31,6 +31,12 @@ index products
 {
 	source				= srctest
 	path				= <data_path/>/test
+}
+
+index idx2
+{
+	source				= srctest
+	path				= <data_path/>/idx2
 }
 
 </config>
@@ -81,6 +87,20 @@ $client->AddQuery ('text1', $index);
 
 //Run queries
 $results = $client->RunQueries(); 
+
+
+// regression crash on multiquery with one bad query
+$index = 'products, idx2';
+$query = 'text1';
+$client->SetSortMode (SPH_SORT_EXTENDED, 'best_seller asc');
+$client->SetSelect('*');
+$client->SetLimits(0, 10);
+
+$client->AddQuery ($query, $index);
+$client->SetGroupBy ('missed', SPH_GROUPBY_ATTR, 'missed desc');
+$client->AddQuery ($query, $index);
+$results[] = $client->RunQueries(); 
+
 ]]></Query_Settings>
 
 <Queries><Query/></Queries>
