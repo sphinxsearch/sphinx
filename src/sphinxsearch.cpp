@@ -6739,6 +6739,10 @@ public:
 	BYTE				m_uLCS[SPH_MAX_FIELDS];
 	BYTE				m_uMatchMask[SPH_MAX_FIELDS];
 	BYTE				m_uCurLCS;
+	DWORD               m_uCurPos;
+	DWORD               m_uLcsTailPos;
+	DWORD               m_uLcsTailQposMask;
+	DWORD               m_uCurQposMask;
 	int					m_iExpDelta;
 	int					m_iFields;
 	const int *			m_pWeights;
@@ -7546,6 +7550,13 @@ bool RankerState_Expr_fn<NEED_PACKEDFACTORS, HANDLE_DUPES>::Init ( int iFields, 
 	memset ( m_uLCS, 0, sizeof(m_uLCS) );
 	memset ( m_uMatchMask, 0, sizeof(m_uMatchMask) );
 	m_uCurLCS = 0;
+	if ( HANDLE_DUPES )
+	{
+		m_uCurPos = 0;
+		m_uLcsTailPos = 0;
+		m_uLcsTailQposMask = 0;
+		m_uCurQposMask = 0;
+	}
 	m_iExpDelta = -INT_MAX;
 	m_iFields = iFields;
 	m_pWeights = pWeights;
@@ -7639,25 +7650,81 @@ void RankerState_Expr_fn<NEED_PACKEDFACTORS, HANDLE_DUPES>::Update ( const ExtHi
 	const DWORD uField = HITMAN::GetField ( pHlist->m_uHitpos );
 	const int iPos = HITMAN::GetPos ( pHlist->m_uHitpos );
 
-	// update LCS
-	int iDelta = HITMAN::GetLCS ( pHlist->m_uHitpos ) - pHlist->m_uQuerypos;
-	if ( iDelta==m_iExpDelta )
+	if ( !HANDLE_DUPES )
 	{
-		m_uCurLCS = m_uCurLCS + BYTE(pHlist->m_uWeight);
-		if ( HITMAN::IsEnd ( pHlist->m_uHitpos ) && (int)pHlist->m_uQuerypos==m_iMaxQpos && iPos==m_iMaxQpos )
-			m_uExactHit |= ( 1UL << uField );
+		// update LCS
+		int iDelta = HITMAN::GetLCS ( pHlist->m_uHitpos )-pHlist->m_uQuerypos;
+		if ( iDelta==m_iExpDelta )
+		{
+			m_uCurLCS = m_uCurLCS+BYTE ( pHlist->m_uWeight );
+			if ( HITMAN::IsEnd ( pHlist->m_uHitpos ) && (int)pHlist->m_uQuerypos==m_iMaxQpos && iPos==m_iMaxQpos )
+				m_uExactHit |= ( 1UL << uField );
+		} else
+		{
+			m_uCurLCS = BYTE ( pHlist->m_uWeight );
+			if ( iPos==1 && HITMAN::IsEnd ( pHlist->m_uHitpos ) && m_iMaxQpos==1 )
+				m_uExactHit |= ( 1UL << uField );
+		}
+		if ( m_uCurLCS>m_uLCS [ uField ] )
+		{
+			m_uLCS [ uField ] = m_uCurLCS;
+			m_iMinBestSpanPos [ uField ] = iPos - m_uCurLCS + 1;
+		}
+		m_iExpDelta = iDelta + pHlist->m_uSpanlen - 1;
 	} else
 	{
-		m_uCurLCS = BYTE(pHlist->m_uWeight);
-		if ( iPos==1 && HITMAN::IsEnd ( pHlist->m_uHitpos ) && m_iMaxQpos==1 )
-			m_uExactHit |= ( 1UL << uField );
+		DWORD uPos = HITMAN::GetLCS ( pHlist->m_uHitpos );
+		if ( (DWORD)uPos!=m_uCurPos )
+		{
+			// next new and shiny hitpos in line
+			// FIXME!? what do we do with longer spans? keep looking? reset?
+			if ( m_uCurLCS<2 )
+			{
+				m_uLcsTailPos = m_uCurPos;
+				m_uLcsTailQposMask = m_uCurQposMask;
+				m_uCurLCS = 1;
+			}
+			m_uCurQposMask = 0;
+			m_uCurPos = uPos;
+			if ( m_uLCS [ uField ]<pHlist->m_uWeight )
+			{
+				m_uLCS [ uField ] = BYTE ( pHlist->m_uWeight );
+				m_iMinBestSpanPos [ uField ] = iPos - pHlist->m_uWeight + 1;
+			}
+		}
+
+		// add that qpos to current qpos mask (for the current hitpos)
+		m_uCurQposMask |= ( 1UL << pHlist->m_uQuerypos );
+
+		// and check if that results in a better lcs match now
+		int iDelta = ( m_uCurPos-m_uLcsTailPos );
+		if ( ( m_uCurQposMask >> iDelta ) & m_uLcsTailQposMask )
+		{
+			// cool, it matched!
+			m_uLcsTailQposMask = ( 1UL << pHlist->m_uQuerypos ); // our lcs span now ends with a specific qpos
+			m_uLcsTailPos = m_uCurPos; // and in a specific position
+			m_uCurLCS = BYTE ( m_uCurLCS+pHlist->m_uWeight ); // and it's longer
+			m_uCurQposMask = 0; // and we should avoid matching subsequent hits on the same hitpos
+
+			// update per-field vector
+			if ( m_uCurLCS>m_uLCS [ uField ] )
+			{
+				m_uLCS [ uField ] = m_uCurLCS;
+				m_iMinBestSpanPos [ uField ] = iPos - m_uCurLCS + 1;
+			}
+		}
+
+		if ( iDelta==m_iExpDelta )
+		{
+			if ( HITMAN::IsEnd ( pHlist->m_uHitpos ) && (int)pHlist->m_uQuerypos==m_iMaxQpos && iPos==m_iMaxQpos )
+				m_uExactHit |= ( 1UL << uField );
+		} else
+		{
+			if ( iPos==1 && HITMAN::IsEnd ( pHlist->m_uHitpos ) && m_iMaxQpos==1 )
+				m_uExactHit |= ( 1UL << uField );
+		}
+		m_iExpDelta = iDelta + pHlist->m_uSpanlen - 1;
 	}
-	if ( m_uCurLCS>m_uLCS[uField] )
-	{
-		m_uLCS[uField] = m_uCurLCS;
-		m_iMinBestSpanPos[uField] = iPos - m_uCurLCS + 1;
-	}
-	m_iExpDelta = iDelta + pHlist->m_uSpanlen - 1;
 
 	// update other stuff
 	m_uMatchMask[uField] |= ( 1<<(pHlist->m_uQuerypos-1) );
@@ -7882,6 +7949,14 @@ DWORD RankerState_Expr_fn<NEED_PACKEDFACTORS, HANDLE_DUPES>::Finalize ( const CS
 	DWORD uRes = ( m_eExprType==SPH_ATTR_INTEGER )
 		? m_pExpr->IntEval ( tMatch )
 		: (DWORD)m_pExpr->Eval ( tMatch );
+
+	if ( HANDLE_DUPES )
+	{
+		m_uCurPos = 0;
+		m_uLcsTailPos = 0;
+		m_uLcsTailQposMask = 0;
+		m_uCurQposMask = 0;
+	}
 
 	// cleanup
 	ResetDocFactors();
