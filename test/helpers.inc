@@ -1600,9 +1600,9 @@ class SphinxConfig
 			$str .= "Sort: expr: ".$qinfo["sortby"]."\n";
 
 		$str .= @"Query '$result[query]': retrieved $result[total_found] of $result[total] matches in $result[time] sec.\n";
-		if ( @array_key_exists ( "error", $result ) )
+		if ( @array_key_exists ( "error", $result ) && $result["error"] )
 			$str .= "Error: $result[error]\n";
-		if ( @array_key_exists ( "warning", $result ) )
+		if ( @array_key_exists ( "warning", $result ) && $result["warning"] )
 			$str .= "Warning: $result[warning]\n";
 
 		$array_result = @$result["resarray"];
