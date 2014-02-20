@@ -1020,6 +1020,7 @@ private:
 	/// double buffer
 	CSphMutex					m_tSaveInnerMutex;
 	CSphMutex					m_tSaveOuterMutex;
+	CSphMutex					m_tFlushLock;
 	int							m_iDoubleBuffer;
 	CSphVector<SphDocID_t>		m_dNewSegmentKlist;					///< raw doc-id container
 	CSphFixedVector<SphAttr_t>	m_dDiskChunkKlist;					///< well ordered SphAttr_t kill-list
@@ -1190,6 +1191,7 @@ RtIndex_t::RtIndex_t ( const CSphSchema & tSchema, const char * sIndexName, int6
 	Verify ( m_tRwlock.Init() );
 	Verify ( m_tSaveOuterMutex.Init() );
 	Verify ( m_tSaveInnerMutex.Init() );
+	Verify ( m_tFlushLock.Init() );
 }
 
 
@@ -1204,6 +1206,7 @@ RtIndex_t::~RtIndex_t ()
 		SaveMeta ( m_pDiskChunks.GetLength(), m_iTID );
 	}
 
+	Verify ( m_tFlushLock.Done() );
 	Verify ( m_tSaveInnerMutex.Done() );
 	Verify ( m_tSaveOuterMutex.Done() );
 	Verify ( m_tRwlock.Done() );
@@ -1249,6 +1252,12 @@ void RtIndex_t::CheckRamFlush ()
 void RtIndex_t::ForceRamFlush ( bool bPeriodic )
 {
 	int64_t tmSave = sphMicroTimer();
+
+	// need this lock as could get here at same time either ways:
+	// via RtFlushThreadFunc->RtIndex_t::CheckRamFlush
+	// and via HandleMysqlFlushRtindex
+	CSphScopedLock<CSphMutex> tLock ( m_tFlushLock );
+
 	if ( g_pRtBinlog->IsActive() && m_iTID<=m_iSavedTID )
 		return;
 
