@@ -46,9 +46,6 @@
 #define	WORDID_MAX				0xffffffffUL
 #endif
 
-// RT hitman
-typedef Hitman_c<8> HITMAN;
-
 //////////////////////////////////////////////////////////////////////////
 
 #ifndef NDEBUG

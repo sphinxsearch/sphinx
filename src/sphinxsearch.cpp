@@ -33,8 +33,6 @@ int g_iPredictorCostMatch	= 64;
 // EXTENDED MATCHING V2
 //////////////////////////////////////////////////////////////////////////
 
-typedef Hitman_c<8> HITMAN;
-
 #define SPH_TREE_DUMP			0
 
 #define SPH_BM25_K1				1.2f
@@ -3678,7 +3676,7 @@ FSMphrase::FSMphrase ( const CSphVector<ExtNode_i *> & dQwords, const XQNode_t &
 
 inline bool FSMphrase::HitFSM ( const ExtHit_t* pHit, ExtHit_t* dTarget )
 {
-int iHitpos = HITMAN::GetLCS ( pHit->m_uHitpos );
+	int iHitpos = HITMAN::GetLCS ( pHit->m_uHitpos );
 
 	// adding start state for start hit
 	if ( pHit->m_uQuerypos==m_dAtomPos[0] )
@@ -6224,6 +6222,10 @@ struct RankerState_Proximity_fn : public ISphExtra
 			DWORD uPos = HITMAN::GetLCS ( pHlist->m_uHitpos );
 			DWORD uField = HITMAN::GetField ( pHlist->m_uHitpos );
 
+			// reset accumulated data from previous field
+			if ( (DWORD)HITMAN::GetField ( m_uCurPos )!=uField )
+				m_uCurQposMask = 0;
+
 			if ( uPos!=m_uCurPos )
 			{
 				// next new and shiny hitpos in line
@@ -7673,6 +7675,10 @@ void RankerState_Expr_fn<NEED_PACKEDFACTORS, HANDLE_DUPES>::Update ( const ExtHi
 		m_iExpDelta = iDelta + pHlist->m_uSpanlen - 1;
 	} else
 	{
+		// reset accumulated data from previous field
+		if ( (DWORD)HITMAN::GetField ( m_uCurPos )!=uField )
+			m_uCurQposMask = 0;
+
 		DWORD uPos = HITMAN::GetLCS ( pHlist->m_uHitpos );
 		if ( (DWORD)uPos!=m_uCurPos )
 		{
@@ -7929,6 +7935,16 @@ bool RankerState_Expr_fn<NEED_PACKEDFACTORS, HANDLE_DUPES>::ExtraDataImpl ( Extr
 template < bool NEED_PACKEDFACTORS, bool HANDLE_DUPES >
 DWORD RankerState_Expr_fn<NEED_PACKEDFACTORS, HANDLE_DUPES>::Finalize ( const CSphMatch & tMatch )
 {
+#ifndef NDEBUG
+	// sanity check
+	for ( int i=0; i<SPH_MAX_FIELDS; ++i )
+	{
+		assert ( m_iMinHitPos[i]<=m_iMinBestSpanPos[i] );
+		if ( m_uLCS[i]==1 )
+			assert ( m_iMinHitPos[i]==m_iMinBestSpanPos[i] );
+	}
+#endif // NDEBUG
+
 	// finishing touches
 	FinalizeDocFactors ( tMatch );
 

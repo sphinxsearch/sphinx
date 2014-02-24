@@ -1167,6 +1167,9 @@ inline int sphUTF8Len ( const char * pStr, int iMax )
 // MATCHING ENGINE INTERNALS
 //////////////////////////////////////////////////////////////////////////
 
+static const int FIELD_BITS = 8;
+typedef Hitman_c<FIELD_BITS> HITMAN;
+
 /// hit in the stream
 struct ExtHit_t
 {

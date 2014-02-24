@@ -215,9 +215,6 @@ protected:
 };
 
 
-/// hitman used here in snippets
-typedef Hitman_c<8> HITMAN;
-
 /// snippets query words for different cases
 class ISnippetsQword : public ISphQword
 {
