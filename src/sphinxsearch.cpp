@@ -7670,7 +7670,12 @@ void RankerState_Expr_fn<NEED_PACKEDFACTORS, HANDLE_DUPES>::Update ( const ExtHi
 		if ( m_uCurLCS>m_uLCS [ uField ] )
 		{
 			m_uLCS [ uField ] = m_uCurLCS;
-			m_iMinBestSpanPos [ uField ] = iPos - m_uCurLCS + 1;
+			// for first hit in field just use current position as min_best_span_pos
+			// else adjust position with current lcs
+			if ( !m_iMinBestSpanPos [ uField ] )
+				m_iMinBestSpanPos [ uField ] = iPos;
+			else
+				m_iMinBestSpanPos [ uField ] = iPos - m_uCurLCS + 1;
 		}
 		m_iExpDelta = iDelta + pHlist->m_uSpanlen - 1;
 	} else
@@ -7695,7 +7700,7 @@ void RankerState_Expr_fn<NEED_PACKEDFACTORS, HANDLE_DUPES>::Update ( const ExtHi
 			if ( m_uLCS [ uField ]<pHlist->m_uWeight )
 			{
 				m_uLCS [ uField ] = BYTE ( pHlist->m_uWeight );
-				m_iMinBestSpanPos [ uField ] = iPos - pHlist->m_uWeight + 1;
+				m_iMinBestSpanPos [ uField ] = iPos;
 			}
 		}
 
@@ -7937,7 +7942,7 @@ DWORD RankerState_Expr_fn<NEED_PACKEDFACTORS, HANDLE_DUPES>::Finalize ( const CS
 {
 #ifndef NDEBUG
 	// sanity check
-	for ( int i=0; i<SPH_MAX_FIELDS; ++i )
+	for ( int i=0; i<m_iFields; ++i )
 	{
 		assert ( m_iMinHitPos[i]<=m_iMinBestSpanPos[i] );
 		if ( m_uLCS[i]==1 )
