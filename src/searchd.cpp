@@ -8568,6 +8568,12 @@ bool MinimizeAggrResult ( AggrResult_t & tRes, CSphQuery & tQuery, int iLocals, 
 			if ( tMatch.m_iTag & 0x80000000 )
 				continue;
 
+			if ( !bAllEqual && iLocals && iLocals+iAgents>1 )
+			{
+				tRes.m_sError = "can not apply post-limit function to matches from result sets with different schema";
+				return false;
+			}
+
 			ARRAY_FOREACH ( j, dPostlimit )
 			{
 				const CSphColumnInfo & tCol = tRes.m_tSchema.GetAttr ( dPostlimit[j] );
