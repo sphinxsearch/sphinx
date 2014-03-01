@@ -5232,14 +5232,14 @@ ISphExpr * sphExprParse ( const char * sExpr, const CSphSchema & tSchema, ESphAt
 {
 	// parse into opcodes
 	ExprParser_t tParser ( pExtra, pHook, pProfiler );
-	ISphExpr * bRes = tParser.Parse ( sExpr, tSchema, pAttrType, pUsesWeight, sError );
+	ISphExpr * pRes = tParser.Parse ( sExpr, tSchema, pAttrType, pUsesWeight, sError );
 	if ( pZonespanlist )
 		*pZonespanlist = tParser.m_bHasZonespanlist;
 	if ( pEvalStage )
 		*pEvalStage = tParser.m_eEvalStage;
 	if ( pPackedFactors )
 		*pPackedFactors = tParser.m_bHasPackedFactors;
-	return bRes;
+	return pRes;
 }
 
 //
