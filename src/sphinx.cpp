@@ -1050,6 +1050,9 @@ struct Ordinal_t
 	CSphString	m_sValue;	///< string value
 };
 
+#define HITLESS_DOC_MASK 0x7FFFFFFF
+#define HITLESS_DOC_FLAG 0x80000000
+
 
 struct OrdinalEntry_t : public Ordinal_t
 {
@@ -9434,7 +9437,7 @@ void CSphHitBuilder::DoclistEndEntry ( Hitpos_t uLastPos )
 	{
 		bool bIgnoreHits =
 			( m_eHitless==SPH_HITLESS_ALL ) ||
-			( m_eHitless==SPH_HITLESS_SOME && ( m_tWord.m_iDocs & 0x80000000 ) );
+			( m_eHitless==SPH_HITLESS_SOME && ( m_tWord.m_iDocs & HITLESS_DOC_FLAG ) );
 
 		// inline the only hit into doclist (unless it is completely discarded)
 		// and finish doclist entry
@@ -9610,7 +9613,7 @@ void CSphHitBuilder::cidxHit ( CSphAggregateHit * pHit, const CSphRowitem * pAtt
 		m_tWord.m_iHits += iHitCount;
 
 		if ( m_eHitless==SPH_HITLESS_SOME )
-			m_tWord.m_iDocs |= 0x80000000;
+			m_tWord.m_iDocs |= HITLESS_DOC_FLAG;
 
 	} else // handle normal hits
 	{
@@ -12798,12 +12801,12 @@ static void CopyRowMVA ( const DWORD * pBase, const CSphVector<CSphAttrLocator> 
 
 static const int DOCLIST_HINT_THRESH = 256;
 
-static int DoclistHintUnpack ( int iDocs, BYTE uHint )
+static int DoclistHintUnpack ( DWORD uDocs, BYTE uHint )
 {
-	if ( iDocs<DOCLIST_HINT_THRESH )
-		return 8*iDocs;
+	if ( uDocs<DOCLIST_HINT_THRESH )
+		return (int)Min ( 8*(int64_t)uDocs, INT_MAX );
 	else
-		return 4*iDocs + (int)( int64_t(iDocs)*uHint/64 );
+		return (int)Min ( 4*(int64_t)uDocs+( int64_t(uDocs)*uHint/64 ), INT_MAX );
 }
 
 BYTE sphDoclistHintPack ( SphOffset_t iDocs, SphOffset_t iLen )
@@ -12955,8 +12958,8 @@ public:
 
 		m_bHasHitlist =
 			( m_eHitless==SPH_HITLESS_NONE ) ||
-			( m_eHitless==SPH_HITLESS_SOME && !( m_iDocs & 0x80000000 ) );
-		m_iDocs = m_eHitless==SPH_HITLESS_SOME ? ( m_iDocs & 0x7FFFFFFF ) : m_iDocs;
+			( m_eHitless==SPH_HITLESS_SOME && !( m_iDocs & HITLESS_DOC_FLAG ) );
+		m_iDocs = m_eHitless==SPH_HITLESS_SOME ? ( m_iDocs & HITLESS_DOC_MASK ) : m_iDocs;
 
 		return true; // FIXME? errorflag?
 	}
@@ -14628,11 +14631,11 @@ bool DiskIndexQwordSetup_c::Setup ( ISphQword * pWord ) const
 	}
 
 	const ESphHitless eMode = pIndex->m_tSettings.m_eHitless;
-	tWord.m_iDocs = eMode==SPH_HITLESS_SOME ? ( tRes.m_iDocs & 0x7FFFFFFF ) : tRes.m_iDocs;
+	tWord.m_iDocs = eMode==SPH_HITLESS_SOME ? ( tRes.m_iDocs & HITLESS_DOC_MASK ) : tRes.m_iDocs;
 	tWord.m_iHits = tRes.m_iHits;
 	tWord.m_bHasHitlist =
 		( eMode==SPH_HITLESS_NONE ) ||
-		( eMode==SPH_HITLESS_SOME && !( tRes.m_iDocs & 0x80000000 ) );
+		( eMode==SPH_HITLESS_SOME && !( tRes.m_iDocs & HITLESS_DOC_FLAG ) );
 
 	if ( m_bSetupReaders )
 	{
@@ -17943,6 +17946,7 @@ int CSphIndex_VLN::DebugCheck ( FILE * fp )
 		SphOffset_t iNewDoclistOffset = 0;
 		int iDocs = 0;
 		int iHits = 0;
+		bool bHitless = false;
 
 		if ( bWordDict )
 		{
@@ -17977,6 +17981,12 @@ int CSphIndex_VLN::DebugCheck ( FILE * fp )
 			int iHint = ( iDocs>=DOCLIST_HINT_THRESH ) ? rdDict.GetByte() : 0;
 			iHint = DoclistHintUnpack ( iDocs, (BYTE)iHint );
 
+			if ( m_tSettings.m_eHitless==SPH_HITLESS_SOME && ( iDocs & HITLESS_DOC_FLAG )!=0 )
+			{
+				iDocs = ( iDocs & HITLESS_DOC_MASK );
+				bHitless = true;
+			}
+
 			const int iNewWordLen = strlen(sWord);
 
 			if ( iNewWordLen==0 )
@@ -18004,9 +18014,9 @@ int CSphIndex_VLN::DebugCheck ( FILE * fp )
 			iNewDoclistOffset = iDoclistOffset + rdDict.UnzipOffset();
 			iDocs = rdDict.UnzipInt();
 			iHits = rdDict.UnzipInt();
-			bool bHitless = ( dHitlessWords.BinarySearch ( uNewWordid )!=NULL );
+			bHitless = ( dHitlessWords.BinarySearch ( uNewWordid )!=NULL );
 			if ( bHitless )
-				iDocs &= 0x7fffffff;
+				iDocs = ( iDocs & HITLESS_DOC_MASK );
 
 			if ( uNewWordid<=uWordid )
 				LOC_FAIL(( fp, "wordid decreased (pos="INT64_FMT", wordid="UINT64_FMT", previd="UINT64_FMT")",
@@ -18022,7 +18032,7 @@ int CSphIndex_VLN::DebugCheck ( FILE * fp )
 		}
 
 		// skiplist
-		if ( m_bHaveSkips && iDocs>SPH_SKIPLIST_BLOCK )
+		if ( m_bHaveSkips && iDocs>SPH_SKIPLIST_BLOCK && !bHitless )
 		{
 			int iSkipsOffset = rdDict.UnzipInt();
 			if ( !bWordDict && iSkipsOffset<iLastSkipsOffset )
@@ -18137,6 +18147,7 @@ int CSphIndex_VLN::DebugCheck ( FILE * fp )
 	int iWordsChecked = 0;
 	while ( rdDict.GetPos()<iWordsEnd )
 	{
+		bHitless = false;
 		const SphWordID_t iDeltaWord = bWordDict ? rdDict.GetByte() : rdDict.UnzipWordid();
 		if ( !iDeltaWord )
 		{
@@ -18175,8 +18186,14 @@ int CSphIndex_VLN::DebugCheck ( FILE * fp )
 			iDoclistOffset = rdDict.UnzipOffset();
 			iDictDocs = rdDict.UnzipInt();
 			iDictHits = rdDict.UnzipInt();
-			int iHint = ( iDictDocs>=DOCLIST_HINT_THRESH ) ? rdDict.GetByte() : 0;
-			DoclistHintUnpack ( iDictDocs, (BYTE)iHint );
+			if ( iDictDocs>=DOCLIST_HINT_THRESH )
+				rdDict.GetByte();
+
+			if ( m_tSettings.m_eHitless==SPH_HITLESS_SOME && ( iDictDocs & HITLESS_DOC_FLAG ) )
+			{
+				iDictDocs = ( iDictDocs & HITLESS_DOC_MASK );
+				bHitless = true;
+			}
 		} else
 		{
 			// finish reading the entire entry
@@ -18185,13 +18202,13 @@ int CSphIndex_VLN::DebugCheck ( FILE * fp )
 			iDoclistOffset = iDoclistOffset + rdDict.UnzipOffset();
 			iDictDocs = rdDict.UnzipInt();
 			if ( bHitless )
-				iDictDocs &= 0x7fffffff;
+				iDictDocs = ( iDictDocs & HITLESS_DOC_MASK );
 			iDictHits = rdDict.UnzipInt();
 		}
 
 		// FIXME? verify skiplist content too
 		int iSkipsOffset = 0;
-		if ( m_bHaveSkips && iDictDocs>SPH_SKIPLIST_BLOCK )
+		if ( m_bHaveSkips && iDictDocs>SPH_SKIPLIST_BLOCK && !bHitless )
 			iSkipsOffset = rdDict.UnzipInt();
 
 		// check whether the offset is as expected
@@ -18244,8 +18261,7 @@ int CSphIndex_VLN::DebugCheck ( FILE * fp )
 		int iDoclistHits = 0;
 		int iHitlistHits = 0;
 
-		// FIXME!!! dict=keywords + hitless_words=some
-		bHitless = ( m_tSettings.m_eHitless==SPH_HITLESS_ALL ||
+		bHitless |= ( m_tSettings.m_eHitless==SPH_HITLESS_ALL ||
 			( m_tSettings.m_eHitless==SPH_HITLESS_SOME && dHitlessWords.BinarySearch ( uWordid ) ) );
 		pQword->m_bHasHitlist = !bHitless;
 
@@ -18357,7 +18373,7 @@ int CSphIndex_VLN::DebugCheck ( FILE * fp )
 			LOC_FAIL(( fp, "hit count mismatch (wordid="UINT64_FMT"(%s), dict=%d, doclist=%d, hitlist=%d)",
 				uint64_t(uWordid), sWord, iDictHits, iDoclistHits, iHitlistHits ));
 
-		while ( m_bHaveSkips && iDoclistDocs>SPH_SKIPLIST_BLOCK )
+		while ( m_bHaveSkips && iDoclistDocs>SPH_SKIPLIST_BLOCK && !bHitless )
 		{
 			if ( iSkipsOffset<=0 || iSkipsOffset>(int)m_pSkiplists.GetLength() )
 			{
