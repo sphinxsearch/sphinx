@@ -4406,6 +4406,17 @@ int ExprParser_t::AddNodeFunc ( int iFunc, int iLeft, int iRight )
 		}
 	}
 
+	// check for (yet) unsupported JSON field in FUNC_IN
+	if ( eFunc==FUNC_IN )
+	{
+		CSphString sCol, sKey;
+		if ( sphJsonNameSplit ( m_dNodes [ iLeft ].m_sName.cstr(), &sCol, &sKey ) )
+		{
+			m_sParserError.SetSprintf ( "%s() argument can not be a JSON field", g_dFuncs[iFunc].m_sName );
+			return -1;
+		}
+	}
+
 	// check that CONTAINS args are poly, float, float
 	if ( eFunc==FUNC_CONTAINS )
 	{
