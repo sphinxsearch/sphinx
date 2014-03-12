@@ -24334,7 +24334,6 @@ void CSphSource_Document::BuildRegularHits ( SphDocID_t uDocid, bool bPayload, b
 		&& ( sWord = m_pTokenizer->GetToken() )!=NULL )
 	{
 		int iLastBlendedStart = TrackBlendedStart ( m_pTokenizer, iBlendedHitsStart, m_tHits.Length() );
-		iLastTokenStart = m_tHits.Length();
 
 		if ( !bPayload )
 		{
@@ -24342,6 +24341,9 @@ void CSphSource_Document::BuildRegularHits ( SphDocID_t uDocid, bool bPayload, b
 			if ( m_pTokenizer->GetBoundary() )
 				HITMAN::AddPos ( &m_tState.m_iHitPos, m_iBoundaryStep );
 		}
+
+		if ( m_tState.m_iBuildLastStep )
+			iLastTokenStart = m_tHits.Length();
 
 		if ( BuildZoneHits ( uDocid, sWord ) )
 			continue;
@@ -24407,7 +24409,12 @@ void CSphSource_Document::BuildRegularHits ( SphDocID_t uDocid, bool bPayload, b
 		} else if ( iLastTokenStart>=0 && iLastTokenStart+1<m_tHits.Length() )
 		{
 			CSphWordHit * pHit = const_cast < CSphWordHit * > ( m_tHits.First() + iLastTokenStart );
-			HITMAN::SetEndMarker ( &pHit->m_iWordPos );
+			const CSphWordHit * pEnd = m_tHits.First() + m_tHits.Length() - 1;
+			while ( pHit<pEnd )
+			{
+				HITMAN::SetEndMarker ( &pHit->m_iWordPos );
+				pHit++;
+			}
 		}
 	}
 }
