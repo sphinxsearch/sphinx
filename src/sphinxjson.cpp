@@ -382,7 +382,7 @@ static const BYTE * JsonFormatStr ( CSphVector<BYTE> & dOut, const BYTE * p, boo
 		dOut.Add ( '"' );
 	while ( iLen-- )
 	{
-		if ( *p=='"' )
+		if ( *p=='"' && bQuote )
 			dOut.Add ( '\\' );
 		dOut.Add ( *p );
 		p++;
