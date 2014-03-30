@@ -1,7 +1,7 @@
-<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Sphinx 2.1.7-release reference manual</title><meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Sphinx 2.1.8-dev reference manual</title><meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
 <style type="text/css">pre.programlisting { background-color: #f0f0f0; padding: 0.5em; margin-left: 2em; margin-right: 2em; }</style>
 </head>
-<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div lang="en" class="book" title="Sphinx 2.1.7-release reference manual"><div class="titlepage"><div><div><h1 class="title"><a name="idm754000"></a>Sphinx 2.1.7-release reference manual</h1></div>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div lang="en" class="book" title="Sphinx 2.1.8-dev reference manual"><div class="titlepage"><div><div><h1 class="title"><a name="idp188464"></a>Sphinx 2.1.8-dev reference manual</h1></div>
 <div><h2 class="subtitle">Free open-source SQL full-text search engine</h2></div>
 <div><p class="copyright">Copyright &copy; 2001-2014 Andrew Aksyonoff</p></div>
 <div><p class="copyright">Copyright &copy; 2008-2014 Sphinx Technologies Inc, <a class="ulink" href="http://sphinxsearch.com" target="_top">http://sphinxsearch.com</a></p></div></div>
@@ -512,12 +512,12 @@ Non-GPL licensing (for OEM/ISV embedded use) can also be arranged, please
 commercial licensing possibilities.
 </p></div>
 <div class="sect1" title="1.5.&nbsp;Credits"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="credits"></a>1.5.&nbsp;Credits</h2></div></div></div>
-<h3><a name="idp30243680"></a>Author</h3><p>
+<h3><a name="idp149936"></a>Author</h3><p>
 Sphinx initial author (and a benevolent dictator ever since):
 </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Andrew Aksyonoff, <a class="ulink" href="http://shodan.ru" target="_top">http://shodan.ru</a></p></li>
 </ul></div>
 <p>
-</p><h3><a name="idp30245984"></a>Team</h3><p>
+</p><h3><a name="idp5346720"></a>Team</h3><p>
 Past and present employees of Sphinx Technologies Inc who should be
 noted on their work on Sphinx (in alphabetical order):
 </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Adam Rice</p></li>
@@ -537,7 +537,7 @@ noted on their work on Sphinx (in alphabetical order):
 <li class="listitem"><p>Yuri Schapov</p></li>
 </ul></div>
 <p>
-</p><h3><a name="idp30255072"></a>Contributors</h3><p>People who contributed to Sphinx and their contributions (in no particular order):
+</p><h3><a name="idp5355696"></a>Contributors</h3><p>People who contributed to Sphinx and their contributions (in no particular order):
 </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Robert "coredev" Bengtsson (Sweden), initial version of PostgreSQL data source</p></li>
 <li class="listitem"><p>Len Kranendonk, Perl API</p></li>
 <li class="listitem"><p>Dmytro Shteflyuk, Ruby API</p></li>
@@ -897,7 +897,7 @@ This can be achieved by specifying all the mentioned columns
 (excluding title and content, that are full-text fields) as
 attributes, indexing them, and then using API calls to
 setup filtering, sorting, and grouping. Here as an example.
-</p><h3><a name="idp30411200"></a>Example sphinx.conf part:</h3><pre class="programlisting">
+</p><h3><a name="idp5505120"></a>Example sphinx.conf part:</h3><pre class="programlisting">
 ...
 sql_query = SELECT id, title, content, \
     author_id, forum_id, post_date FROM my_forum_posts
@@ -905,7 +905,7 @@ sql_attr_uint = author_id
 sql_attr_uint = forum_id
 sql_attr_timestamp = post_date
 ...
-</pre><h3><a name="idp30412512"></a>Example application code (in PHP):</h3><pre class="programlisting">
+</pre><h3><a name="idp5506336"></a>Example application code (in PHP):</h3><pre class="programlisting">
 // only search posts by author whose ID is 123
 $cl-&gt;SetFilter ( "author_id", array ( 123 ) );
 
@@ -1145,7 +1145,7 @@ be run three times:
 Obviously, that's not much of a difference for 2000-row table,
 but when it comes to indexing 10-million-row MyISAM table,
 ranged queries might be of some help.
-</p><h3><a name="idp30490080"></a><code class="option">sql_query_post</code> vs. <code class="option">sql_query_post_index</code></h3><p>
+</p><h3><a name="idp5576880"></a><code class="option">sql_query_post</code> vs. <code class="option">sql_query_post_index</code></h3><p>
 The difference between post-query and post-index query is in that post-query
 is run immediately when Sphinx received all the documents, but further indexing
 <span class="bold"><strong>may</strong></span> still fail for some other reason. On the contrary,
@@ -2024,7 +2024,7 @@ above, <code class="code">(ZONESPAN:th hello world)&gt;</code> would not match t
 since "hello" and "world" do not occur within the same span.
 </p></div>
 <div class="sect1" title="5.4.&nbsp;Search results ranking"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="weighting"></a>5.4.&nbsp;Search results ranking</h2></div></div></div>
-<h3><a name="idp30697136"></a>Ranking overview</h3><p>
+<h3><a name="idp5767360"></a>Ranking overview</h3><p>
 Ranking (aka weighting) of the search results can be defined
 as a process of computing a so-called relevance (aka weight)
 for every given matched document with regards to a given query
@@ -2062,7 +2062,7 @@ As a sidenote, legacy matching modes are internally implemented via
 the unified syntax anyway. When you use one of those modes, Sphinx just
 internally adjusts the query and sets the associated ranker, then
 executes the query using the very same unified code path.
-</p><h3><a name="idp30705136"></a>Available rankers</h3><p>
+</p><h3><a name="idp5774224"></a>Available rankers</h3><p>
 Sphinx ships with a number of built-in rankers suited for different
 purposes. A number of them uses two factors, phrase proximity (aka LCS)
 and BM25. Phrase proximity works on the keyword positions, while BM25
@@ -2137,7 +2137,7 @@ $client-&gt;SetRankingMode ( SPH_RANK_SPH04 );
 // SphinxQL
 mysql_query ( "SELECT ... OPTION ranker=sph04" );
 </pre><p>
-</p><h3><a name="idp30718544"></a>Legacy matching modes rankers</h3><p>
+</p><h3><a name="idp5785568"></a>Legacy matching modes rankers</h3><p>
 Legacy matching modes automatically select a ranker as follows:
 </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>SPH_MATCH_ALL uses SPH_RANK_PROXIMITY ranker;</p></li>
 <li class="listitem"><p>SPH_MATCH_ANY uses SPH_RANK_MATCHANY ranker;</p></li>
@@ -2298,7 +2298,7 @@ of matched fields.
 </p></li>
 </ul></div>
 <p>
-</p><h3><a name="idp30762160"></a>Expressions for the built-in rankers</h3><p>
+</p><h3><a name="idp5824512"></a>Expressions for the built-in rankers</h3><p>
 Most of the other rankers can actually be emulated with the expression
 based ranker. You just need to pass a proper expression. Such emulation is,
 of course, going to be slower than using the built-in, compiled ranker but
@@ -2627,7 +2627,7 @@ SPH_SORT_TIME_SEGMENTS modes require simply an attribute name.
 SPH_SORT_RELEVANCE is equivalent to sorting by "@weight DESC, @id ASC" in extended sorting mode,
 SPH_SORT_ATTR_ASC is equivalent to "attribute ASC, @weight DESC, @id ASC",
 and SPH_SORT_ATTR_DESC to "attribute DESC, @weight DESC, @id ASC" respectively.
-</p><h3><a name="idp30914112"></a>SPH_SORT_TIME_SEGMENTS mode</h3><p>
+</p><h3><a name="idp5969712"></a>SPH_SORT_TIME_SEGMENTS mode</h3><p>
 In SPH_SORT_TIME_SEGMENTS mode, attribute values are split into so-called
 time segments, and then sorted by time segment first, and by relevance second.
 </p><p>
@@ -5828,7 +5828,7 @@ Expression sorting (<a class="xref" href="#sort-expr" title="5.6.&nbsp;SPH_SORT_
 (<a class="xref" href="#api-func-setgeoanchor" title="8.4.5.&nbsp;SetGeoAnchor">Section&nbsp;8.4.5, &#8220;SetGeoAnchor&#8221;</a>) are now internally implemented using
 this computed expressions mechanism, using magic names '@expr' and '@geodist'
 respectively.
-</p><h4><a name="idp31756224"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp6743312"></a>Example:</h4><pre class="programlisting">
 $cl-&gt;SetSelect ( "*, @weight+(user_karma+ln(pageviews))*0.1 AS myweight" );
 $cl-&gt;SetSelect ( "exp_years, salary_gbp*{$gbp_usd_rate} AS salary_usd,
    IF(age&gt;40,1,0) AS over40" );
@@ -6955,7 +6955,7 @@ Reporting as much as possible about each bug is very important -
 because to fix it, I need to be able either to reproduce and debug the bug,
 or to deduce what's causing it from the information that you provide.
 So here are some instructions on how to do that.
-</p><h2><a name="idp32130032"></a>Build-time issues</h2><p>If Sphinx fails to build for some reason, please do the following:</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>check that headers and libraries for your DBMS are properly installed
+</p><h2><a name="idp7090416"></a>Build-time issues</h2><p>If Sphinx fails to build for some reason, please do the following:</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>check that headers and libraries for your DBMS are properly installed
 (for instance, check that <code class="filename">mysql-devel</code> package is present);
 </p></li>
 <li class="listitem"><p>report Sphinx version and config file (be sure to remove the passwords!),
@@ -6973,7 +6973,7 @@ or <code class="filename">gcc</code> (it should be to include error message itse
 not the whole build log).
 </p></li>
 </ol></div>
-<h2><a name="idp32137072"></a>Run-time issues</h2><p>
+<h2><a name="idp7097040"></a>Run-time issues</h2><p>
 If Sphinx builds and runs, but there are any problems running it,
 please do the following:
 </p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>describe the bug (ie. both the expected behavior and actual behavior)
@@ -7017,7 +7017,7 @@ running it in console mode and check if it dies with an assertion:
 </p></li>
 <li class="listitem"><p>if any program dies with an assertion, provide the assertion message.</p></li>
 </ol></div>
-<h2><a name="idp32150752"></a>Debugging assertions, crashes and hangups</h2><p>
+<h2><a name="idp7109664"></a>Debugging assertions, crashes and hangups</h2><p>
 If any program dies with an assertion, crashes without an assertion or hangs up,
 you would additionally need to generate a core dump and examine it.
 </p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
@@ -7290,7 +7290,7 @@ not be supported depending on your build settings, installed client libraries, e
 <code class="option">mssql</code> type is currently only available on Windows.
 <code class="option">odbc</code> type is available both on Windows natively and on
 Linux through <a class="ulink" href="http://www.unixodbc.org/" target="_top">UnixODBC library</a>.
-</p><h4><a name="idp32175776"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7132992"></a>Example:</h4><pre class="programlisting">
 type = mysql
 </pre></div>
 <div class="sect2" title="11.1.2.&nbsp;sql_host"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-host"></a>11.1.2.&nbsp;sql_host</h3></div></div></div>
@@ -7307,7 +7307,7 @@ to use UNIX socket (this is the default and generally recommended mode)
 and "127.0.0.1" will force TCP/IP usage. Refer to
 <a class="ulink" href="http://dev.mysql.com/doc/refman/5.0/en/mysql-real-connect.html" target="_top">MySQL manual</a>
 for more details.
-</p><h4><a name="idp32181760"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7138608"></a>Example:</h4><pre class="programlisting">
 sql_host = localhost
 </pre></div>
 <div class="sect2" title="11.1.3.&nbsp;sql_port"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-port"></a>11.1.3.&nbsp;sql_port</h3></div></div></div>
@@ -7316,7 +7316,7 @@ SQL server IP port to connect to.
 Optional, default is 3306 for <code class="option">mysql</code> source type and 5432 for <code class="option">pgsql</code> type.
 Applies to SQL source types (<code class="option">mysql</code>, <code class="option">pgsql</code>, <code class="option">mssql</code>) only.
 Note that it depends on <a class="link" href="#conf-sql-host" title="11.1.2.&nbsp;sql_host">sql_host</a> setting whether this value will actually be used.
-</p><h4><a name="idp32187888"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7144480"></a>Example:</h4><pre class="programlisting">
 sql_port = 3306
 </pre></div>
 <div class="sect2" title="11.1.4.&nbsp;sql_user"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-user"></a>11.1.4.&nbsp;sql_user</h3></div></div></div>
@@ -7324,7 +7324,7 @@ sql_port = 3306
 SQL user to use when connecting to <a class="link" href="#conf-sql-host" title="11.1.2.&nbsp;sql_host">sql_host</a>.
 Mandatory, no default value.
 Applies to SQL source types (<code class="option">mysql</code>, <code class="option">pgsql</code>, <code class="option">mssql</code>) only.
-</p><h4><a name="idp32192784"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7149328"></a>Example:</h4><pre class="programlisting">
 sql_user = test
 </pre></div>
 <div class="sect2" title="11.1.5.&nbsp;sql_pass"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-pass"></a>11.1.5.&nbsp;sql_pass</h3></div></div></div>
@@ -7332,7 +7332,7 @@ sql_user = test
 SQL user password to use when connecting to <a class="link" href="#conf-sql-host" title="11.1.2.&nbsp;sql_host">sql_host</a>.
 Mandatory, no default value.
 Applies to SQL source types (<code class="option">mysql</code>, <code class="option">pgsql</code>, <code class="option">mssql</code>) only.
-</p><h4><a name="idp32197696"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7154144"></a>Example:</h4><pre class="programlisting">
 sql_pass = mysecretpassword
 </pre></div>
 <div class="sect2" title="11.1.6.&nbsp;sql_db"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-db"></a>11.1.6.&nbsp;sql_db</h3></div></div></div>
@@ -7340,7 +7340,7 @@ sql_pass = mysecretpassword
 SQL database (in MySQL terms) to use after the connection and perform further queries within.
 Mandatory, no default value.
 Applies to SQL source types (<code class="option">mysql</code>, <code class="option">pgsql</code>, <code class="option">mssql</code>) only.
-</p><h4><a name="idp32201952"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7158192"></a>Example:</h4><pre class="programlisting">
 sql_db = test
 </pre></div>
 <div class="sect2" title="11.1.7.&nbsp;sql_sock"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-sock"></a>11.1.7.&nbsp;sql_sock</h3></div></div></div>
@@ -7352,7 +7352,7 @@ Applies to SQL source types (<code class="option">mysql</code>, <code class="opt
 On Linux, it would typically be <code class="filename">/var/lib/mysql/mysql.sock</code>.
 On FreeBSD, it would typically be <code class="filename">/tmp/mysql.sock</code>.
 Note that it depends on <a class="link" href="#conf-sql-host" title="11.1.2.&nbsp;sql_host">sql_host</a> setting whether this value will actually be used.
-</p><h4><a name="idp32209024"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7165024"></a>Example:</h4><pre class="programlisting">
 sql_sock = /tmp/mysql.sock
 </pre></div>
 <div class="sect2" title="11.1.8.&nbsp;json_autoconv_numbers"><div class="titlepage"><div><div><h3 class="title"><a name="conf-json-autoconv-numbers"></a>11.1.8.&nbsp;json_autoconv_numbers</h3></div></div></div>
@@ -7366,7 +7366,7 @@ When this option is 1, values such as "1234" will be indexed as numbers instead
 of strings; if the option is 0, such values will be indexed as strings.
 This conversion applies to any data source, that is, JSON attributes originating
 from either SQL or XMLpipe sources will all be affected.
-</p><h4><a name="idp32212704"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7168592"></a>Example:</h4><pre class="programlisting">
 json_autoconv_numbers = 1
 </pre></div>
 <div class="sect2" title="11.1.9.&nbsp;json_autoconv_keynames"><div class="titlepage"><div><div><h3 class="title"><a name="conf-json-autoconv-keynames"></a>11.1.9.&nbsp;json_autoconv_keynames</h3></div></div></div>
@@ -7380,7 +7380,7 @@ When this directive is set to 'lowercase', key names within JSON attributes
 will be automatically brought to lower case when indexing.
 This conversion applies to any data source, that is, JSON attributes originating
 from either SQL or XMLpipe sources will all be affected.
-</p><h4><a name="idp32216640"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7172080"></a>Example:</h4><pre class="programlisting">
 json_autoconv_keynames = lowercase
 </pre></div>
 <div class="sect2" title="11.1.10.&nbsp;on_json_attr_error"><div class="titlepage"><div><div><h3 class="title"><a name="conf-on-json-attr-error"></a>11.1.10.&nbsp;on_json_attr_error</h3></div></div></div>
@@ -7393,7 +7393,7 @@ Added in 2.1.1-beta.
 By default, JSON format errors are ignored (<code class="option">ignore_attr</code>) and
 the indexer tool will just show a warning. Setting this option to <code class="option">fail_index</code>
 will rather make indexing fail at the first JSON format error.
-</p><h4><a name="idp32222064"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7177104"></a>Example:</h4><pre class="programlisting">
 on_json_attr_error = ignore_attr
 </pre></div>
 <div class="sect2" title="11.1.11.&nbsp;mysql_connect_flags"><div class="titlepage"><div><div><h3 class="title"><a name="conf-mysql-connect-flags"></a>11.1.11.&nbsp;mysql_connect_flags</h3></div></div></div>
@@ -7419,7 +7419,7 @@ links is most likely to hurt indexing time though it reduces network traffic,
 both in theory and in practice. However, enabling compression on 100 Mbps links
 may improve indexing time significantly (upto 20-30% of the total indexing time
 improvement was reported). Your mileage may vary.
-</p><h4><a name="idp32231776"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7185920"></a>Example:</h4><pre class="programlisting">
 mysql_connect_flags = 32 # enable compression
 </pre></div>
 <div class="sect2" title="11.1.12.&nbsp;mysql_ssl_cert, mysql_ssl_key, mysql_ssl_ca"><div class="titlepage"><div><div><h3 class="title"><a name="conf-mysql-ssl"></a>11.1.12.&nbsp;mysql_ssl_cert, mysql_ssl_key, mysql_ssl_ca</h3></div></div></div>
@@ -7432,7 +7432,7 @@ These directives let you set up secure SSL connection between
 <code class="filename">indexer</code> and MySQL. The details on creating
 the certificates and setting up MySQL server can be found in
 MySQL documentation.
-</p><h4><a name="idp32236608"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7190464"></a>Example:</h4><pre class="programlisting">
 mysql_ssl_cert = /etc/ssl/client-cert.pem
 mysql_ssl_key = /etc/ssl/client-key.pem
 mysql_ssl_ca = /etc/ssl/cacert.pem
@@ -7446,7 +7446,7 @@ Applies to <code class="option">odbc</code> source type only.
 ODBC DSN (Data Source Name) specifies the credentials (host, user, password, etc)
 to use when connecting to ODBC data source. The format depends on specific ODBC
 driver used.
-</p><h4><a name="idp32240624"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7194304"></a>Example:</h4><pre class="programlisting">
 odbc_dsn = Driver={Oracle ODBC Driver};Dbq=myDBName;Uid=myUsername;Pwd=myPassword
 </pre></div>
 <div class="sect2" title="11.1.14.&nbsp;sql_query_pre"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-query-pre"></a>11.1.14.&nbsp;sql_query_pre</h3></div></div></div>
@@ -7480,7 +7480,7 @@ in caching their results. That could be achieved with:
 </p><pre class="programlisting">
 sql_query_pre = SET SESSION query_cache_type=OFF
 </pre><p>
-</p><h4><a name="idp32252144"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7205152"></a>Example:</h4><pre class="programlisting">
 sql_query_pre = SET NAMES utf8
 sql_query_pre = SET SESSION query_cache_type=OFF
 </pre></div>
@@ -7501,7 +7501,7 @@ It can be either 32-bit or 64-bit, depending on how you built Sphinx;
 by default it builds with 32-bit IDs support but <code class="option">--enable-id64</code> option
 to <code class="filename">configure</code> allows to build with 64-bit document and word IDs support.
 
-</p><h4><a name="idp32261120"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7213600"></a>Example:</h4><pre class="programlisting">
 sql_query = \
     SELECT id, group_id, UNIX_TIMESTAMP(date_added) AS date_added, \
         title, content \
@@ -7580,7 +7580,7 @@ SPH_RANK_PROXIMITY_BM25 ranker. On indexes with payload fields,
 it will automatically switch to a variant that matches keywords
 in those fields, computes a sum of matched payloads multiplied
 by field wieghts, and adds that sum to the final rank.
-</p><h4><a name="idp32282528"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7232624"></a>Example:</h4><pre class="programlisting">
 sql_joined_field = \
     tagstext from query; \
     SELECT docid, CONCAT('tag',tagid) FROM tags ORDER BY docid ASC
@@ -7613,7 +7613,7 @@ will not overlap, so you should <span class="bold"><strong>not</strong></span> r
 exactly equal to <code class="option">$start</code> or <code class="option">$end</code> from your query.
 The example in <a class="xref" href="#ranged-queries" title="3.8.&nbsp;Ranged queries">Section&nbsp;3.8, &#8220;Ranged queries&#8221;</a>) illustrates that; note how it
 uses greater-or-equal and less-or-equal comparisons.
-</p><h4><a name="idp32294960"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7244592"></a>Example:</h4><pre class="programlisting">
 sql_query_range = SELECT MIN(id),MAX(id) FROM documents
 </pre></div>
 <div class="sect2" title="11.1.18.&nbsp;sql_range_step"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-range-step"></a>11.1.18.&nbsp;sql_range_step</h3></div></div></div>
@@ -7634,7 +7634,7 @@ following substitutions:
 <li class="listitem"><p>$start=3012, $end=3456</p></li>
 </ul></div>
 <p>
-</p><h4><a name="idp32305072"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7254368"></a>Example:</h4><pre class="programlisting">
 sql_range_step = 1000
 </pre></div>
 <div class="sect2" title="11.1.19.&nbsp;sql_query_killlist"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-query-killlist"></a>11.1.19.&nbsp;sql_query_killlist</h3></div></div></div>
@@ -7680,7 +7680,7 @@ to every node in the cluster</strong></span>. They are <span class="bold"><stron
 over the network when sending queries. (Because that might be too much
 of an impact when the K-list is huge.) You will need to setup a
 separate per-server K-lists in that case.
-</p><h4><a name="idp32318240"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7266176"></a>Example:</h4><pre class="programlisting">
 sql_query_killlist = \
     SELECT id FROM documents WHERE updated_ts&gt;=@last_reindex UNION \
     SELECT id FROM documents_deleted WHERE deleted_ts&gt;=@last_reindex
@@ -7702,7 +7702,7 @@ But they require less RAM when using <a class="link" href="#conf-docinfo" title=
 such bitfields are packed together in 32-bit chunks in <code class="filename">.spa</code>
 attribute data file. Bit size settings are ignored if using
 <a class="link" href="#conf-docinfo" title="11.2.4.&nbsp;docinfo">inline storage</a>.
-</p><h4><a name="idp32327280"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7274928"></a>Example:</h4><pre class="programlisting">
 sql_attr_uint = group_id
 sql_attr_uint = forum_id:9 # 9 bits for forum_id
 </pre></div>
@@ -7712,7 +7712,7 @@ Boolean <a class="link" href="#attributes" title="3.3.&nbsp;Attributes">attribut
 Multi-value (there might be multiple attributes declared), optional.
 Applies to SQL source types (<code class="option">mysql</code>, <code class="option">pgsql</code>, <code class="option">mssql</code>) only.
 Equivalent to <a class="link" href="#conf-sql-attr-uint" title="11.1.20.&nbsp;sql_attr_uint">sql_attr_uint</a> declaration with a bit count of 1.
-</p><h4><a name="idp32333360"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7280848"></a>Example:</h4><pre class="programlisting">
 sql_attr_bool = is_deleted # will be packed to 1 bit
 </pre></div>
 <div class="sect2" title="11.1.22.&nbsp;sql_attr_bigint"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-attr-bigint"></a>11.1.22.&nbsp;sql_attr_bigint</h3></div></div></div>
@@ -7723,7 +7723,7 @@ Applies to SQL source types (<code class="option">mysql</code>, <code class="opt
 Note that unlike <a class="link" href="#conf-sql-attr-uint" title="11.1.20.&nbsp;sql_attr_uint">sql_attr_uint</a>,
 these values are <span class="bold"><strong>signed</strong></span>.
 Introduced in version 0.9.9-rc1.
-</p><h4><a name="idp32340016"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7287232"></a>Example:</h4><pre class="programlisting">
 sql_attr_bigint = my_bigint_id
 </pre></div>
 <div class="sect2" title="11.1.23.&nbsp;sql_attr_timestamp"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-attr-timestamp"></a>11.1.23.&nbsp;sql_attr_timestamp</h3></div></div></div>
@@ -7749,7 +7749,7 @@ Note timestamps can not represent dates before January 01, 1970,
 and UNIX_TIMESTAMP() in MySQL will not return anything expected.
 If you only needs to work with dates, not times, consider TO_DAYS()
 function in MySQL instead.
-</p><h4><a name="idp32347968"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7294896"></a>Example:</h4><pre class="programlisting">
 # sql_query = ... UNIX_TIMESTAMP(added_datetime) AS added_ts ...
 sql_attr_timestamp = added_ts
 </pre></div>
@@ -7796,7 +7796,7 @@ number will be 1. And after the merge, the order will be broken.
 Unfortunately, this is impossible to workaround without storing
 the original strings (and once Sphinx supports storing the
 original strings, ordinals will not be necessary any more).
-</p><h4><a name="idp32358720"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7304432"></a>Example:</h4><pre class="programlisting">
 sql_attr_str2ordinal = author_name
 </pre></div>
 <div class="sect2" title="11.1.25.&nbsp;sql_attr_float"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-attr-float"></a>11.1.25.&nbsp;sql_attr_float</h3></div></div></div>
@@ -7811,7 +7811,7 @@ of decimal digits that can be stored precisely is approximately 7.
 One important usage of the float attributes is storing latitude
 and longitude values (in radians), for further usage in query-time
 geosphere distance calculations.
-</p><h4><a name="idp32364784"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7310048"></a>Example:</h4><pre class="programlisting">
 sql_attr_float = lat_radians
 sql_attr_float = long_radians
 </pre></div>
@@ -7840,7 +7840,7 @@ where
 <li class="listitem"><p>RANGE-QUERY is SQL query used to fetch min and max ID values, similar to 'sql_query_range'</p></li>
 </ul></div>
 <p>
-</p><h4><a name="idp32374608"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7319536"></a>Example:</h4><pre class="programlisting">
 sql_attr_multi = uint tag from query; SELECT id, tag FROM tags
 sql_attr_multi = bigint tag from ranged-query; \
     SELECT id, tag FROM tags WHERE id&gt;=$start AND id&lt;=$end; \
@@ -7862,7 +7862,7 @@ grouping(ORDER BY, GROUP BY, WITHIN GROUP ORDER BY). Note that attributes
 declared using <code class="option">sql_attr_string</code> will <span class="bold"><strong>not</strong></span> be full-text
 indexed; you can use <a class="link" href="#conf-sql-field-string" title="11.1.31.&nbsp;sql_field_string">sql_field_string</a>
 directive for that.
-</p><h4><a name="idp32383472"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7327920"></a>Example:</h4><pre class="programlisting">
 sql_attr_string = title # will be stored but will not be indexed
 </pre></div>
 <div class="sect2" title="11.1.28.&nbsp;sql_attr_json"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-attr-json"></a>11.1.28.&nbsp;sql_attr_json</h3></div></div></div>
@@ -7893,7 +7893,7 @@ that don't include the key will simply be ignored.
 </p><p>
 You can read more on JSON attributes in <a class="ulink" href="http://sphinxsearch.com/blog/2013/02/07/sphinx-2-1-json-attributes/" target="_top">
 http://sphinxsearch.com/blog/2013/02/07/sphinx-2-1-json-attributes/</a>.
-</p><h4><a name="idp32390896"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7334832"></a>Example:</h4><pre class="programlisting">
 sql_attr_json = properties
 </pre></div>
 <div class="sect2" title="11.1.29.&nbsp;sql_attr_str2wordcount"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-attr-str2wordcount"></a>11.1.29.&nbsp;sql_attr_str2wordcount</h3></div></div></div>
@@ -7909,7 +7909,7 @@ to index settings, and stores the resulting number of tokens in an attribute.
 This number of tokens ("word count") is a normal integer that can be later
 used, for instance, in custom ranking expressions (boost shorter titles,
 help identify exact field matches, etc).
-</p><h4><a name="idp32396544"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7339728"></a>Example:</h4><pre class="programlisting">
 sql_attr_str2wordcount = title_wc
 </pre></div>
 <div class="sect2" title="11.1.30.&nbsp;sql_column_buffers"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-column-buffers"></a>11.1.30.&nbsp;sql_column_buffers</h3></div></div></div>
@@ -7939,7 +7939,7 @@ must be a comma-separated lists of selected column names and sizes:
 </p><pre class="programlisting">
 sql_column_buffers = &lt;colname&gt;=&lt;size&gt;[K|M] [, ...]
 </pre><p>
-</p><h4><a name="idp32404656"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7346688"></a>Example:</h4><pre class="programlisting">
 sql_query = SELECT id, mytitle, mycontent FROM documents
 sql_column_buffers = mytitle=64K, mycontent=10M
 </pre></div>
@@ -7954,7 +7954,7 @@ Introduced in version 1.10-beta.
 value but does not full-text index it.  In some cases it might be desired to both full-text
 index the column and store it as attribute.  <code class="option">sql_field_string</code> lets you do
 exactly that. Both the field and the attribute will be named the same.
-</p><h4><a name="idp32411056"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7352752"></a>Example:</h4><pre class="programlisting">
 sql_field_string = title # will be both indexed and stored
 </pre></div>
 <div class="sect2" title="11.1.32.&nbsp;sql_field_str2wordcount"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-field-str2wordcount"></a>11.1.32.&nbsp;sql_field_str2wordcount</h3></div></div></div>
@@ -7967,7 +7967,7 @@ Introduced in version 1.10-beta.
 </p><p><a class="link" href="#conf-sql-attr-str2wordcount" title="11.1.29.&nbsp;sql_attr_str2wordcount">sql_attr_str2wordcount</a> only stores the column
 word count but does not full-text index it.  In some cases it might be desired to both full-text
 index the column and also have the count.  <code class="option">sql_field_str2wordcount</code> lets you do
-exactly that. Both the field and the attribute will be named the same.</p><h4><a name="idp32417696"></a>Example:</h4><pre class="programlisting">
+exactly that. Both the field and the attribute will be named the same.</p><h4><a name="idp7358880"></a>Example:</h4><pre class="programlisting">
 sql_field_str2wordcount = title # will be indexed, and counted/stored
 </pre></div>
 <div class="sect2" title="11.1.33.&nbsp;sql_file_field"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-file-field"></a>11.1.33.&nbsp;sql_file_field</h3></div></div></div>
@@ -7982,7 +7982,7 @@ as a file name, and load and index the referred file.  Files larger than
 in size are skipped.  Any errors during the file loading (IO errors, missed
 limits, etc) will be reported as indexing warnings and will <span class="bold"><strong>not</strong></span> early
 terminate the indexing.  No content will be indexed for such files.
-</p><h4><a name="idp32425312"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7365968"></a>Example:</h4><pre class="programlisting">
 sql_file_field = my_file_path # load and index files referred to by my_file_path
 </pre></div>
 <div class="sect2" title="11.1.34.&nbsp;sql_query_post"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-query-post"></a>11.1.34.&nbsp;sql_query_post</h3></div></div></div>
@@ -8000,7 +8000,7 @@ Therefore, any permanent updates should not be done from here.
 For instance, updates on helper table that permanently change
 the last successfully indexed ID should not be run from post-fetch
 query; they should be run from <a class="link" href="#conf-sql-query-post-index" title="11.1.35.&nbsp;sql_query_post_index">post-index query</a> instead.
-</p><h4><a name="idp32433824"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7373968"></a>Example:</h4><pre class="programlisting">
 sql_query_post = DROP TABLE my_tmp_table
 </pre></div>
 <div class="sect2" title="11.1.35.&nbsp;sql_query_post_index"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-query-post-index"></a>11.1.35.&nbsp;sql_query_post_index</h3></div></div></div>
@@ -8016,7 +8016,7 @@ but indexing is <span class="bold"><strong>not</strong></span> terminated. It's 
 expanded to maximum document ID which was actually fetched
 from the database during indexing. If no documents were indexed,
 $maxid will be expanded to 0.
-</p><h4><a name="idp32439952"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7379904"></a>Example:</h4><pre class="programlisting">
 sql_query_post_index = REPLACE INTO counters ( id, val ) \
     VALUES ( 'max_indexed_id', $maxid )
 </pre></div>
@@ -8030,7 +8030,7 @@ Throttling can be useful when indexer imposes too much load on the
 database server. It causes the indexer to sleep for given amount of
 milliseconds once per each ranged query step. This sleep is unconditional,
 and is performed before the fetch query.
-</p><h4><a name="idp32444976"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7384656"></a>Example:</h4><pre class="programlisting">
 sql_ranged_throttle = 1000 # sleep for 1 sec before each query step
 </pre></div>
 <div class="sect2" title="11.1.37.&nbsp;sql_query_info"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sql-query-info"></a>11.1.37.&nbsp;sql_query_info</h3></div></div></div>
@@ -8044,7 +8044,7 @@ only works with MySQL at the moment, and only intended for debugging purposes.
 This query fetches the row that will be displayed by CLI search utility
 for each document ID. It is required to contain <code class="code">$id</code> macro
 that expands to the queried document ID.
-</p><h4><a name="idp32449488"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7388880"></a>Example:</h4><pre class="programlisting">
 sql_query_info = SELECT * FROM documents WHERE id=$id
 </pre></div>
 <div class="sect2" title="11.1.38.&nbsp;xmlpipe_command"><div class="titlepage"><div><div><h3 class="title"><a name="conf-xmlpipe-command"></a>11.1.38.&nbsp;xmlpipe_command</h3></div></div></div>
@@ -8056,7 +8056,7 @@ Applies to <code class="option">xmlpipe</code> and <code class="option">xmlpipe2
 Specifies a command that will be executed and which output
 will be parsed for documents. Refer to <a class="xref" href="#xmlpipe" title="3.9.&nbsp;xmlpipe data source">Section&nbsp;3.9, &#8220;xmlpipe data source&#8221;</a>
 or <a class="xref" href="#xmlpipe2" title="3.10.&nbsp;xmlpipe2 data source">Section&nbsp;3.10, &#8220;xmlpipe2 data source&#8221;</a> for specific format description.
-</p><h4><a name="idp32455232"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7394384"></a>Example:</h4><pre class="programlisting">
 xmlpipe_command = cat /home/sphinx/test.xml
 </pre></div>
 <div class="sect2" title="11.1.39.&nbsp;xmlpipe_field"><div class="titlepage"><div><div><h3 class="title"><a name="conf-xmlpipe-field"></a>11.1.39.&nbsp;xmlpipe_field</h3></div></div></div>
@@ -8064,7 +8064,7 @@ xmlpipe_command = cat /home/sphinx/test.xml
 xmlpipe field declaration.
 Multi-value, optional.
 Applies to <code class="option">xmlpipe2</code> source type only. Refer to <a class="xref" href="#xmlpipe2" title="3.10.&nbsp;xmlpipe2 data source">Section&nbsp;3.10, &#8220;xmlpipe2 data source&#8221;</a>.
-</p><h4><a name="idp32459136"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7398240"></a>Example:</h4><pre class="programlisting">
 xmlpipe_field = subject
 xmlpipe_field = content
 </pre></div>
@@ -8077,7 +8077,7 @@ Introduced in version 1.10-beta.
 </p><p>
 Makes the specified XML element indexed as both a full-text field and a string attribute.
 Equivalent to &lt;sphinx:field name="field" attr="string"/&gt; declaration within the XML file.
-</p><h4><a name="idp32464016"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7402944"></a>Example:</h4><pre class="programlisting">
 xmlpipe_field_string = subject
 </pre></div>
 <div class="sect2" title="11.1.41.&nbsp;xmlpipe_field_wordcount"><div class="titlepage"><div><div><h3 class="title"><a name="conf-xmlpipe-field-wordcount"></a>11.1.41.&nbsp;xmlpipe_field_wordcount</h3></div></div></div>
@@ -8089,7 +8089,7 @@ Introduced in version 1.10-beta.
 </p><p>
 Makes the specified XML element indexed as both a full-text field and a word count attribute.
 Equivalent to &lt;sphinx:field name="field" attr="wordcount"/&gt; declaration within the XML file.
-</p><h4><a name="idp32468672"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7407584"></a>Example:</h4><pre class="programlisting">
 xmlpipe_field_wordcount = subject
 </pre></div>
 <div class="sect2" title="11.1.42.&nbsp;xmlpipe_attr_uint"><div class="titlepage"><div><div><h3 class="title"><a name="conf-xmlpipe-attr-uint"></a>11.1.42.&nbsp;xmlpipe_attr_uint</h3></div></div></div>
@@ -8098,7 +8098,7 @@ xmlpipe integer attribute declaration.
 Multi-value, optional.
 Applies to <code class="option">xmlpipe2</code> source type only.
 Syntax fully matches that of <a class="link" href="#conf-sql-attr-uint" title="11.1.20.&nbsp;sql_attr_uint">sql_attr_uint</a>.
-</p><h4><a name="idp32472752"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7411424"></a>Example:</h4><pre class="programlisting">
 xmlpipe_attr_uint = author_id
 </pre></div>
 <div class="sect2" title="11.1.43.&nbsp;xmlpipe_attr_bigint"><div class="titlepage"><div><div><h3 class="title"><a name="conf-xmlpipe-attr-bigint"></a>11.1.43.&nbsp;xmlpipe_attr_bigint</h3></div></div></div>
@@ -8107,7 +8107,7 @@ xmlpipe signed 64-bit integer attribute declaration.
 Multi-value, optional.
 Applies to <code class="option">xmlpipe2</code> source type only.
 Syntax fully matches that of <a class="link" href="#conf-sql-attr-bigint" title="11.1.22.&nbsp;sql_attr_bigint">sql_attr_bigint</a>.
-</p><h4><a name="idp32477168"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7415568"></a>Example:</h4><pre class="programlisting">
 xmlpipe_attr_bigint = my_bigint_id
 </pre></div>
 <div class="sect2" title="11.1.44.&nbsp;xmlpipe_attr_bool"><div class="titlepage"><div><div><h3 class="title"><a name="conf-xmlpipe-attr-bool"></a>11.1.44.&nbsp;xmlpipe_attr_bool</h3></div></div></div>
@@ -8116,7 +8116,7 @@ xmlpipe boolean attribute declaration.
 Multi-value, optional.
 Applies to <code class="option">xmlpipe2</code> source type only.
 Syntax fully matches that of <a class="link" href="#conf-sql-attr-bool" title="11.1.21.&nbsp;sql_attr_bool">sql_attr_bool</a>.
-</p><h4><a name="idp32481472"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7419664"></a>Example:</h4><pre class="programlisting">
 xmlpipe_attr_bool = is_deleted # will be packed to 1 bit
 </pre></div>
 <div class="sect2" title="11.1.45.&nbsp;xmlpipe_attr_timestamp"><div class="titlepage"><div><div><h3 class="title"><a name="conf-xmlpipe-attr-timestamp"></a>11.1.45.&nbsp;xmlpipe_attr_timestamp</h3></div></div></div>
@@ -8125,7 +8125,7 @@ xmlpipe UNIX timestamp attribute declaration.
 Multi-value, optional.
 Applies to <code class="option">xmlpipe2</code> source type only.
 Syntax fully matches that of <a class="link" href="#conf-sql-attr-timestamp" title="11.1.23.&nbsp;sql_attr_timestamp">sql_attr_timestamp</a>.
-</p><h4><a name="idp32485808"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7423888"></a>Example:</h4><pre class="programlisting">
 xmlpipe_attr_timestamp = published
 </pre></div>
 <div class="sect2" title="11.1.46.&nbsp;xmlpipe_attr_str2ordinal"><div class="titlepage"><div><div><h3 class="title"><a name="conf-xmlpipe-attr-str2ordinal"></a>11.1.46.&nbsp;xmlpipe_attr_str2ordinal</h3></div></div></div>
@@ -8135,7 +8135,7 @@ xmlpipe string ordinal attribute declaration.
 Multi-value, optional.
 Applies to <code class="option">xmlpipe2</code> source type only.
 Syntax fully matches that of <a class="link" href="#conf-sql-attr-str2ordinal" title="11.1.24.&nbsp;sql_attr_str2ordinal">sql_attr_str2ordinal</a>.
-</p><h4><a name="idp32490224"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7428128"></a>Example:</h4><pre class="programlisting">
 xmlpipe_attr_str2ordinal = author_sort
 </pre></div>
 <div class="sect2" title="11.1.47.&nbsp;xmlpipe_attr_float"><div class="titlepage"><div><div><h3 class="title"><a name="conf-xmlpipe-attr-float"></a>11.1.47.&nbsp;xmlpipe_attr_float</h3></div></div></div>
@@ -8144,7 +8144,7 @@ xmlpipe floating point attribute declaration.
 Multi-value, optional.
 Applies to <code class="option">xmlpipe2</code> source type only.
 Syntax fully matches that of <a class="link" href="#conf-sql-attr-float" title="11.1.25.&nbsp;sql_attr_float">sql_attr_float</a>.
-</p><h4><a name="idp32494560"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7432256"></a>Example:</h4><pre class="programlisting">
 xmlpipe_attr_float = lat_radians
 xmlpipe_attr_float = long_radians
 </pre></div>
@@ -8159,7 +8159,7 @@ The contents of the specified tag will be parsed and a list of integers
 that will constitute the MVA will be extracted, similar to how
 <a class="link" href="#conf-sql-attr-multi" title="11.1.26.&nbsp;sql_attr_multi">sql_attr_multi</a> parses
 SQL column contents when 'field' MVA source type is specified.
-</p><h4><a name="idp32499568"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7436944"></a>Example:</h4><pre class="programlisting">
 xmlpipe_attr_multi = taglist
 </pre></div>
 <div class="sect2" title="11.1.49.&nbsp;xmlpipe_attr_multi_64"><div class="titlepage"><div><div><h3 class="title"><a name="conf-xmlpipe-attr-multi-64"></a>11.1.49.&nbsp;xmlpipe_attr_multi_64</h3></div></div></div>
@@ -8173,7 +8173,7 @@ The contents of the specified tag will be parsed and a list of integers
 that will constitute the MVA will be extracted, similar to how
 <a class="link" href="#conf-sql-attr-multi" title="11.1.26.&nbsp;sql_attr_multi">sql_attr_multi</a> parses
 SQL column contents when 'field' MVA source type is specified.
-</p><h4><a name="idp32504672"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7441696"></a>Example:</h4><pre class="programlisting">
 xmlpipe_attr_multi_64 = taglist
 </pre></div>
 <div class="sect2" title="11.1.50.&nbsp;xmlpipe_attr_string"><div class="titlepage"><div><div><h3 class="title"><a name="conf-xmlpipe-attr-string"></a>11.1.50.&nbsp;xmlpipe_attr_string</h3></div></div></div>
@@ -8185,7 +8185,7 @@ Introduced in version 1.10-beta.
 </p><p>
 This setting declares a string attribute tag in xmlpipe2 stream.
 The contents of the specified tag will be parsed and stored as a string value.
-</p><h4><a name="idp32508736"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7445472"></a>Example:</h4><pre class="programlisting">
 xmlpipe_attr_string = subject
 </pre></div>
 <div class="sect2" title="11.1.51.&nbsp;xmlpipe_attr_wordcount"><div class="titlepage"><div><div><h3 class="title"><a name="conf-xmlpipe-attr-wordcount"></a>11.1.51.&nbsp;xmlpipe_attr_wordcount</h3></div></div></div>
@@ -8199,7 +8199,7 @@ to index settings, and stores the resulting number of tokens in an attribute.
 This number of tokens ("word count") is a normal integer that can be later
 used, for instance, in custom ranking expressions (boost shorter titles,
 help identify exact field matches, etc).
-</p><h4><a name="idp32512864"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7448944"></a>Example:</h4><pre class="programlisting">
 xmlpipe_attr_wordcount = title_wc
 </pre></div>
 <div class="sect2" title="11.1.52.&nbsp;xmlpipe_attr_json"><div class="titlepage"><div><div><h3 class="title"><a name="conf-xmlpipe-attr-json"></a>11.1.52.&nbsp;xmlpipe_attr_json</h3></div></div></div>
@@ -8212,7 +8212,7 @@ This directive is used to declare that the contents of a given
 XML tag are to be treated as a JSON document and stored into a Sphinx
 index for later use. Refer to <a class="xref" href="#conf-sql-attr-json" title="11.1.28.&nbsp;sql_attr_json">Section&nbsp;11.1.28, &#8220;sql_attr_json&#8221;</a>
 for more details on the JSON attributes.
-</p><h4><a name="idp32517152"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7452960"></a>Example:</h4><pre class="programlisting">
 xmlpipe_attr_json = properties
 </pre></div>
 <div class="sect2" title="11.1.53.&nbsp;xmlpipe_fixup_utf8"><div class="titlepage"><div><div><h3 class="title"><a name="conf-xmlpipe-fixup-utf8"></a>11.1.53.&nbsp;xmlpipe_fixup_utf8</h3></div></div></div>
@@ -8229,7 +8229,7 @@ is fragile, meaning that it will stop processing in such cases.
 UTF8 fixup feature lets you avoid that. When fixup is enabled,
 Sphinx will preprocess the incoming stream before passing it to the
 XML parser and replace invalid UTF-8 sequences with spaces.
-</p><h4><a name="idp32521696"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7457136"></a>Example:</h4><pre class="programlisting">
 xmlpipe_fixup_utf8 = 1
 </pre></div>
 <div class="sect2" title="11.1.54.&nbsp;mssql_winauth"><div class="titlepage"><div><div><h3 class="title"><a name="conf-mssql-winauth"></a>11.1.54.&nbsp;mssql_winauth</h3></div></div></div>
@@ -8243,7 +8243,7 @@ Whether to use currently logged in Windows account credentials for
 authentication when connecting to MS SQL Server. Note that when running
 <code class="filename">searchd</code> as a service, account user can differ
 from the account you used to install the service.
-</p><h4><a name="idp32526592"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7461728"></a>Example:</h4><pre class="programlisting">
 mssql_winauth = 1
 </pre></div>
 <div class="sect2" title="11.1.55.&nbsp;mssql_unicode"><div class="titlepage"><div><div><h3 class="title"><a name="conf-mssql-unicode"></a>11.1.55.&nbsp;mssql_unicode</h3></div></div></div>
@@ -8259,7 +8259,7 @@ that is, to index Unicode data, you must set both <code class="option">charset_t
 (to 'utf-8') and <code class="option">mssql_unicode</code> in the source (to 1).
 For reference, MS SQL will actually return data in UCS-2 encoding instead of UTF-8,
 but Sphinx will automatically handle that.
-</p><h4><a name="idp32533232"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7468064"></a>Example:</h4><pre class="programlisting">
 mssql_unicode = 1
 </pre></div>
 <div class="sect2" title="11.1.56.&nbsp;unpack_zlib"><div class="titlepage"><div><div><h3 class="title"><a name="conf-unpack-zlib"></a>11.1.56.&nbsp;unpack_zlib</h3></div></div></div>
@@ -8273,7 +8273,7 @@ Columns specified using this directive will be unpacked by <code class="filename
 using standard zlib algorithm (called deflate and also implemented by <code class="filename">gunzip</code>).
 When indexing on a different box than the database, this lets you offload the database, and save on network traffic.
 The feature is only available if zlib and zlib-devel were both available during build time.
-</p><h4><a name="idp32539632"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7474320"></a>Example:</h4><pre class="programlisting">
 unpack_zlib = col1
 unpack_zlib = col2
 </pre></div>
@@ -8288,7 +8288,7 @@ Columns specified using this directive will be unpacked by <code class="filename
 using modified zlib algorithm used by MySQL COMPRESS() and UNCOMPRESS() functions.
 When indexing on a different box than the database, this lets you offload the database, and save on network traffic.
 The feature is only available if zlib and zlib-devel were both available during build time.
-</p><h4><a name="idp32545552"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7479920"></a>Example:</h4><pre class="programlisting">
 unpack_mysqlcompress = body_compressed
 unpack_mysqlcompress = description_compressed
 </pre></div>
@@ -8304,7 +8304,7 @@ from the compressed data. So the buffer must be preallocated in advance, and unp
 data can not go over the buffer size. This option lets you control the buffer size,
 both to limit <code class="filename">indexer</code> memory use, and to enable unpacking
 of really long data fields if necessary.
-</p><h4><a name="idp32551312"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7485168"></a>Example:</h4><pre class="programlisting">
 unpack_mysqlcompress_maxsize = 1M
 </pre></div></div>
 <div class="sect1" title="11.2.&nbsp;Index configuration options"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="confgroup-index"></a>11.2.&nbsp;Index configuration options</h2></div></div></div>
@@ -8328,7 +8328,7 @@ either plain local indexes or RT ones.
 </p><p>
 Index type setting lets you choose the needed type.
 By default, plain local index type will be assumed.
-</p><h4><a name="idp32559872"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7492864"></a>Example:</h4><pre class="programlisting">
 type = distributed
 </pre></div>
 <div class="sect2" title="11.2.2.&nbsp;source"><div class="titlepage"><div><div><h3 class="title"><a name="conf-source"></a>11.2.2.&nbsp;source</h3></div></div></div>
@@ -8387,7 +8387,7 @@ source src2
 </p></li>
 </ol></div>
 <p>
-</p><h4><a name="idp32569616"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7501328"></a>Example:</h4><pre class="programlisting">
 source = srcpart1
 source = srcpart2
 source = srcpart3
@@ -8416,7 +8416,7 @@ For reference, different index files store the following data:
 <li class="listitem"><p><code class="filename">.sps</code> stores string attribute data.</p></li>
 </ul></div>
 <p>
-</p><h4><a name="idp32586464"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7517568"></a>Example:</h4><pre class="programlisting">
 path = /var/data/test1
 </pre></div>
 <div class="sect2" title="11.2.4.&nbsp;docinfo"><div class="titlepage"><div><div><h3 class="title"><a name="conf-docinfo"></a>11.2.4.&nbsp;docinfo</h3></div></div></div>
@@ -8440,7 +8440,7 @@ for performance reasons. So in some cases "inline" might be the only option.
 However, such cases are infrequent, and docinfo defaults to "extern".
 Refer to <a class="xref" href="#attributes" title="3.3.&nbsp;Attributes">Section&nbsp;3.3, &#8220;Attributes&#8221;</a> for in-depth discussion
 and RAM usage estimates.
-</p><h4><a name="idp32593552"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7523936"></a>Example:</h4><pre class="programlisting">
 docinfo = inline
 </pre></div>
 <div class="sect2" title="11.2.5.&nbsp;mlock"><div class="titlepage"><div><div><h3 class="title"><a name="conf-mlock"></a>11.2.5.&nbsp;mlock</h3></div></div></div>
@@ -8463,7 +8463,7 @@ so it will require <code class="filename">searchd</code> to be either run
 from root account, or be granted enough privileges otherwise.
 If mlock() fails, a warning is emitted, but index continues
 working.
-</p><h4><a name="idp32601072"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7530976"></a>Example:</h4><pre class="programlisting">
 mlock = 1
 </pre></div>
 <div class="sect2" title="11.2.6.&nbsp;morphology"><div class="titlepage"><div><div><h3 class="title"><a name="conf-morphology"></a>11.2.6.&nbsp;morphology</h3></div></div></div>
@@ -8561,7 +8561,7 @@ the word will be looked up in word forms dictionary first, and if there is
 a matching entry in the dictionary, stemmers will not be applied at all.
 Or in other words, <a class="link" href="#conf-wordforms" title="11.2.12.&nbsp;wordforms">wordforms</a> can be
 used to implement stemming exceptions.
-</p><h4><a name="idp32628144"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7556448"></a>Example:</h4><pre class="programlisting">
 morphology = stem_en, libstemmer_sv
 </pre></div>
 <div class="sect2" title="11.2.7.&nbsp;dict"><div class="titlepage"><div><div><h3 class="title"><a name="conf-dict"></a>11.2.7.&nbsp;dict</h3></div></div></div>
@@ -8638,7 +8638,7 @@ to either sacrifice indexing time and index size in favor of
 top-speed worst-case searches (CRC dictionary), or only slightly
 impact indexing time but sacrifice worst-case searching time when
 the prefix expands into very many keywords (keywords dictionary).
-</p><h4><a name="idp32642880"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7568512"></a>Example:</h4><pre class="programlisting">
 dict = keywords
 </pre></div>
 <div class="sect2" title="11.2.8.&nbsp;index_sp"><div class="titlepage"><div><div><h3 class="title"><a name="conf-index-sp"></a>11.2.8.&nbsp;index_sp</h3></div></div></div>
@@ -8676,7 +8676,7 @@ CAPTION, CENTER, DD, DIV, DL, DT, H1, H2, H3, H4, H5, LI, MENU, OL, P,
 PRE, TABLE, TBODY, TD, TFOOT, TH, THEAD, TR, and UL.
 </p><p>
 Both sentences and paragraphs increment the keyword position counter by 1.
-</p><h4><a name="idp32655056"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7580096"></a>Example:</h4><pre class="programlisting">
 index_sp = 1
 </pre></div>
 <div class="sect2" title="11.2.9.&nbsp;index_zones"><div class="titlepage"><div><div><h3 class="title"><a name="conf-index-zones"></a>11.2.9.&nbsp;index_zones</h3></div></div></div>
@@ -8707,7 +8707,7 @@ such as H1) and spans (all the occurrences of those H1 tags)
 in a document.
 Once indexed, zones can then be used for matching with
 the ZONE operator, see <a class="xref" href="#extended-syntax" title="5.3.&nbsp;Extended query syntax">Section&nbsp;5.3, &#8220;Extended query syntax&#8221;</a>.
-</p><h4><a name="idp32663376"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7587904"></a>Example:</h4><pre class="programlisting">
 index_zones = h*, th, title
 </pre><p>
 Earlier versions than 2.1.1-beta only provided this feature for plain
@@ -8728,7 +8728,7 @@ the given threshold will not be stemmed. Note that keywords that are
 exactly as long as specified <span class="bold"><strong>will</strong></span> be stemmed. So in order to avoid
 stemming 3-character keywords, you should specify 4 for the value.
 For more finely grained control, refer to <a class="link" href="#conf-wordforms" title="11.2.12.&nbsp;wordforms">wordforms</a> feature.
-</p><h4><a name="idp32670032"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7594144"></a>Example:</h4><pre class="programlisting">
 min_stemming_len = 4
 </pre></div>
 <div class="sect2" title="11.2.11.&nbsp;stopwords"><div class="titlepage"><div><div><h3 class="title"><a name="conf-stopwords"></a>11.2.11.&nbsp;stopwords</h3></div></div></div>
@@ -8766,7 +8766,7 @@ Stopwords files can either be created manually, or semi-automatically.
 of the index, sorted by the keyword frequency, see <code class="option">--buildstops</code>
 and <code class="option">--buildfreqs</code> switch in <a class="xref" href="#ref-indexer" title="6.1.&nbsp;indexer command reference">Section&nbsp;6.1, &#8220;<code class="filename">indexer</code> command reference&#8221;</a>.
 Top keywords from that dictionary can usually be used as stopwords.
-</p><h4><a name="idp32685488"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7608256"></a>Example:</h4><pre class="programlisting">
 stopwords = /usr/local/sphinx/data/stopwords.txt
 stopwords = stopwords-ru.txt stopwords-en.txt
 </pre></div>
@@ -8838,7 +8838,7 @@ Having a mapping like "St John &gt; Saint John" will result in <span class="bold
 matching "St John" when searching for "Saint" or "John", because the
 destination keyword will be "Saint John" with a space character in it
 (and it's barely possible to input a destination keyword with a space).
-</p><h4><a name="idp32707264"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7628464"></a>Example:</h4><pre class="programlisting">
 wordforms = /usr/local/sphinx/data/wordforms.txt
 wordforms = /usr/local/sphinx/data/alternateforms.txt
 wordforms = /usr/local/sphinx/private/dict*.txt
@@ -8869,7 +8869,7 @@ files on which the index depends, and helps maintenance. But at the same
 time it makes no sense to embed a 100 MB wordforms dictionary into a tiny
 delta index. So there needs to be a size threshold, and <code class="code">embedded_limit</code>
 is that threshold.
-</p><h4><a name="idp32714272"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7634608"></a>Example:</h4><pre class="programlisting">
 embedded_limit = 32K
 </pre></div>
 <div class="sect2" title="11.2.14.&nbsp;exceptions"><div class="titlepage"><div><div><h3 class="title"><a name="conf-exceptions"></a>11.2.14.&nbsp;exceptions</h3></div></div></div>
@@ -8949,7 +8949,7 @@ Exceptions are applied to raw incoming document and query data
 during indexing  and searching respectively. Therefore, to pick up
 changes in the file it's required to reindex and restart
 <code class="filename">searchd</code>.
-</p><h4><a name="idp32734864"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7654368"></a>Example:</h4><pre class="programlisting">
 exceptions = /usr/local/sphinx/data/exceptions.txt
 </pre></div>
 <div class="sect2" title="11.2.15.&nbsp;min_word_len"><div class="titlepage"><div><div><h3 class="title"><a name="conf-min-word-len"></a>11.2.15.&nbsp;min_word_len</h3></div></div></div>
@@ -8959,7 +8959,7 @@ Optional, default is 1 (index everything).
 </p><p>
 Only those words that are not shorter than this minimum will be indexed.
 For instance, if min_word_len is 4, then 'the' won't be indexed, but 'they' will be.
-</p><h4><a name="idp32738512"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7657584"></a>Example:</h4><pre class="programlisting">
 min_word_len = 4
 </pre></div>
 <div class="sect2" title="11.2.16.&nbsp;charset_type"><div class="titlepage"><div><div><h3 class="title"><a name="conf-charset-type"></a>11.2.16.&nbsp;charset_type</h3></div></div></div>
@@ -8982,7 +8982,7 @@ may in turn treat different byte values differently, and that should be
 properly reflected in your <a class="link" href="#conf-charset-table" title="11.2.17.&nbsp;charset_table">charset_table</a> settings.
 For example, the same byte value of 224 (0xE0 hex) maps to different Russian letters
 depending on whether koi-8r or windows-1251 encoding is used.
-</p><h4><a name="idp32744080"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7662768"></a>Example:</h4><pre class="programlisting">
 charset_type = utf-8
 </pre></div>
 <div class="sect2" title="11.2.17.&nbsp;charset_table"><div class="titlepage"><div><div><h3 class="title"><a name="conf-charset-table"></a>11.2.17.&nbsp;charset_table</h3></div></div></div>
@@ -9048,7 +9048,7 @@ in the mappings as is. To avoid configuration file encoding issues,
 where 'xxx' is hexadecimal codepoint number. This form can also be used
 for 7-bit ASCII characters to encode special ones: eg. use U+20 to
 encode space, U+2E to encode dot, U+2C to encode comma.
-</p><h4><a name="idp32761632"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp71968"></a>Example:</h4><pre class="programlisting">
 # 'sbcs' defaults for English and Russian
 charset_table = 0..9, A..Z-&gt;a..z, _, a..z, \
     U+A8-&gt;U+B8, U+B8, U+C0..U+DF-&gt;U+E0..U+FF, U+E0..U+FF
@@ -9072,7 +9072,7 @@ text will be indexed as a single "abcdef" keyword.
 The syntax is the same as for <a class="link" href="#conf-charset-table" title="11.2.17.&nbsp;charset_table">charset_table</a>,
 but it's only allowed to declare characters, and not allowed to map them. Also,
 the ignored characters must not be present in charset_table.
-</p><h4><a name="idp32767152"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp77312"></a>Example:</h4><pre class="programlisting">
 ignore_chars = U+AD
 </pre></div>
 <div class="sect2" title="11.2.19.&nbsp;min_prefix_len"><div class="titlepage"><div><div><h3 class="title"><a name="conf-min-prefix-len"></a>11.2.19.&nbsp;min_prefix_len</h3></div></div></div>
@@ -9108,7 +9108,7 @@ enable_star = 1
 // in query
 $cl-&gt;Query ( "( keyword | keyword* ) other keywords" );
 </pre><p>
-</p><h4><a name="idp32775824"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7712320"></a>Example:</h4><pre class="programlisting">
 min_prefix_len = 3
 </pre></div>
 <div class="sect2" title="11.2.20.&nbsp;min_infix_len"><div class="titlepage"><div><div><h3 class="title"><a name="conf-min-infix-len"></a>11.2.20.&nbsp;min_infix_len</h3></div></div></div>
@@ -9131,7 +9131,7 @@ searching times.</p><p>
 There's no automatic way to rank perfect word matches higher
 in an infix index, but the same tricks as with <a class="link" href="#conf-min-prefix-len" title="11.2.19.&nbsp;min_prefix_len">prefix indexes</a>
 can be applied.
-</p><h4><a name="idp32782272"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7718288"></a>Example:</h4><pre class="programlisting">
 min_infix_len = 3
 </pre></div>
 <div class="sect2" title="11.2.21.&nbsp;max_substring_len"><div class="titlepage"><div><div><h3 class="title"><a name="conf-max-substring-len"></a>11.2.21.&nbsp;max_substring_len</h3></div></div></div>
@@ -9167,7 +9167,7 @@ when using dict=keywords mode, so this directive is not applicable
 and intentionally forbidden in that case. If required, you can still
 limit the length of a subtring that you search for in the application
 code.
-</p><h4><a name="idp32793520"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7728416"></a>Example:</h4><pre class="programlisting">
 max_substring_len = 12
 </pre></div>
 <div class="sect2" title="11.2.22.&nbsp;prefix_fields"><div class="titlepage"><div><div><h3 class="title"><a name="conf-prefix-fields"></a>11.2.22.&nbsp;prefix_fields</h3></div></div></div>
@@ -9181,7 +9181,7 @@ for instance, to provide prefix searching through URLs, but not through
 page contents. prefix_fields specifies what fields will be prefix-indexed;
 all other fields will be indexed in normal mode. The value format is a
 comma-separated list of field names.
-</p><h4><a name="idp32797536"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7731952"></a>Example:</h4><pre class="programlisting">
 prefix_fields = url, domain
 </pre></div>
 <div class="sect2" title="11.2.23.&nbsp;infix_fields"><div class="titlepage"><div><div><h3 class="title"><a name="conf-infix-fields"></a>11.2.23.&nbsp;infix_fields</h3></div></div></div>
@@ -9191,7 +9191,7 @@ Optional, default is empty (index all fields in infix mode).
 </p><p>
 Similar to <a class="link" href="#conf-prefix-fields" title="11.2.22.&nbsp;prefix_fields">prefix_fields</a>,
 but lets you limit infix-indexing to given fields.
-</p><h4><a name="idp32801936"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7736096"></a>Example:</h4><pre class="programlisting">
 infix_fields = url, domain
 </pre></div>
 <div class="sect2" title="11.2.24.&nbsp;enable_star"><div class="titlepage"><div><div><h3 class="title"><a name="conf-enable-star"></a>11.2.24.&nbsp;enable_star</h3></div></div></div>
@@ -9226,7 +9226,7 @@ any words ending with "def" (including the documents that
 contain the exact "def" word only).</p></li>
 </ol></div>
 <p>
-</p><h4><a name="idp32813456"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7746704"></a>Example:</h4><pre class="programlisting">
 enable_star = 1
 </pre></div>
 <div class="sect2" title="11.2.25.&nbsp;ngram_len"><div class="titlepage"><div><div><h3 class="title"><a name="conf-ngram-len"></a>11.2.25.&nbsp;ngram_len</h3></div></div></div>
@@ -9266,7 +9266,7 @@ Even if the search query is not segmented, Sphinx should still produce
 good results, thanks to phrase based ranking: it will pull closer phrase
 matches (which in case of N-gram CJK words can mean closer multi-character
 word matches) to the top.
-</p><h4><a name="idp32822864"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7755456"></a>Example:</h4><pre class="programlisting">
 ngram_len = 1
 </pre></div>
 <div class="sect2" title="11.2.26.&nbsp;ngram_chars"><div class="titlepage"><div><div><h3 class="title"><a name="conf-ngram-chars"></a>11.2.26.&nbsp;ngram_chars</h3></div></div></div>
@@ -9278,7 +9278,7 @@ To be used in conjunction with in <a class="link" href="#conf-ngram-len" title="
 this list defines characters, sequences of which are subject to N-gram extraction.
 Words comprised of other characters will not be affected by N-gram indexing
 feature. The value format is identical to <a class="link" href="#conf-charset-table" title="11.2.17.&nbsp;charset_table">charset_table</a>.
-</p><h4><a name="idp32828208"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7760496"></a>Example:</h4><pre class="programlisting">
 ngram_chars = U+3000..U+2FA1F
 </pre></div>
 <div class="sect2" title="11.2.27.&nbsp;phrase_boundary"><div class="titlepage"><div><div><h3 class="title"><a name="conf-phrase-boundary"></a>11.2.27.&nbsp;phrase_boundary</h3></div></div></div>
@@ -9304,7 +9304,7 @@ will be equivalent to phrase-level search.
 Phrase boundary condition will be raised if and only if such character
 is followed by a separator; this is to avoid abbreviations such as
 S.T.A.L.K.E.R or URLs being treated as several phrases.
-</p><h4><a name="idp32835280"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7767072"></a>Example:</h4><pre class="programlisting">
 phrase_boundary = ., ?, !, U+2026 # horizontal ellipsis
 </pre></div>
 <div class="sect2" title="11.2.28.&nbsp;phrase_boundary_step"><div class="titlepage"><div><div><h3 class="title"><a name="conf-phrase-boundary-step"></a>11.2.28.&nbsp;phrase_boundary_step</h3></div></div></div>
@@ -9314,7 +9314,7 @@ Optional, default is 0.
 </p><p>
 On phrase boundary, current word position will be additionally incremented
 by this number. See <a class="link" href="#conf-phrase-boundary" title="11.2.27.&nbsp;phrase_boundary">phrase_boundary</a> for details.
-</p><h4><a name="idp32839504"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7771040"></a>Example:</h4><pre class="programlisting">
 phrase_boundary_step = 100
 </pre></div>
 <div class="sect2" title="11.2.29.&nbsp;html_strip"><div class="titlepage"><div><div><h3 class="title"><a name="conf-html-strip"></a>11.2.29.&nbsp;html_strip</h3></div></div></div>
@@ -9352,7 +9352,7 @@ see <a class="link" href="#conf-html-remove-elements" title="11.2.31.&nbsp;html_
 There are no restrictions on tag names; ie. everything
 that looks like a valid tag start, or end, or a comment
 will be stripped.
-</p><h4><a name="idp32848176"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7779216"></a>Example:</h4><pre class="programlisting">
 html_strip = 1
 </pre></div>
 <div class="sect2" title="11.2.30.&nbsp;html_index_attrs"><div class="titlepage"><div><div><h3 class="title"><a name="conf-html-index-attrs"></a>11.2.30.&nbsp;html_index_attrs</h3></div></div></div>
@@ -9363,7 +9363,7 @@ Optional, default is empty (do not index markup attributes).
 Specifies HTML markup attributes whose contents should be retained and indexed
 even though other HTML markup is stripped. The format is per-tag enumeration of
 indexable attributes, as shown in the example below.
-</p><h4><a name="idp32851792"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7782560"></a>Example:</h4><pre class="programlisting">
 html_index_attrs = img=alt,title; a=title;
 </pre></div>
 <div class="sect2" title="11.2.31.&nbsp;html_remove_elements"><div class="titlepage"><div><div><h3 class="title"><a name="conf-html-remove-elements"></a>11.2.31.&nbsp;html_remove_elements</h3></div></div></div>
@@ -9379,7 +9379,7 @@ follows such tag will <span class="bold"><strong>not</strong></span> be removed.
 </p><p>
 The value is a comma-separated list of element (tag) names whose
 contents should be removed. Tag names are case insensitive.
-</p><h4><a name="idp32857264"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7787424"></a>Example:</h4><pre class="programlisting">
 html_remove_elements = style, script
 </pre></div>
 <div class="sect2" title="11.2.32.&nbsp;local"><div class="titlepage"><div><div><h3 class="title"><a name="conf-local"></a>11.2.32.&nbsp;local</h3></div></div></div>
@@ -9402,7 +9402,7 @@ to configure <code class="filename">searchd</code> to query itself instead of us
 local indexes (refer to <a class="xref" href="#conf-agent" title="11.2.33.&nbsp;agent">Section&nbsp;11.2.33, &#8220;agent&#8221;</a> for the details). However,
 that creates redundant CPU and network load, and <code class="option">dist_threads</code>
 is now strongly suggested instead.
-</p><h4><a name="idp32867104"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7796784"></a>Example:</h4><pre class="programlisting">
 local = chunk1
 local = chunk2
 </pre></div>
@@ -9458,7 +9458,7 @@ to the remote agent. How exactly that list is searched within the agent
 (ie. sequentially or in parallel too) depends solely on the agent
 configuration (ie. dist_threads directive). Master has no remote
 control over that.
-</p><h4><a name="idp32881120"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7809168"></a>Example:</h4><pre class="programlisting">
 # config on box2
 # sharding an index over 3 servers
 agent = box2:9312:chunk2
@@ -9473,7 +9473,7 @@ agent = box3:9312:chunk3
 # sharding an index over 3 servers
 agent = box1:9312:chunk2
 agent = box2:9312:chunk3
-</pre><h4><a name="idp32882832"></a>Agent mirrors</h4><p>
+</pre><h4><a name="idp7810560"></a>Agent mirrors</h4><p>
 New syntax added in 2.1.1-beta lets you define so-called <span class="bold"><strong>agent mirrors</strong></span>
 that can be used interchangeably when processing a search query. Master server
 keeps track of mirror status (alive or dead) and response times, and does
@@ -9513,7 +9513,7 @@ When there are no queries, master sends a regular ping command every
 in order to have some statistics and at least check, whether the remote
 host is still alive. ha_ping_interval defaults to 1000 msec. Setting it to 0
 disables pings and statistics will only be accumulated based on actual queries.
-</p><h4><a name="idp32895168"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7821472"></a>Example:</h4><pre class="programlisting">
 # sharding index over 4 servers total
 # in just 2 chunks but with 2 failover mirrors for each chunk
 # box1, box2 carry chunk1 as local
@@ -9547,7 +9547,7 @@ save on connection handshakes. As of time of this writing, they are supported <s
 in workers=threads mode. In other modes, simple non-persistent connections
 (i.e., one connection per operation) will be used, and a warning will show
 up in the console.
-</p><h4><a name="idp32906768"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7831888"></a>Example:</h4><pre class="programlisting">
 agent_persistent = remotebox:9312:index2
 </pre></div>
 <div class="sect2" title="11.2.35.&nbsp;agent_blackhole"><div class="titlepage"><div><div><h3 class="title"><a name="conf-agent-blackhole"></a>11.2.35.&nbsp;agent_blackhole</h3></div></div></div>
@@ -9566,7 +9566,7 @@ normally, but it will neither wait nor process any responses.
 Also, all network errors on blackhole agents will be ignored.
 The value format is completely identical to regular
 <a class="link" href="#conf-agent" title="11.2.33.&nbsp;agent">agent</a> directive.
-</p><h4><a name="idp32913200"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7837664"></a>Example:</h4><pre class="programlisting">
 agent_blackhole = testbox:9312:testindex1,testindex2
 </pre></div>
 <div class="sect2" title="11.2.36.&nbsp;agent_connect_timeout"><div class="titlepage"><div><div><h3 class="title"><a name="conf-agent-connect-timeout"></a>11.2.36.&nbsp;agent_connect_timeout</h3></div></div></div>
@@ -9579,7 +9579,7 @@ will wait at most this much time for connect() call to complete
 succesfully. If the timeout is reached but connect() does not complete,
 and <a class="link" href="#api-func-setretries" title="8.1.4.&nbsp;SetRetries">retries</a> are enabled,
 retry will be initiated.
-</p><h4><a name="idp32918576"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7842736"></a>Example:</h4><pre class="programlisting">
 agent_connect_timeout = 300
 </pre></div>
 <div class="sect2" title="11.2.37.&nbsp;agent_query_timeout"><div class="titlepage"><div><div><h3 class="title"><a name="conf-agent-query-timeout"></a>11.2.37.&nbsp;agent_query_timeout</h3></div></div></div>
@@ -9594,7 +9594,7 @@ from connection timeout; so the maximum possible delay caused by
 a remote agent equals to the sum of <code class="code">agent_connection_timeout</code> and
 <code class="code">agent_query_timeout</code>. Queries will <span class="bold"><strong>not</strong></span> be retried
 if this timeout is reached; a warning will be produced instead.
-</p><h4><a name="idp32924720"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7848480"></a>Example:</h4><pre class="programlisting">
 agent_query_timeout = 10000 # our query can be long, allow up to 10 sec
 </pre></div>
 <div class="sect2" title="11.2.38.&nbsp;preopen"><div class="titlepage"><div><div><h3 class="title"><a name="conf-preopen"></a>11.2.38.&nbsp;preopen</h3></div></div></div>
@@ -9614,7 +9614,7 @@ in order to save file descriptors.
 </p><p>
 This directive does not affect <code class="filename">indexer</code> in any way,
 it only affects <code class="filename">searchd</code>.
-</p><h4><a name="idp32932672"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7855952"></a>Example:</h4><pre class="programlisting">
 preopen = 1
 </pre></div>
 <div class="sect2" title="11.2.39.&nbsp;ondisk_dict"><div class="titlepage"><div><div><h3 class="title"><a name="conf-ondisk-dict"></a>11.2.39.&nbsp;ondisk_dict</h3></div></div></div>
@@ -9631,7 +9631,7 @@ per keyword per query, but reduces memory footprint.
 </p><p>
 This directive does not affect <code class="filename">indexer</code> in any way,
 it only affects <code class="filename">searchd</code>.
-</p><h4><a name="idp32938800"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7861712"></a>Example:</h4><pre class="programlisting">
 ondisk_dict = 1
 </pre></div>
 <div class="sect2" title="11.2.40.&nbsp;inplace_enable"><div class="titlepage"><div><div><h3 class="title"><a name="conf-inplace-enable"></a>11.2.40.&nbsp;inplace_enable</h3></div></div></div>
@@ -9662,7 +9662,7 @@ relocation, which is where the performance impact comes from.
 </p><p>
 This directive does not affect <code class="filename">searchd</code> in any way,
 it only affects <code class="filename">indexer</code>.
-</p><h4><a name="idp32947200"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7869056"></a>Example:</h4><pre class="programlisting">
 inplace_enable = 1
 </pre></div>
 <div class="sect2" title="11.2.41.&nbsp;inplace_hit_gap"><div class="titlepage"><div><div><h3 class="title"><a name="conf-inplace-hit-gap"></a>11.2.41.&nbsp;inplace_hit_gap</h3></div></div></div>
@@ -9674,7 +9674,7 @@ Introduced in version 0.9.9-rc1.
 </p><p>
 This directive does not affect <code class="filename">searchd</code> in any way,
 it only affects <code class="filename">indexer</code>.
-</p><h4><a name="idp32952896"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7874544"></a>Example:</h4><pre class="programlisting">
 inplace_hit_gap = 1M
 </pre></div>
 <div class="sect2" title="11.2.42.&nbsp;inplace_docinfo_gap"><div class="titlepage"><div><div><h3 class="title"><a name="conf-inplace-docinfo-gap"></a>11.2.42.&nbsp;inplace_docinfo_gap</h3></div></div></div>
@@ -9686,7 +9686,7 @@ Introduced in version 0.9.9-rc1.
 </p><p>
 This directive does not affect <code class="filename">searchd</code> in any way,
 it only affects <code class="filename">indexer</code>.
-</p><h4><a name="idp32958496"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7880000"></a>Example:</h4><pre class="programlisting">
 inplace_docinfo_gap = 1M
 </pre></div>
 <div class="sect2" title="11.2.43.&nbsp;inplace_reloc_factor"><div class="titlepage"><div><div><h3 class="title"><a name="conf-inplace-reloc-factor"></a>11.2.43.&nbsp;inplace_reloc_factor</h3></div></div></div>
@@ -9698,7 +9698,7 @@ Introduced in version 0.9.9-rc1.
 </p><p>
 This directive does not affect <code class="filename">searchd</code> in any way,
 it only affects <code class="filename">indexer</code>.
-</p><h4><a name="idp32964224"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7885552"></a>Example:</h4><pre class="programlisting">
 inplace_reloc_factor = 0.1
 </pre></div>
 <div class="sect2" title="11.2.44.&nbsp;inplace_write_factor"><div class="titlepage"><div><div><h3 class="title"><a name="conf-inplace-write-factor"></a>11.2.44.&nbsp;inplace_write_factor</h3></div></div></div>
@@ -9710,7 +9710,7 @@ Introduced in version 0.9.9-rc1.
 </p><p>
 This directive does not affect <code class="filename">searchd</code> in any way,
 it only affects <code class="filename">indexer</code>.
-</p><h4><a name="idp32969920"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7891216"></a>Example:</h4><pre class="programlisting">
 inplace_write_factor = 0.1
 </pre></div>
 <div class="sect2" title="11.2.45.&nbsp;index_exact_words"><div class="titlepage"><div><div><h3 class="title"><a name="conf-index-exact-words"></a>11.2.45.&nbsp;index_exact_words</h3></div></div></div>
@@ -9724,7 +9724,7 @@ to put the raw keywords in the index along with the stemmed versions. That, in t
 enables <a class="link" href="#extended-syntax" title="5.3.&nbsp;Extended query syntax">exact form operator</a> in the query language to work.
 This impacts the index size and the indexing time. However, searching performance
 is not impacted at all.
-</p><h4><a name="idp32975648"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7896560"></a>Example:</h4><pre class="programlisting">
 index_exact_words = 1
 </pre></div>
 <div class="sect2" title="11.2.46.&nbsp;overshort_step"><div class="titlepage"><div><div><h3 class="title"><a name="conf-overshort-step"></a>11.2.46.&nbsp;overshort_step</h3></div></div></div>
@@ -9735,7 +9735,7 @@ Introduced in version 0.9.9-rc1.
 </p><p>
 This directive does not affect <code class="filename">searchd</code> in any way,
 it only affects <code class="filename">indexer</code>.
-</p><h4><a name="idp32981232"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7902096"></a>Example:</h4><pre class="programlisting">
 overshort_step = 1
 </pre></div>
 <div class="sect2" title="11.2.47.&nbsp;stopword_step"><div class="titlepage"><div><div><h3 class="title"><a name="conf-stopword-step"></a>11.2.47.&nbsp;stopword_step</h3></div></div></div>
@@ -9746,7 +9746,7 @@ Introduced in version 0.9.9-rc1.
 </p><p>
 This directive does not affect <code class="filename">searchd</code> in any way,
 it only affects <code class="filename">indexer</code>.
-</p><h4><a name="idp32986768"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7907600"></a>Example:</h4><pre class="programlisting">
 stopword_step = 1
 </pre></div>
 <div class="sect2" title="11.2.48.&nbsp;hitless_words"><div class="titlepage"><div><div><h3 class="title"><a name="conf-hitless-words"></a>11.2.48.&nbsp;hitless_words</h3></div></div></div>
@@ -9781,7 +9781,7 @@ the exact phrase. And if, in addition, keywords "simon" and "says" are not
 hitless, "simon says hello world" will be converted to ("simon says" &amp;
 hello &amp; world) query, matching all documents that contain "hello" and
 "world" anywhere in the document, and also "simon says" as an exact phrase.
-</p><h4><a name="idp32993680"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7913648"></a>Example:</h4><pre class="programlisting">
 hitless_words = all
 </pre></div>
 <div class="sect2" title="11.2.49.&nbsp;expand_keywords"><div class="titlepage"><div><div><h3 class="title"><a name="conf-expand-keywords"></a>11.2.49.&nbsp;expand_keywords</h3></div></div></div>
@@ -9814,7 +9814,7 @@ possible through the query syntax).
 </p><p>
 This directive does not affect <code class="filename">indexer</code> in any way,
 it only affects <code class="filename">searchd</code>.
-</p><h4><a name="idp33003168"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7922352"></a>Example:</h4><pre class="programlisting">
 expand_keywords = 1
 </pre></div>
 <div class="sect2" title="11.2.50.&nbsp;blend_chars"><div class="titlepage"><div><div><h3 class="title"><a name="conf-blend-chars"></a>11.2.50.&nbsp;blend_chars</h3></div></div></div>
@@ -9853,7 +9853,7 @@ Starting with version 2.0.1-beta, blended characters can be remapped,
 so that multiple different blended characters could be normalized into
 just one base form. This is useful when indexing multiple alternative
 Unicode codepoints with equivalent glyphs.
-</p><h4><a name="idp33011040"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7929872"></a>Example:</h4><pre class="programlisting">
 blend_chars = +, &amp;, U+23
 blend_chars = +, &amp;-&gt;+ # 2.0.1 and above
 </pre></div>
@@ -9902,7 +9902,7 @@ keyword position.
 </p><p>
 Default behavior is to index the entire token, equivalent to
 <code class="option">blend_mode = trim_none</code>.
-</p><h4><a name="idp33029888"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7947696"></a>Example:</h4><pre class="programlisting">
 blend_mode = trim_tail, skip_pure
 </pre></div>
 <div class="sect2" title="11.2.52.&nbsp;rt_mem_limit"><div class="titlepage"><div><div><h3 class="title"><a name="conf-rt-mem-limit"></a>11.2.52.&nbsp;rt_mem_limit</h3></div></div></div>
@@ -9922,7 +9922,7 @@ memory than it's limited to. The memory is not preallocated either,
 hence, specifying 512 MB limit and only inserting 3 MB of data
 should result in allocating 3 MB, not 512 MB.
 </p><p>
-</p><h4><a name="idp33034768"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7952080"></a>Example:</h4><pre class="programlisting">
 rt_mem_limit = 512M
 </pre></div>
 <div class="sect2" title="11.2.53.&nbsp;rt_field"><div class="titlepage"><div><div><h3 class="title"><a name="conf-rt-field"></a>11.2.53.&nbsp;rt_field</h3></div></div></div>
@@ -9936,7 +9936,7 @@ directive. The names must be unique. The order is preserved; and so field values
 in INSERT statements without an explicit list of inserted columns will have to be
 in the same order as configured.
 </p><p>
-</p><h4><a name="idp33039184"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7956224"></a>Example:</h4><pre class="programlisting">
 rt_field = author
 rt_field = title
 rt_field = content
@@ -9947,7 +9947,7 @@ Unsigned integer attribute declaration.
 Multi-value (an arbitrary number of attributes is allowed), optional.
 Declares an unsigned 32-bit attribute.
 Introduced in version 1.10-beta.
-</p><h4><a name="idp33042080"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7958976"></a>Example:</h4><pre class="programlisting">
 rt_attr_uint = gid
 </pre></div>
 <div class="sect2" title="11.2.55.&nbsp;rt_attr_bool"><div class="titlepage"><div><div><h3 class="title"><a name="conf-rt-attr-bool"></a>11.2.55.&nbsp;rt_attr_bool</h3></div></div></div>
@@ -9956,7 +9956,7 @@ Boolean attribute declaration.
 Multi-value (there might be multiple attributes declared), optional.
 Declares a 1-bit unsigned integer attribute.
 Introduced in version 2.1.2-release.
-</p><h4><a name="idp33044896"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7961808"></a>Example:</h4><pre class="programlisting">
 rt_attr_bool = available
 </pre></div>
 <div class="sect2" title="11.2.56.&nbsp;rt_attr_bigint"><div class="titlepage"><div><div><h3 class="title"><a name="conf-rt-attr-bigint"></a>11.2.56.&nbsp;rt_attr_bigint</h3></div></div></div>
@@ -9965,7 +9965,7 @@ BIGINT attribute declaration.
 Multi-value (an arbitrary number of attributes is allowed), optional.
 Declares a signed 64-bit attribute.
 Introduced in version 1.10-beta.
-</p><h4><a name="idp33047760"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7964656"></a>Example:</h4><pre class="programlisting">
 rt_attr_bigint = guid
 </pre></div>
 <div class="sect2" title="11.2.57.&nbsp;rt_attr_float"><div class="titlepage"><div><div><h3 class="title"><a name="conf-rt-attr-float"></a>11.2.57.&nbsp;rt_attr_float</h3></div></div></div>
@@ -9974,7 +9974,7 @@ Floating point attribute declaration.
 Multi-value (an arbitrary number of attributes is allowed), optional.
 Declares a single precision, 32-bit IEEE 754 format float attribute.
 Introduced in version 1.10-beta.
-</p><h4><a name="idp33050656"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7967456"></a>Example:</h4><pre class="programlisting">
 rt_attr_float = gpa
 </pre></div>
 <div class="sect2" title="11.2.58.&nbsp;rt_attr_multi"><div class="titlepage"><div><div><h3 class="title"><a name="conf-rt-attr-multi"></a>11.2.58.&nbsp;rt_attr_multi</h3></div></div></div>
@@ -9983,7 +9983,7 @@ rt_attr_float = gpa
 Declares the UNSIGNED INTEGER (unsigned 32-bit) MVA attribute.
 Multi-value (ie. there may be more than one such attribute declared), optional.
 Applies to RT indexes only.
-</p><h4><a name="idp33054480"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7971072"></a>Example:</h4><pre class="programlisting">
 rt_attr_multi = my_tags
 </pre></div>
 <div class="sect2" title="11.2.59.&nbsp;rt_attr_multi_64"><div class="titlepage"><div><div><h3 class="title"><a name="conf-rt-attr-multi-64"></a>11.2.59.&nbsp;rt_attr_multi_64</h3></div></div></div>
@@ -9992,7 +9992,7 @@ rt_attr_multi = my_tags
 Declares the BIGINT (signed 64-bit) MVA attribute.
 Multi-value (ie. there may be more than one such attribute declared), optional.
 Applies to RT indexes only.
-</p><h4><a name="idp33058416"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7974624"></a>Example:</h4><pre class="programlisting">
 rt_attr_multi_64 = my_wide_tags
 </pre></div>
 <div class="sect2" title="11.2.60.&nbsp;rt_attr_timestamp"><div class="titlepage"><div><div><h3 class="title"><a name="conf-rt-attr-timestamp"></a>11.2.60.&nbsp;rt_attr_timestamp</h3></div></div></div>
@@ -10000,7 +10000,7 @@ rt_attr_multi_64 = my_wide_tags
 Timestamp attribute declaration.
 Multi-value (an arbitrary number of attributes is allowed), optional.
 Introduced in version 1.10-beta.
-</p><h4><a name="idp33061312"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7977392"></a>Example:</h4><pre class="programlisting">
 rt_attr_timestamp = date_added
 </pre></div>
 <div class="sect2" title="11.2.61.&nbsp;rt_attr_string"><div class="titlepage"><div><div><h3 class="title"><a name="conf-rt-attr-string"></a>11.2.61.&nbsp;rt_attr_string</h3></div></div></div>
@@ -10008,7 +10008,7 @@ rt_attr_timestamp = date_added
 String attribute declaration.
 Multi-value (an arbitrary number of attributes is allowed), optional.
 Introduced in version 1.10-beta.
-</p><h4><a name="idp33064192"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7980192"></a>Example:</h4><pre class="programlisting">
 rt_attr_string = author
 </pre></div>
 <div class="sect2" title="11.2.62.&nbsp;rt_attr_json"><div class="titlepage"><div><div><h3 class="title"><a name="conf-rt-attr-json"></a>11.2.62.&nbsp;rt_attr_json</h3></div></div></div>
@@ -10018,7 +10018,7 @@ Multi-value (ie. there may be more than one such attribute declared), optional.
 Introduced in version 2.1.1-beta.
 </p><p>
 Refer to <a class="xref" href="#conf-sql-attr-json" title="11.1.28.&nbsp;sql_attr_json">Section&nbsp;11.1.28, &#8220;sql_attr_json&#8221;</a> for more details on the JSON attributes.
-</p><h4><a name="idp33068208"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp7984112"></a>Example:</h4><pre class="programlisting">
 rt_attr_json = properties
 </pre></div>
 <div class="sect2" title="11.2.63.&nbsp;ha_strategy"><div class="titlepage"><div><div><h3 class="title"><a name="conf-ha-strategy"></a>11.2.63.&nbsp;ha_strategy</h3></div></div></div>
@@ -10032,11 +10032,11 @@ a specific <a class="link" href="#conf-agent" title="11.2.33.&nbsp;agent">agent 
 index. Essentially, this directive controls how exactly master does the
 load balancing between the configured mirror agent nodes.
 As of 2.1.1-beta, the following strategies are implemented:
-</p><h4><a name="idp33072800"></a>Simple random balancing</h4><pre class="programlisting">ha_strategy = random</pre><p>
+</p><h4><a name="idp7988256"></a>Simple random balancing</h4><pre class="programlisting">ha_strategy = random</pre><p>
 The default balancing mode. Simple linear random distribution among the mirrors.
 That is, equal selection probability are assigned to every mirror. Kind of similar
 to round-robin (RR), but unlike RR, does not impose a strict selection order.
-</p><h4><a name="idp33074640"></a>Adaptive randomized balancing</h4><p>
+</p><h4><a name="idp7990000"></a>Adaptive randomized balancing</h4><p>
 The default simple random strategy does not take mirror status, error rate,
 and, most importantly, actual response latencies into account. So to accomodate
 for heterogenous clusters and/or temporary spikes in agent node load, we have
@@ -10080,7 +10080,7 @@ in multiple hard errors (eg. network failure, or no answer, etc) in a row.
 </p><pre class="programlisting">ha_strategy = noerrors</pre><p>
 Latency-weighted probabilities, but mirrors with worse errors/success ratio
 are excluded from the selection.
-</p><h4><a name="idp33089152"></a>Round-robin balancing</h4><pre class="programlisting">ha_strategy = roundrobin</pre><p>Simple round-robin selection, that is, selecting the 1st mirror
+</p><h4><a name="idp8003120"></a>Round-robin balancing</h4><pre class="programlisting">ha_strategy = roundrobin</pre><p>Simple round-robin selection, that is, selecting the 1st mirror
 in the list, then the 2nd one, then the 3rd one, etc, and then repeating
 the process once the last mirror in the list is reached. Unlike with
 the randomized strategies, RR imposes a strict querying order (1, 2, 3, ..,
@@ -10106,7 +10106,7 @@ and searching. Frequent keywords are only used by bigrams to determine whether
 to index a current word pair or not.
 </p><p>
 <code class="code">bigram_freq_words</code> lets you define a list of such keywords.
-</p><h4><a name="idp33097952"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8010816"></a>Example:</h4><pre class="programlisting">
 bigram_freq_words = the, a, you, i
 </pre></div>
 <div class="sect2" title="11.2.65.&nbsp;bigram_index"><div class="titlepage"><div><div><h3 class="title"><a name="conf-bigram-index"></a>11.2.65.&nbsp;bigram_index</h3></div></div></div>
@@ -10146,7 +10146,7 @@ other word pairs.
 <p>
 For most usecases, <code class="code">both_freq</code> would be the best mode, but
 your mileage may vary.
-</p><h4><a name="idp33110288"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8021760"></a>Example:</h4><pre class="programlisting">
 bigram_freq_words = both_freq
 </pre></div>
 <div class="sect2" title="11.2.66.&nbsp;index_field_lengths"><div class="titlepage"><div><div><h3 class="title"><a name="conf-index-field-lengths"></a>11.2.66.&nbsp;index_field_lengths</h3></div></div></div>
@@ -10173,7 +10173,7 @@ Starting with 2.1.1-beta, we added support for both a complete variant of BM25,
 and its extension towards multiple fields, called BM25F. They require
 per-document length and per-field lengths, respectively. Hence the additional
 directive.
-</p><h4><a name="idp33117952"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8028736"></a>Example:</h4><pre class="programlisting">
 index_field_lengths = 1
 </pre></div>
 <div class="sect2" title="11.2.67.&nbsp;regexp_filter"><div class="titlepage"><div><div><h3 class="title"><a name="conf-regexp-filter"></a>11.2.67.&nbsp;regexp_filter</h3></div></div></div>
@@ -10210,7 +10210,7 @@ to implement regexps. So when building from the source, the library must be
 installed in the system and Sphinx must be configured built with a
 <code class="code">--with-re2</code> switch. Binary packages should come with RE2
 builtin.
-</p><h4><a name="idp33126224"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8035952"></a>Example:</h4><pre class="programlisting">
 # index '13-inch' as '13inch'
 regexp_filter = \b(\d+)\" =&gt; \1inch
 
@@ -10234,7 +10234,7 @@ so when 'and' is a stopword, 'Andes' is also stopped.
 stopwords_unstemmed directive fixes that issue. When it's enabled,
 stopwords are applied before stemming (and therefore to the original
 word forms), and the tokens are stopped when token == stopword.
-</p><h4><a name="idp33131776"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8040784"></a>Example:</h4><pre class="programlisting">
 stopwords_unstemmed = 1
 </pre></div>
 <div class="sect2" title="11.2.69.&nbsp;global_idf"><div class="titlepage"><div><div><h3 class="title"><a name="conf-global-idf"></a>11.2.69.&nbsp;global_idf</h3></div></div></div>
@@ -10269,7 +10269,7 @@ utility, by dumping dictionaries using <code class="code">--dumpdict</code> swit
 first, then converting those to .idf format using <code class="code">--buildidf</code>,
 then merging all .idf files across cluser using <code class="code">--mergeidf</code>.
 Refer to <a class="xref" href="#ref-indextool" title="6.5.&nbsp;indextool command reference">Section&nbsp;6.5, &#8220;<code class="filename">indextool</code> command reference&#8221;</a> for more information.
-</p><h4><a name="idp33142240"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8050192"></a>Example:</h4><pre class="programlisting">
 global_idf = /usr/local/sphinx/var/global.idf
 </pre></div></div>
 <div class="sect1" title="11.3.&nbsp;indexer program configuration options"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="confgroup-indexer"></a>11.3.&nbsp;<code class="filename">indexer</code> program configuration options</h2></div></div></div>
@@ -10295,7 +10295,7 @@ sorted and no communication with the database is performed;
 and the database server can timeout. You can resolve that
 either by raising timeouts on SQL server side or by lowering
 <code class="code">mem_limit</code>.
-</p><h4><a name="idp33149968"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8057408"></a>Example:</h4><pre class="programlisting">
 mem_limit = 256M
 # mem_limit = 262144K # same, but in KB
 # mem_limit = 268435456 # same, but in bytes
@@ -10318,7 +10318,7 @@ Modern SATA HDDs are able to perform up to 70-100+ I/O operations per second
 (that's mostly limited by disk heads seek time). Limiting indexing I/O
 to a fraction of that can help reduce search performance dedgradation
 caused by indexing.
-</p><h4><a name="idp33156864"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8063808"></a>Example:</h4><pre class="programlisting">
 max_iops = 40
 </pre></div>
 <div class="sect2" title="11.3.3.&nbsp;max_iosize"><div class="titlepage"><div><div><h3 class="title"><a name="conf-max-iosize"></a>11.3.3.&nbsp;max_iosize</h3></div></div></div>
@@ -10334,14 +10334,14 @@ will be split in several smaller operations, and counted as several operation
 by <a class="link" href="#conf-max-iops" title="11.3.2.&nbsp;max_iops">max_iops</a> setting. At the time of this
 writing, all I/O calls should be under 256 KB (default internal buffer size)
 anyway, so <code class="code">max_iosize</code> values higher than 256 KB must not affect anything.
-</p><h4><a name="idp33162976"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8069392"></a>Example:</h4><pre class="programlisting">
 max_iosize = 1048576
 </pre></div>
 <div class="sect2" title="11.3.4.&nbsp;max_xmlpipe2_field"><div class="titlepage"><div><div><h3 class="title"><a name="conf-max-xmlpipe2-field"></a>11.3.4.&nbsp;max_xmlpipe2_field</h3></div></div></div>
 <p>
 Maximum allowed field size for XMLpipe2 source type, bytes.
 Optional, default is 2 MB.
-</p><h4><a name="idp33165824"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8072032"></a>Example:</h4><pre class="programlisting">
 max_xmlpipe2_field = 8M
 </pre></div>
 <div class="sect2" title="11.3.5.&nbsp;write_buffer"><div class="titlepage"><div><div><h3 class="title"><a name="conf-write-buffer"></a>11.3.5.&nbsp;write_buffer</h3></div></div></div>
@@ -10355,7 +10355,7 @@ disk writes. Memory for the buffers is allocated in addition to
 <a class="link" href="#conf-mem-limit" title="11.3.1.&nbsp;mem_limit">mem_limit</a>. Note that several
 (currently up to 4) buffers for different files will be allocated,
 proportionally increasing the RAM usage.
-</p><h4><a name="idp33170304"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8076288"></a>Example:</h4><pre class="programlisting">
 write_buffer = 4M
 </pre></div>
 <div class="sect2" title="11.3.6.&nbsp;max_file_field_buffer"><div class="titlepage"><div><div><h3 class="title"><a name="conf-max-file-field-buffer"></a>11.3.6.&nbsp;max_file_field_buffer</h3></div></div></div>
@@ -10375,7 +10375,7 @@ is allocated at all.  If all files loaded during indexing are under
 (for example) 2 MB in size, but <code class="option">max_file_field_buffer</code>
 value is 128 MB, peak buffer usage would still be only 2 MB. However,
 files over 128 MB would be entirely skipped.
-</p><h4><a name="idp33176800"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8082112"></a>Example:</h4><pre class="programlisting">
 max_file_field_buffer = 128M
 </pre></div>
 <div class="sect2" title="11.3.7.&nbsp;on_file_field_error"><div class="titlepage"><div><div><h3 class="title"><a name="conf-on-file-field-error"></a>11.3.7.&nbsp;on_file_field_error</h3></div></div></div>
@@ -10407,7 +10407,7 @@ and check its size before doing any work, and then open it again
 when doing actual parsing work. So in case a file goes away
 between these two open attempts, the document will still be
 indexed.
-</p><h4><a name="idp33189856"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8094368"></a>Example:</h4><pre class="programlisting">
 on_file_field_errors = skip_document
 </pre></div>
 <div class="sect2" title="11.3.8.&nbsp;lemmatizer_base"><div class="titlepage"><div><div><h3 class="title"><a name="conf-lemmatizer-base"></a>11.3.8.&nbsp;lemmatizer_base</h3></div></div></div>
@@ -10421,7 +10421,7 @@ of what lemmatizers are) is dictionary driven. lemmatizer_base directive configu
 the base dictionary path. File names are hardcoded and specific to a given lemmatizer;
 the Russian lemmatizer uses ru.pak dictionary file. The dictionaries can be obtained
 from the Sphinx website.
-</p><h4><a name="idp33194432"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8098496"></a>Example:</h4><pre class="programlisting">
 lemmatizer_base = /usr/local/share/sphinx/dicts/
 </pre></div>
 <div class="sect2" title="11.3.9.&nbsp;lemmatizer_cache"><div class="titlepage"><div><div><h3 class="title"><a name="conf-lemmatizer-cache"></a>11.3.9.&nbsp;lemmatizer_cache</h3></div></div></div>
@@ -10462,7 +10462,7 @@ Your mileage may vary, but a simple rule of thumb would be to either
 go with the small default 256 KB cache when pressed for memory, or spend
 128 MB extra RAM and cache the entire dictionary for maximum indexing
 performance.
-</p><h4><a name="idp33203712"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8107200"></a>Example:</h4><pre class="programlisting">
 lemmatizer_cache = 256M # cache it all
 </pre></div></div>
 <div class="sect1" title="11.4.&nbsp;searchd program configuration options"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="confgroup-searchd"></a>11.4.&nbsp;<code class="filename">searchd</code> program configuration options</h2></div></div></div>
@@ -10487,7 +10487,7 @@ Supported protocol values are 'sphinx' (Sphinx 0.9.x API protocol)
 and 'mysql41' (MySQL protocol used since 4.1 upto at least 5.1).
 More details on MySQL protocol support can be found in
 <a class="xref" href="#sphinxql" title="5.10.&nbsp;MySQL protocol support and SphinxQL">Section&nbsp;5.10, &#8220;MySQL protocol support and SphinxQL&#8221;</a> section.
-</p><h4><a name="idp33213152"></a>Examples:</h4><pre class="programlisting">
+</p><h4><a name="idp8115808"></a>Examples:</h4><pre class="programlisting">
 listen = localhost
 listen = localhost:5000
 listen = 192.168.0.1:5000
@@ -10516,7 +10516,7 @@ Optional, default is 0.0.0.0 (ie. listen on all interfaces).
 <code class="filename">searchd</code> will bind to, listen on, and accept incoming
 network connections on. The default value is 0.0.0.0 which means to listen
 on all interfaces. At the time, you can <span class="bold"><strong>not</strong></span> specify multiple interfaces.
-</p><h4><a name="idp33223712"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8125568"></a>Example:</h4><pre class="programlisting">
 address = 192.168.0.1
 </pre></div>
 <div class="sect2" title="11.4.3.&nbsp;port"><div class="titlepage"><div><div><h3 class="title"><a name="conf-port"></a>11.4.3.&nbsp;port</h3></div></div></div>
@@ -10524,7 +10524,7 @@ address = 192.168.0.1
 <code class="filename">searchd</code> TCP port number.
 <span class="bold"><strong>DEPRECATED</strong></span>, use <a class="link" href="#conf-listen" title="11.4.1.&nbsp;listen">listen</a> instead.
 Used to be mandatory. Default port number is 9312.
-</p><h4><a name="idp33228816"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8130528"></a>Example:</h4><pre class="programlisting">
 port = 9312
 </pre></div>
 <div class="sect2" title="11.4.4.&nbsp;log"><div class="titlepage"><div><div><h3 class="title"><a name="conf-log"></a>11.4.4.&nbsp;log</h3></div></div></div>
@@ -10535,7 +10535,7 @@ All <code class="filename">searchd</code> run time events will be logged in this
 </p><p>
 Also you can use the 'syslog' as the file name. In this case the events will be sent to syslog daemon.
 To use the syslog option the sphinx must be configured '--with-syslog' on building.
-</p><h4><a name="idp33233136"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8134608"></a>Example:</h4><pre class="programlisting">
 log = /var/log/searchd.log
 </pre></div>
 <div class="sect2" title="11.4.5.&nbsp;query_log"><div class="titlepage"><div><div><h3 class="title"><a name="conf-query-log"></a>11.4.5.&nbsp;query_log</h3></div></div></div>
@@ -10548,7 +10548,7 @@ In case of 'plain' format, you can use the 'syslog' as the path to the log file.
 In this case all search queries will be sent to syslog daemon with LOG_INFO priority,
 prefixed with '[query]' instead of timestamp.
 To use the syslog option the sphinx must be configured '--with-syslog' on building.
-</p><h4><a name="idp33237712"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8138800"></a>Example:</h4><pre class="programlisting">
 query_log = /var/log/query.log
 </pre></div>
 <div class="sect2" title="11.4.6.&nbsp;query_log_format"><div class="titlepage"><div><div><h3 class="title"><a name="conf-query-log-format"></a>11.4.6.&nbsp;query_log_format</h3></div></div></div>
@@ -10564,7 +10564,7 @@ formats on search daemon startup. The log format can also be altered
 on the fly, using <code class="code">SET GLOBAL query_log_format=sphinxql</code> syntax.
 Refer to <a class="xref" href="#query-log-format" title="5.9.&nbsp;searchd query log formats">Section&nbsp;5.9, &#8220;<code class="filename">searchd</code> query log formats&#8221;</a> for more discussion and format
 details.
-</p><h4><a name="idp33242848"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8143360"></a>Example:</h4><pre class="programlisting">
 query_log_format = sphinxql
 </pre></div>
 <div class="sect2" title="11.4.7.&nbsp;read_timeout"><div class="titlepage"><div><div><h3 class="title"><a name="conf-read-timeout"></a>11.4.7.&nbsp;read_timeout</h3></div></div></div>
@@ -10572,14 +10572,14 @@ query_log_format = sphinxql
 Network client request read timeout, in seconds.
 Optional, default is 5 seconds.
 <code class="filename">searchd</code> will forcibly close the client connections which fail to send a query within this timeout.
-</p><h4><a name="idp33246608"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8146880"></a>Example:</h4><pre class="programlisting">
 read_timeout = 1
 </pre></div>
 <div class="sect2" title="11.4.8.&nbsp;client_timeout"><div class="titlepage"><div><div><h3 class="title"><a name="conf-client-timeout"></a>11.4.8.&nbsp;client_timeout</h3></div></div></div>
 <p>
 Maximum time to wait between requests (in seconds) when using
 persistent connections. Optional, default is five minutes.
-</p><h4><a name="idp33249552"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8149664"></a>Example:</h4><pre class="programlisting">
 client_timeout = 3600
 </pre></div>
 <div class="sect2" title="11.4.9.&nbsp;max_children"><div class="titlepage"><div><div><h3 class="title"><a name="conf-max-children"></a>11.4.9.&nbsp;max_children</h3></div></div></div>
@@ -10591,7 +10591,7 @@ Useful to control server load. There will be no more than this much concurrent
 searches running, at all times. When the limit is reached, additional incoming
 clients are dismissed with temporarily failure (SEARCHD_RETRY) status code
 and a message stating that the server is maxed out.
-</p><h4><a name="idp33253264"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8153136"></a>Example:</h4><pre class="programlisting">
 max_children = 10
 </pre></div>
 <div class="sect2" title="11.4.10.&nbsp;pid_file"><div class="titlepage"><div><div><h3 class="title"><a name="conf-pid-file"></a>11.4.10.&nbsp;pid_file</h3></div></div></div>
@@ -10606,7 +10606,7 @@ for a number of things: to check whether there already is a running instance
 of <code class="filename">searchd</code>; to stop <code class="filename">searchd</code>;
 to notify it that it should rotate the indexes. Can also be used for
 different external automation scripts.
-</p><h4><a name="idp33259280"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8158672"></a>Example:</h4><pre class="programlisting">
 pid_file = /var/run/searchd.pid
 </pre></div>
 <div class="sect2" title="11.4.11.&nbsp;max_matches"><div class="titlepage"><div><div><h3 class="title"><a name="conf-max-matches"></a>11.4.11.&nbsp;max_matches</h3></div></div></div>
@@ -10646,7 +10646,7 @@ in <a class="link" href="#api-func-setlimits" title="8.2.1.&nbsp;SetLimits">SetL
 Also note that you can not set the value in the API higher than the value
 in the .conf file. This is prohibited in order to have some protection
 against malicious and/or malformed requests.
-</p><h4><a name="idp33273664"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8171792"></a>Example:</h4><pre class="programlisting">
 max_matches = 10000
 </pre></div>
 <div class="sect2" title="11.4.12.&nbsp;seamless_rotate"><div class="titlepage"><div><div><h3 class="title"><a name="conf-seamless-rotate"></a>11.4.12.&nbsp;seamless_rotate</h3></div></div></div>
@@ -10685,7 +10685,7 @@ Seamless rotate comes at the cost of higher <span class="bold"><strong>peak</str
 memory usage during the rotation (because both old and new copies of
 <code class="filename">.spa/.spi/.spm</code> data need to be in RAM while
 preloading new copy). Average usage stays the same.
-</p><h4><a name="idp33293264"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8190512"></a>Example:</h4><pre class="programlisting">
 seamless_rotate = 1
 </pre></div>
 <div class="sect2" title="11.4.13.&nbsp;preopen_indexes"><div class="titlepage"><div><div><h3 class="title"><a name="conf-preopen-indexes"></a>11.4.13.&nbsp;preopen_indexes</h3></div></div></div>
@@ -10708,14 +10708,14 @@ and rotations that can cause queries to fail occasionally.
 They also make <code class="filename">searchd</code> use more file
 handles. In most scenarios it's therefore preferred and
 recommended to preopen indexes.
-</p><h4><a name="idp33300368"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8197072"></a>Example:</h4><pre class="programlisting">
 preopen_indexes = 1
 </pre></div>
 <div class="sect2" title="11.4.14.&nbsp;unlink_old"><div class="titlepage"><div><div><h3 class="title"><a name="conf-unlink-old"></a>11.4.14.&nbsp;unlink_old</h3></div></div></div>
 <p>
 Whether to unlink .old index copies on succesful rotation.
 Optional, default is 1 (do unlink).
-</p><h4><a name="idp33303216"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8199824"></a>Example:</h4><pre class="programlisting">
 unlink_old = 0
 </pre></div>
 <div class="sect2" title="11.4.15.&nbsp;attr_flush_period"><div class="titlepage"><div><div><h3 class="title"><a name="conf-attr-flush-period"></a>11.4.15.&nbsp;attr_flush_period</h3></div></div></div>
@@ -10731,7 +10731,7 @@ to periodically write these changes back to disk, to avoid them being lost. The 
 between those intervals is set with <code class="option">attr_flush_period</code>, in seconds.
 </p><p>It defaults to 0, which disables the periodic flushing, but flushing will
 still occur at normal shut-down.
-</p><h4><a name="idp33311280"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8207360"></a>Example:</h4><pre class="programlisting">
 attr_flush_period = 900 # persist updates to disk every 15 minutes
 </pre></div>
 <div class="sect2" title="11.4.16.&nbsp;ondisk_dict_default"><div class="titlepage"><div><div><h3 class="title"><a name="conf-ondisk-dict-default"></a>11.4.16.&nbsp;ondisk_dict_default</h3></div></div></div>
@@ -10745,7 +10745,7 @@ This directive lets you specify the default value of
 served by this copy of <code class="filename">searchd</code>. Per-index directive
 take precedence, and will overwrite this instance-wide default value,
 allowing for fine-grain control.
-</p><h4><a name="idp33317536"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8213312"></a>Example:</h4><pre class="programlisting">
 ondisk_dict_default = 1 # keep all dictionaries on disk
 </pre></div>
 <div class="sect2" title="11.4.17.&nbsp;max_packet_size"><div class="titlepage"><div><div><h3 class="title"><a name="conf-max-packet-size"></a>11.4.17.&nbsp;max_packet_size</h3></div></div></div>
@@ -10755,7 +10755,7 @@ Limits both query packets from clients, and response packets from remote agents 
 Only used for internal sanity checks, does not directly affect RAM use or performance.
 Optional, default is 8M.
 Introduced in version 0.9.9-rc1.
-</p><h4><a name="idp33320544"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8216240"></a>Example:</h4><pre class="programlisting">
 max_packet_size = 32M
 </pre></div>
 <div class="sect2" title="11.4.18.&nbsp;mva_updates_pool"><div class="titlepage"><div><div><h3 class="title"><a name="conf-mva-updates-pool"></a>11.4.18.&nbsp;mva_updates_pool</h3></div></div></div>
@@ -10773,7 +10773,7 @@ where MVA were updated; though this might be implemented in the future.
 In the meantime, MVA updates are intended to be used as a measure to quickly
 catchup with latest changes in the database until the next index rebuild;
 not as a persistent storage mechanism.
-</p><h4><a name="idp33326352"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8221360"></a>Example:</h4><pre class="programlisting">
 mva_updates_pool = 16M
 </pre></div>
 <div class="sect2" title="11.4.19.&nbsp;crash_log_path"><div class="titlepage"><div><div><h3 class="title"><a name="conf-crash-log-path"></a>11.4.19.&nbsp;crash_log_path</h3></div></div></div>
@@ -10789,7 +10789,7 @@ Maximum allowed per-query filter count.
 Only used for internal sanity checks, does not directly affect RAM use or performance.
 Optional, default is 256.
 Introduced in version 0.9.9-rc1.
-</p><h4><a name="idp33331136"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8226048"></a>Example:</h4><pre class="programlisting">
 max_filters = 1024
 </pre></div>
 <div class="sect2" title="11.4.21.&nbsp;max_filter_values"><div class="titlepage"><div><div><h3 class="title"><a name="conf-max-filter-values"></a>11.4.21.&nbsp;max_filter_values</h3></div></div></div>
@@ -10798,7 +10798,7 @@ Maximum allowed per-filter values count.
 Only used for internal sanity checks, does not directly affect RAM use or performance.
 Optional, default is 4096.
 Introduced in version 0.9.9-rc1.
-</p><h4><a name="idp33334112"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8228896"></a>Example:</h4><pre class="programlisting">
 max_filter_values = 16384
 </pre></div>
 <div class="sect2" title="11.4.22.&nbsp;listen_backlog"><div class="titlepage"><div><div><h3 class="title"><a name="conf-listen-backlog"></a>11.4.22.&nbsp;listen_backlog</h3></div></div></div>
@@ -10812,7 +10812,7 @@ on OS level, and requests that can not be enqueued will immediately
 fail with "connection refused" message. listen_backlog directive
 controls the length of the connection queue. Non-Windows builds
 should work fine with the default value.
-</p><h4><a name="idp33337888"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8232336"></a>Example:</h4><pre class="programlisting">
 listen_backlog = 20
 </pre></div>
 <div class="sect2" title="11.4.23.&nbsp;read_buffer"><div class="titlepage"><div><div><h3 class="title"><a name="conf-read-buffer"></a>11.4.23.&nbsp;read_buffer</h3></div></div></div>
@@ -10824,7 +10824,7 @@ For every keyword occurrence in every search query, there are
 two associated read buffers (one for document list and one for
 hit list). This setting lets you control their sizes, increasing
 per-query RAM use, but possibly decreasing IO time.
-</p><h4><a name="idp33341328"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8235584"></a>Example:</h4><pre class="programlisting">
 read_buffer = 1M
 </pre></div>
 <div class="sect2" title="11.4.24.&nbsp;read_unhinted"><div class="titlepage"><div><div><h3 class="title"><a name="conf-read-unhinted"></a>11.4.24.&nbsp;read_unhinted</h3></div></div></div>
@@ -10840,7 +10840,7 @@ impact hit list IO time, reducing it for lists larger than
 unhinted read size, but raising it for smaller lists. It will
 <span class="bold"><strong>not</strong></span> affect RAM use because read buffer will be already
 allocated. So it should be not greater than read_buffer.
-</p><h4><a name="idp33346000"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8239856"></a>Example:</h4><pre class="programlisting">
 read_unhinted = 32K
 </pre></div>
 <div class="sect2" title="11.4.25.&nbsp;max_batch_queries"><div class="titlepage"><div><div><h3 class="title"><a name="conf-max-batch-queries"></a>11.4.25.&nbsp;max_batch_queries</h3></div></div></div>
@@ -10851,7 +10851,7 @@ Optional, default is 32.
 Makes searchd perform a sanity check of the amount of the queries
 submitted in a single batch when using <a class="link" href="#multi-queries" title="5.11.&nbsp;Multi-queries">multi-queries</a>.
 Set it to 0 to skip the check.
-</p><h4><a name="idp33350288"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8243888"></a>Example:</h4><pre class="programlisting">
 max_batch_queries = 256
 </pre></div>
 <div class="sect2" title="11.4.26.&nbsp;subtree_docs_cache"><div class="titlepage"><div><div><h3 class="title"><a name="conf-subtree-docs-cache"></a>11.4.26.&nbsp;subtree_docs_cache</h3></div></div></div>
@@ -10862,7 +10862,7 @@ Optional, default is 0 (disabled).
 Limits RAM usage of a common subtree optimizer (see <a class="xref" href="#multi-queries" title="5.11.&nbsp;Multi-queries">Section&nbsp;5.11, &#8220;Multi-queries&#8221;</a>).
 At most this much RAM will be spent to cache document entries per each query.
 Setting the limit to 0 disables the optimizer.
-</p><h4><a name="idp33354432"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8247856"></a>Example:</h4><pre class="programlisting">
 subtree_docs_cache = 8M
 </pre></div>
 <div class="sect2" title="11.4.27.&nbsp;subtree_hits_cache"><div class="titlepage"><div><div><h3 class="title"><a name="conf-subtree-hits-cache"></a>11.4.27.&nbsp;subtree_hits_cache</h3></div></div></div>
@@ -10873,7 +10873,7 @@ Optional, default is 0 (disabled).
 Limits RAM usage of a common subtree optimizer (see <a class="xref" href="#multi-queries" title="5.11.&nbsp;Multi-queries">Section&nbsp;5.11, &#8220;Multi-queries&#8221;</a>).
 At most this much RAM will be spent to cache keyword occurrences (hits) per each query.
 Setting the limit to 0 disables the optimizer.
-</p><h4><a name="idp33358544"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8251808"></a>Example:</h4><pre class="programlisting">
 subtree_hits_cache = 16M
 </pre></div>
 <div class="sect2" title="11.4.28.&nbsp;workers"><div class="titlepage"><div><div><h3 class="title"><a name="conf-workers"></a>11.4.28.&nbsp;workers</h3></div></div></div>
@@ -10913,7 +10913,7 @@ pressure.
 Threads mode was implemented along with RT backend and is required
 to use RT indexes. (Regular disk-based indexes work in all the
 available modes.)
-</p><h4><a name="idp33372352"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8264800"></a>Example:</h4><pre class="programlisting">
 workers = threads
 </pre></div>
 <div class="sect2" title="11.4.29.&nbsp;dist_threads"><div class="titlepage"><div><div><h3 class="title"><a name="conf-dist-threads"></a>11.4.29.&nbsp;dist_threads</h3></div></div></div>
@@ -10947,7 +10947,7 @@ with <code class="option">load_files</code> flag enabled can also be parallelize
 Up to <code class="option">dist_threads</code> threads are be created to process
 those files. That speeds up snippet extraction when the total amount
 of document data to process is significant (hundreds of megabytes).
-</p><h4><a name="idp33382288"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8273808"></a>Example:</h4><pre class="programlisting">
 index dist_test
 {
     type = distributed
@@ -10986,7 +10986,7 @@ WARNING! It is strongly recommended to always explicitly define 'binlog_path' op
 Otherwise, the default path, which in most cases is the same as working folder, may point to the
 folder with no write access (for example, /usr/local/var/data). In this case, the searchd
 will not start at all.
-</p><h4><a name="idp33389456"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8280128"></a>Example:</h4><pre class="programlisting">
 binlog_path = # disable logging
 binlog_path = /var/data # /var/data/binlog.001 etc will be created
 </pre></div>
@@ -11018,7 +11018,7 @@ similar to <code class="option">innodb_flush_log_at_trx_commit</code>. In most
 cases, the default hybrid mode 2 provides a nice balance of speed
 and safety, with full RT index data protection against daemon crashes,
 and some protection against hardware ones.
-</p><h4><a name="idp33397472"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8287040"></a>Example:</h4><pre class="programlisting">
 binlog_flush = 1 # ultimate safety, low speed
 </pre></div>
 <div class="sect2" title="11.4.32.&nbsp;binlog_max_log_size"><div class="titlepage"><div><div><h3 class="title"><a name="conf-binlog-max-log-size"></a>11.4.32.&nbsp;binlog_max_log_size</h3></div></div></div>
@@ -11030,7 +11030,7 @@ Introduced in version 1.10-beta.
 A new binlog file will be forcibly opened once the current binlog file
 reaches this limit. This achieves a finer granularity of logs and can yield
 more efficient binlog disk usage under certain borderline workloads.
-</p><h4><a name="idp33401200"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8290512"></a>Example:</h4><pre class="programlisting">
 binlog_max_log_size = 16M
 </pre></div>
 <div class="sect2" title="11.4.33.&nbsp;snippets_file_prefix"><div class="titlepage"><div><div><h3 class="title"><a name="conf-snippets-file-prefix"></a>11.4.33.&nbsp;snippets_file_prefix</h3></div></div></div>
@@ -11054,7 +11054,7 @@ by the agent's own settings.
 </p><p>
 This might be useful, for instance, when the document storage locations
 (be those local storage or NAS mountpoints) are incosistent across the servers.
-</p><h4><a name="idp33409088"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8297824"></a>Example:</h4><pre class="programlisting">
 snippets_file_prefix = /mnt/common/server1/
 </pre></div>
 <div class="sect2" title="11.4.34.&nbsp;collation_server"><div class="titlepage"><div><div><h3 class="title"><a name="conf-collation-server"></a>11.4.34.&nbsp;collation_server</h3></div></div></div>
@@ -11066,7 +11066,7 @@ Introduced in version 2.0.1-beta.
 Specifies the default collation used for incoming requests.
 The collation can be overridden on a per-query basis.
 Refer to <a class="xref" href="#collations" title="5.12.&nbsp;Collations">Section&nbsp;5.12, &#8220;Collations&#8221;</a> section for the list of available collations and other details.
-</p><h4><a name="idp33413360"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8301840"></a>Example:</h4><pre class="programlisting">
 collation_server = utf8_ci
 </pre></div>
 <div class="sect2" title="11.4.35.&nbsp;collation_libc_locale"><div class="titlepage"><div><div><h3 class="title"><a name="conf-collation-libc-locale"></a>11.4.35.&nbsp;collation_libc_locale</h3></div></div></div>
@@ -11077,7 +11077,7 @@ Introduced in version 2.0.1-beta.
 </p><p>
 Specifies the libc locale, affecting the libc-based collations.
 Refer to <a class="xref" href="#collations" title="5.12.&nbsp;Collations">Section&nbsp;5.12, &#8220;Collations&#8221;</a> section for the details.
-</p><h4><a name="idp33417360"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8305744"></a>Example:</h4><pre class="programlisting">
 collation_libc_locale = fr_FR
 </pre></div>
 <div class="sect2" title="11.4.36.&nbsp;plugin_dir"><div class="titlepage"><div><div><h3 class="title"><a name="conf-plugin-dir"></a>11.4.36.&nbsp;plugin_dir</h3></div></div></div>
@@ -11089,7 +11089,7 @@ Introduced in version 2.0.1-beta.
 Specifies the trusted directory from which the
 <a class="link" href="#udf" title="5.13.&nbsp;User-defined functions (UDF)">UDF libraries</a> can be loaded. Requires
 <a class="link" href="#conf-workers" title="11.4.28.&nbsp;workers">workers = thread</a> to take effect.
-</p><h4><a name="idp33422384"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8310688"></a>Example:</h4><pre class="programlisting">
 workers = threads
 plugin_dir = /usr/local/sphinx/lib
 </pre></div>
@@ -11109,7 +11109,7 @@ a certain combination of flags, etc. To workaround that, you can use
 <code class="option">mysql_version_string</code> directive and have <code class="filename">searchd</code>
 report a different version to clients connecting over MySQL protocol.
 (By default, it reports its own version.)
-</p><h4><a name="idp33427888"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8315712"></a>Example:</h4><pre class="programlisting">
 mysql_version_string = 5.0.37
 </pre></div>
 <div class="sect2" title="11.4.38.&nbsp;rt_flush_period"><div class="titlepage"><div><div><h3 class="title"><a name="conf-rt-flush-period"></a>11.4.38.&nbsp;rt_flush_period</h3></div></div></div>
@@ -11124,7 +11124,7 @@ recovery time. With this directive the search daemon performs
 periodic flush checks, and eligible RAM chunks can get saved,
 enabling consequential binlog cleanup. See <a class="xref" href="#rt-binlog" title="4.4.&nbsp;Binary logging">Section&nbsp;4.4, &#8220;Binary logging&#8221;</a>
 for more details.
-</p><h4><a name="idp33432432"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8319712"></a>Example:</h4><pre class="programlisting">
 rt_flush_period = 3600 # 1 hour
 </pre></div>
 <div class="sect2" title="11.4.39.&nbsp;thread_stack"><div class="titlepage"><div><div><h3 class="title"><a name="conf-thread-stack"></a>11.4.39.&nbsp;thread_stack</h3></div></div></div>
@@ -11150,7 +11150,7 @@ A query with N levels of nesting is estimated to require approximately
 with upto 250 levels, 150K for upto 700 levels, etc. If the stack size limit
 is not met, <code class="filename">searchd</code> fails the query and reports
 the required stack size in the error message.
-</p><h4><a name="idp33440272"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8326976"></a>Example:</h4><pre class="programlisting">
 thread_stack = 256K
 </pre></div>
 <div class="sect2" title="11.4.40.&nbsp;expansion_limit"><div class="titlepage"><div><div><h3 class="title"><a name="conf-expansion-limit"></a>11.4.40.&nbsp;expansion_limit</h3></div></div></div>
@@ -11167,7 +11167,7 @@ dictionary). This directive lets you limit the impact
 of such expansions. Setting <code class="code">expansion_limit = N</code>
 restricts expansions to no more than N of the most frequent
 matching keywords (per each wildcard in the query).
-</p><h4><a name="idp33445216"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8331328"></a>Example:</h4><pre class="programlisting">
 expansion_limit = 16
 </pre></div>
 <div class="sect2" title="11.4.41.&nbsp;compat_sphinxql_magics"><div class="titlepage"><div><div><h3 class="title"><a name="conf-compat-sphinxql-magics"></a>11.4.41.&nbsp;compat_sphinxql_magics</h3></div></div></div>
@@ -11185,7 +11185,7 @@ will be removed</strong></span> once we complete bringing SphinxQL in line
 with standard SQL syntax.
 Please refer to <a class="xref" href="#sphinxql-upgrading-magics" title="7.36.&nbsp;SphinxQL upgrade notes, version 2.0.1-beta">Section&nbsp;7.36, &#8220;SphinxQL upgrade notes, version 2.0.1-beta&#8221;</a>
 for the details and update instruction.
-</p><h4><a name="idp33451232"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8336848"></a>Example:</h4><pre class="programlisting">
 compat_sphinxql_magics = 0 # the future is now
 </pre></div>
 <div class="sect2" title="11.4.42.&nbsp;watchdog"><div class="titlepage"><div><div><h3 class="title"><a name="conf-watchdog"></a>11.4.42.&nbsp;watchdog</h3></div></div></div>
@@ -11201,7 +11201,7 @@ can take down the entire server. With watchdog feature enabled,
 process that monitors the main server process, and automatically
 restarts the latter in case of abnormal termination. Watchdog
 is enabled by default.
-</p><h4><a name="idp33457136"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8342544"></a>Example:</h4><pre class="programlisting">
 watchdog = 0 # disable watchdog
 </pre></div>
 <div class="sect2" title="11.4.43.&nbsp;prefork_rotation_throttle"><div class="titlepage"><div><div><h3 class="title"><a name="conf-prefork-rotation-throttle"></a>11.4.43.&nbsp;prefork_rotation_throttle</h3></div></div></div>
@@ -11223,7 +11223,7 @@ persist for a few more seconds. For instance, if
 there are 30 children, then the last one would only be <span class="emphasis"><em>actually</em></span>
 restarted 1.5 seconds (50*30=1500 milliseconds) <span class="emphasis"><em>after</em></span>
 the "rotation finished" message in the <code class="filename">searchd</code> event log.
-</p><h4><a name="idp33465424"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8350128"></a>Example:</h4><pre class="programlisting">
 prefork_rotation_throttle = 50 # throttle children restarts by 50 msec each
 </pre></div>
 <div class="sect2" title="11.4.44.&nbsp;sphinxql_state"><div class="titlepage"><div><div><h3 class="title"><a name="conf-sphinxql-state"></a>11.4.44.&nbsp;sphinxql_state</h3></div></div></div>
@@ -11236,7 +11236,7 @@ this file gets rewritten automatically. This can prevent a hard-to-diagnose prob
 If you load UDF functions, but Sphinx crashes, when it
 gets (automatically) restarted, your UDF and global variables will no longer be available;
 using persistent state helps a graceful recovery with no such surprises.
-</p><h4><a name="idp33469648"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8353744"></a>Example:</h4><pre class="programlisting">
 sphinxql_state = uservars.sql
 </pre></div>
 <div class="sect2" title="11.4.45.&nbsp;ha_ping_interval"><div class="titlepage"><div><div><h3 class="title"><a name="conf-ha-ping-interval"></a>11.4.45.&nbsp;ha_ping_interval</h3></div></div></div>
@@ -11252,7 +11252,7 @@ roundtrip, etc). The interval between such pings is defined
 by this directive.
 </p><p>
 To disable pings, set ha_ping_interval to 0.
-</p><h4><a name="idp33473968"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8357584"></a>Example:</h4><pre class="programlisting">
 ha_ping_interval = 0
 </pre></div>
 <div class="sect2" title="11.4.46.&nbsp;ha_period_karma"><div class="titlepage"><div><div><h3 class="title"><a name="conf-ha-period-karma"></a>11.4.46.&nbsp;ha_period_karma</h3></div></div></div>
@@ -11277,7 +11277,7 @@ upto 15 last blocks are actually stored, for instrumentation purposes.
 They can be inspected using
 <a class="link" href="#sphinxql-show-agent-status" title="7.28.&nbsp;SHOW AGENT STATUS">SHOW AGENT STATUS</a>
 statement.
-</p><h4><a name="idp33480480"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8363520"></a>Example:</h4><pre class="programlisting">
 ha_period_karma = 120
 </pre></div>
 <div class="sect2" title="11.4.47.&nbsp;persistent_connections_limit"><div class="titlepage"><div><div><h3 class="title"><a name="conf-persistent-connections-limit"></a>11.4.47.&nbsp;persistent_connections_limit</h3></div></div></div>
@@ -11288,7 +11288,7 @@ However we can't hold unlimited # of such persistent connections, since each one
 when all of them are busy). This very directive limits the number. It affects the num of connections to each agent's host, across all distributed indexes.
 </p><p>
 It is reasonable to set the value equal or less than <a class="link" href="#conf-max-matches" title="11.4.11.&nbsp;max_matches">max_matches</a> option of the agents.
-</p><h4><a name="idp33486496"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8368896"></a>Example:</h4><pre class="programlisting">
 persistent_connections_limit = 29 # assume that each host of agents has max_children = 30 (or 29).
 </pre></div>
 <div class="sect2" title="11.4.48.&nbsp;rt_merge_iops"><div class="titlepage"><div><div><h3 class="title"><a name="conf-rt-merge-iops"></a>11.4.48.&nbsp;rt_merge_iops</h3></div></div></div>
@@ -11301,7 +11301,7 @@ the <code class="code">OPTIMIZE</code> statements. It is guaranteed that all the
 RT optimization activity will not generate more disk iops (I/Os per second)
 than the configured limit. Modern SATA drives can perform up to around 100 I/O operations per
 second, and limiting rt_merge_iops can reduce search performance degradation caused by merging.
-</p><h4><a name="idp33491232"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8372944"></a>Example:</h4><pre class="programlisting">
 rt_merge_iops = 40
 </pre></div>
 <div class="sect2" title="11.4.49.&nbsp;rt_merge_maxiosize"><div class="titlepage"><div><div><h3 class="title"><a name="conf-rt-merge-maxiosize"></a>11.4.49.&nbsp;rt_merge_maxiosize</h3></div></div></div>
@@ -11318,7 +11318,7 @@ with regards to the <a class="link" href="#conf-rt-merge-iops" title="11.4.48.&n
 limit. Thus, it is guaranteed that all the optimization activity will not
 generate more than (rt_merge_iops * rt_merge_maxiosize) bytes of disk I/O
 per second.
-</p><h4><a name="idp33496368"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8377648"></a>Example:</h4><pre class="programlisting">
 rt_merge_maxiosize = 1M
 </pre></div>
 <div class="sect2" title="11.4.50.&nbsp;predicted_time_costs"><div class="titlepage"><div><div><h3 class="title"><a name="conf-predicted-time-costs"></a>11.4.50.&nbsp;predicted_time_costs</h3></div></div></div>
@@ -11368,7 +11368,7 @@ in milliseconds, and having to specify cost values as 0.000128 ms instead of 128
 is somewhat more error prone.) It is not necessary to specify all 4 costs at once,
 as the missed one will take the default values. However, we strongly suggest
 to specify all of them, for readability.
-</p><h4><a name="idp33510368"></a>Example:</h4><pre class="programlisting">
+</p><h4><a name="idp8390208"></a>Example:</h4><pre class="programlisting">
 predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 </pre></div></div></div>
 <div class="appendix" title="Appendix&nbsp;A.&nbsp;Sphinx revision history"><div class="titlepage"><div><div><h2 class="title"><a name="changelog"></a>Appendix&nbsp;A.&nbsp;Sphinx revision history</h2></div></div></div>
@@ -11403,7 +11403,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <dt><span class="sect1"><a href="#rel096rc1">A.29. Version 0.9.6-rc1, 26 jun 2006</a></span></dt>
 </dl></div>
 <div class="sect1" title="A.1.&nbsp;Version 2.1.7-release, 30 mar 2014"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="rel217"></a>A.1.&nbsp;Version 2.1.7-release, 30 mar 2014</h2></div></div></div>
-<h3><a name="idp33514784"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1917" target="_top">#1917</a>, field limit propagation outside of group</p></li>
+<h3><a name="idp8394480"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1917" target="_top">#1917</a>, field limit propagation outside of group</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1915" target="_top">#1915</a>, exact form passes to index skipping stopwords filter</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1905" target="_top">#1905</a>, multiple lemmas at the end of a field</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1903" target="_top">#1903</a>, <code class="filename">indextool</code> check mode for hitless indexes and indexes with large amount of documents</p></li>
@@ -11418,7 +11418,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>fixed Quick Tour documentation chapter</p></li>
 </ul></div></div>
 <div class="sect1" title="A.2.&nbsp;Version 2.1.6-release, 24 feb 2014"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="rel216"></a>A.2.&nbsp;Version 2.1.6-release, 24 feb 2014</h2></div></div></div>
-<h3><a name="idp33533344"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1882" target="_top">#1882</a>, race of periodic and forced <a class="link" href="#sphinxql-flush-rtindex" title="7.25.&nbsp;FLUSH RTINDEX syntax">FLUSHing</a> on an RT index</p></li>
+<h3><a name="idp8412992"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1882" target="_top">#1882</a>, race of periodic and forced <a class="link" href="#sphinxql-flush-rtindex" title="7.25.&nbsp;FLUSH RTINDEX syntax">FLUSHing</a> on an RT index</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1881" target="_top">#1881</a>, quorum syntax with '.' as blended char</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1880" target="_top">#1880</a>, crash on multiquery with one incorrect query</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1876" target="_top">#1876</a>, crash on words with large code points and infix searches</p></li>
@@ -11429,7 +11429,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p></p></li>
 </ul></div></div>
 <div class="sect1" title="A.3.&nbsp;Version 2.1.5-release, 22 jan 2014"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="rel215"></a>A.3.&nbsp;Version 2.1.5-release, 22 jan 2014</h2></div></div></div>
-<h3><a name="idp33546016"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1848" target="_top">#1848</a>, infixes and morphology clash</p></li>
+<h3><a name="idp8425696"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1848" target="_top">#1848</a>, infixes and morphology clash</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1823" target="_top">#1823</a>, <code class="filename">indextool</code> fails to handle indexes with lemmatizer morphology</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1799" target="_top">#1799</a>, crash in queries to distributed indexes with <a class="link" href="#sphinxql-select" title="7.1.&nbsp;SELECT syntax">GROUP BY</a> on multiple values</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1718" target="_top">#1718</a>, <code class="option">expand_keywords</code> option lost in disk chunks of RT indexes</p></li>
@@ -11437,7 +11437,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>fixed network protocol issue which results in timeouts of <code class="filename">libmysqlclient</code> for big Sphinx responses</p></li>
 </ul></div></div>
 <div class="sect1" title="A.4.&nbsp;Version 2.1.4-release, 18 dec 2013"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="rel214"></a>A.4.&nbsp;Version 2.1.4-release, 18 dec 2013</h2></div></div></div>
-<h3><a name="idp33557824"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1778" target="_top">#1778</a>, indexes with more than 255 attributes</p></li>
+<h3><a name="idp8437440"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1778" target="_top">#1778</a>, indexes with more than 255 attributes</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1777" target="_top">#1777</a>, <a class="link" href="#sphinxql-select" title="7.1.&nbsp;SELECT syntax">ORDER BY WEIGHT()</a></p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1796" target="_top">#1796</a>, missing results in queries with quorum operator of indexes with some lemmatizer</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1780" target="_top">#1780</a>, incorrect results while querying indexes with wordforms, some lemmatizer and enable_star=1</p></li>
@@ -11445,7 +11445,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>fixed, --with-re2 check</p></li>
 </ul></div></div>
 <div class="sect1" title="A.5.&nbsp;Version 2.1.3-release, 12 nov 2013"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="rel213"></a>A.5.&nbsp;Version 2.1.3-release, 12 nov 2013</h2></div></div></div>
-<h3><a name="idp33566928"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1753" target="_top">#1753</a>, path to re2 sources could not be set using <code class="option">--with-re2</code>, options <code class="option">--with-re2-libs</code> and <code class="option">--with-re2-includes</code> added to <code class="filename">configure</code></p></li>
+<h3><a name="idp8446464"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1753" target="_top">#1753</a>, path to re2 sources could not be set using <code class="option">--with-re2</code>, options <code class="option">--with-re2-libs</code> and <code class="option">--with-re2-includes</code> added to <code class="filename">configure</code></p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1739" target="_top">#1739</a>, erroneous conversion of RAM chunk into disk chunk when loading id32 index with id64 binary</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1738" target="_top">#1738</a>, unlinking RAM chunk when converting it to disk chunk</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1710" target="_top">#1710</a>, unable to filter by attributes created by index_field_lenghts=1</p></li>
@@ -11453,7 +11453,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>fixed crash while querying index with lemmatizer and wordforms</p></li>
 </ul></div></div>
 <div class="sect1" title="A.6.&nbsp;Version 2.1.2-release, 10 oct 2013"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="rel212"></a>A.6.&nbsp;Version 2.1.2-release, 10 oct 2013</h2></div></div></div>
-<h3><a name="idp33578064"></a>New features</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added <a class="link" href="#sphinxql-flush-ramchunk" title="7.26.&nbsp;FLUSH RAMCHUNK syntax">FLUSH RAMCHUNK</a> statement</p></li>
+<h3><a name="idp8457632"></a>New features</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added <a class="link" href="#sphinxql-flush-ramchunk" title="7.26.&nbsp;FLUSH RAMCHUNK syntax">FLUSH RAMCHUNK</a> statement</p></li>
 <li class="listitem"><p>added <a class="link" href="#sphinxql-show-plan" title="7.32.&nbsp;SHOW PLAN syntax">SHOW PLAN</a> statement</p></li>
 <li class="listitem"><p>added support for <a class="link" href="#sphinxql-select" title="7.1.&nbsp;SELECT syntax">GROUP BY</a> on multiple attributes</p></li>
 <li class="listitem"><p>added <a class="link" href="#expression-ranker" title="5.4.&nbsp;Expression based ranker (SPH_RANK_EXPR)">BM25F()</a> function to <code class="code">SELECT</code> expressions (now works with the expression based ranker)</p></li>
@@ -11467,7 +11467,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p><code class="code">JSON</code> attributes (up to 5-20% faster <code class="code">SELECTs</code> using JSON objects)</p></li>
 <li class="listitem"><p>optimized <a class="link" href="#xmlpipe2" title="3.10.&nbsp;xmlpipe2 data source">xmlpipe2</a> indexing (up to 9 times faster on some schemas)</p></li>
 </ul></div>
-<h3><a name="idp33597792"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1684" target="_top">#1684</a>, <a class="link" href="#sphinxql-select" title="7.1.&nbsp;SELECT syntax">COUNT(DISTINCT smth)</a> with implicit <code class="code">GROUP BY</code> returns correct value now</p></li>
+<h3><a name="idp8477296"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1684" target="_top">#1684</a>, <a class="link" href="#sphinxql-select" title="7.1.&nbsp;SELECT syntax">COUNT(DISTINCT smth)</a> with implicit <code class="code">GROUP BY</code> returns correct value now</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1672" target="_top">#1672</a>, exact token AOT vs lemma (<code class="filename">indexer</code> skips exact form of token that passed AOT through tokenizer)</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1659" target="_top">#1659</a>, fail while loading empty infix dictionary with <a class="link" href="#conf-dict" title="11.2.7.&nbsp;dict">dict=keywords</a></p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1638" target="_top">#1638</a>, force explicit JSON type conversion for aggregate functions</p></li>
@@ -11526,7 +11526,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>fixed <code class="code">TOP_COUNT</code> usage in <code class="filename">misc/suggest</code> and updated to PHP 5.3 and UTF-8</p></li>
 </ul></div></div>
 <div class="sect1" title="A.7.&nbsp;Version 2.1.1-beta, 20 feb 2013"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="rel211"></a>A.7.&nbsp;Version 2.1.1-beta, 20 feb 2013</h2></div></div></div>
-<h3><a name="idp33693552"></a>Major new features</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added query profiling (SET PROFILING=1 and <a class="link" href="#sphinxql-show-profile" title="7.29.&nbsp;SHOW PROFILE syntax">SHOW PROFILE</a> statements)</p></li>
+<h3><a name="idp8573152"></a>Major new features</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added query profiling (SET PROFILING=1 and <a class="link" href="#sphinxql-show-profile" title="7.29.&nbsp;SHOW PROFILE syntax">SHOW PROFILE</a> statements)</p></li>
 <li class="listitem"><p>added AOT-based Russian lemmatizer (<a class="link" href="#conf-morphology" title="11.2.6.&nbsp;morphology">morphology={lemmatize_ru | lemmatize_ru_all}</a>, <a class="link" href="#conf-lemmatizer-base" title="11.3.8.&nbsp;lemmatizer_base">lemmatizer_base</a>, and <a class="link" href="#conf-lemmatizer-cache" title="11.3.9.&nbsp;lemmatizer_cache">lemmatizer_cache</a> directives)</p></li>
 <li class="listitem"><p>added <a class="link" href="#ref-wordbreaker" title="6.6.&nbsp;wordbreaker command reference">wordbreaker</a>, a tool to split compounds into individual words</p></li>
 <li class="listitem"><p>added JSON attributes support (<a class="link" href="#conf-sql-attr-json" title="11.1.28.&nbsp;sql_attr_json">sql_attr_json</a>, <a class="link" href="#conf-on-json-attr-error" title="11.1.10.&nbsp;on_json_attr_error">on_json_attr_error</a>, <a class="link" href="#conf-json-autoconv-numbers" title="11.1.8.&nbsp;json_autoconv_numbers">json_autoconv_numbers</a>, <a class="link" href="#conf-json-autoconv-keynames" title="11.1.9.&nbsp;json_autoconv_keynames">json_autoconv_keynames</a> directives)</p></li>
@@ -11537,7 +11537,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>added wildcards support to <a class="link" href="#conf-dict" title="11.2.7.&nbsp;dict">dict=keywords</a> (eg. "t?st*")</p></li>
 <li class="listitem"><p>added substring search support (min_infix_len=2 and above) to <a class="link" href="#conf-dict" title="11.2.7.&nbsp;dict">dict=keywords</a></p></li>
 </ul></div>
-<h3><a name="idp33713824"></a>New features</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added --checkconfig switch to <a class="link" href="#ref-indextool" title="6.5.&nbsp;indextool command reference">indextool</a> to check config file for correctness (bug <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1395" target="_top">#1395</a>)</p></li>
+<h3><a name="idp8593296"></a>New features</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added --checkconfig switch to <a class="link" href="#ref-indextool" title="6.5.&nbsp;indextool command reference">indextool</a> to check config file for correctness (bug <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1395" target="_top">#1395</a>)</p></li>
 <li class="listitem"><p>added global IDF support (<a class="link" href="#conf-global-idf" title="11.2.69.&nbsp;global_idf">global_idf</a> directive, <a class="link" href="#sphinxql-select" title="7.1.&nbsp;SELECT syntax">OPTION global_idf</a>)</p></li>
 <li class="listitem"><p>added "term1 term2 term3"/0.5 <a class="link" href="#extended-syntax" title="5.3.&nbsp;Extended query syntax">quorum fraction syntax</a> (bug <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1372" target="_top">#1372</a>)</p></li>
 <li class="listitem"><p>added an option to apply stopwords before morphology, <a class="link" href="#conf-stopwords-unstemmed" title="11.2.68.&nbsp;stopwords_unstemmed">stopwords_unstemmed</a> directive</p></li>
@@ -11569,7 +11569,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>added support for upto 255 keywords in <a class="link" href="#extended-syntax" title="5.3.&nbsp;Extended query syntax">quorum operator</a> (bug <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1030" target="_top">#1030</a>)</p></li>
 <li class="listitem"><p>added multi-threaded agent querying (bug <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1000" target="_top">#1000</a>)</p></li>
 </ul></div>
-<h3><a name="idp33767088"></a>New SphinxQL features</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added <a class="link" href="#sphinxql-show-index-status" title="7.30.&nbsp;SHOW INDEX STATUS syntax">SHOW INDEX indexname STATUS</a> statement</p></li>
+<h3><a name="idp8646496"></a>New SphinxQL features</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added <a class="link" href="#sphinxql-show-index-status" title="7.30.&nbsp;SHOW INDEX STATUS syntax">SHOW INDEX indexname STATUS</a> statement</p></li>
 <li class="listitem"><p>added LIKE clause support to multiple SHOW xxx statements</p></li>
 <li class="listitem"><p>added <a class="link" href="#sphinxql-select" title="7.1.&nbsp;SELECT syntax">SNIPPET()</a> function</p></li>
 <li class="listitem"><p>added <a class="link" href="#sphinxql-select" title="7.1.&nbsp;SELECT syntax">GROUP_CONCAT()</a> aggregate function</p></li>
@@ -11580,7 +11580,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>added <a class="link" href="#sphinxql-show-variables" title="7.20.&nbsp;SHOW VARIABLES syntax">SHOW VARIABLES WHERE variable_name='xxx'</a> syntax</p></li>
 <li class="listitem"><p>added <a class="link" href="#sphinxql-truncate-rtindex" title="7.27.&nbsp;TRUNCATE RTINDEX syntax">TRUNCATE RTINDEX</a> statement</p></li>
 </ul></div>
-<h3><a name="idp33783008"></a>Major behavior changes and optimizations</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>changed that UDFs are now allowed in fork/prefork modes via <a class="link" href="#conf-sphinxql-state" title="11.4.44.&nbsp;sphinxql_state">sphinxql_state</a> startup script</p></li>
+<h3><a name="idp8662416"></a>Major behavior changes and optimizations</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>changed that UDFs are now allowed in fork/prefork modes via <a class="link" href="#conf-sphinxql-state" title="11.4.44.&nbsp;sphinxql_state">sphinxql_state</a> startup script</p></li>
 <li class="listitem"><p>changed that <a class="link" href="#conf-compat-sphinxql-magics" title="11.4.41.&nbsp;compat_sphinxql_magics">compat_sphinxql_magics</a> now defaults to 0</p></li>
 <li class="listitem"><p>changed that small enough exceptions, wordforms, stopwords files are now embedded into the index header</p></li>
 <li class="listitem"><p>changed that <a class="link" href="#conf-rt-mem-limit" title="11.2.52.&nbsp;rt_mem_limit">rt_mem_limit</a> can now be over 2 GB (bug <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1059" target="_top">#1059</a>)</p></li>
@@ -11589,9 +11589,9 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>optimized filtering and scan in several frequent cases (single-value, 2-arg, 3-arg WHERE clauses)</p></li>
 </ul></div></div>
 <div class="sect1" title="A.8.&nbsp;Version 2.0.11-dev, xx xxx xxxx"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="rel2011"></a>A.8.&nbsp;Version 2.0.11-dev, xx xxx xxxx</h2></div></div></div>
-<h3><a name="idp33792320"></a>Bug fixes</h3></div>
+<h3><a name="idp8671760"></a>Bug fixes</h3></div>
 <div class="sect1" title="A.9.&nbsp;Version 2.0.10-release, 22 jan 2014"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="rel2010"></a>A.9.&nbsp;Version 2.0.10-release, 22 jan 2014</h2></div></div></div>
-<h3><a name="idp33793936"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1778" target="_top">#1778</a>, <a class="link" href="#extended-syntax" title="5.3.&nbsp;Extended query syntax">SENTENCE and PARAGRAPH</a> operators and infix stars clash</p></li>
+<h3><a name="idp8673232"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1778" target="_top">#1778</a>, <a class="link" href="#extended-syntax" title="5.3.&nbsp;Extended query syntax">SENTENCE and PARAGRAPH</a> operators and infix stars clash</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1774" target="_top">#1774</a>, stack overflow on parsing large expressions</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1744" target="_top">#1744</a>, daemon failed to write to log file bigger than 4G</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1705" target="_top">#1705</a>, expression ranker handling of indexes with more than 32 fields</p></li>
@@ -11607,7 +11607,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>fixed <a class="link" href="#conf-rt-flush-period" title="11.4.38.&nbsp;rt_flush_period">rt_flush_period</a> - less stricter internal check and more often flushes overall</p></li>
 </ul></div></div>
 <div class="sect1" title="A.10.&nbsp;Version 2.0.9-release, 26 aug 2013"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="rel209"></a>A.10.&nbsp;Version 2.0.9-release, 26 aug 2013</h2></div></div></div>
-<h3><a name="idp33818608"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1655" target="_top">#1655</a>, special characters like ()?* were not processed correctly by exceptions</p></li>
+<h3><a name="idp8697936"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1655" target="_top">#1655</a>, special characters like ()?* were not processed correctly by exceptions</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1651" target="_top">#1651</a>, <a class="link" href="#sphinxql-create-function" title="7.18.&nbsp;CREATE FUNCTION syntax">CREATE FUNCTION</a> can now be used with BIGINT return type</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1649" target="_top">#1649</a>, incorrect warning message (about statistics mismatch) was returned when mixing wildcards and regular keywords</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1603" target="_top">#1603</a>, passing MVA64 arguments to non-MVA functions caused unpredicted behaviour and crashes (now explicitly forbidden)</p></li>
@@ -11630,7 +11630,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>added a warning for missed stopwords, exception, wordforms files on index load and in <code class="filename">indextool --check</code></p></li>
 </ul></div></div>
 <div class="sect1" title="A.11.&nbsp;Version 2.0.8-release, 26 apr 2013"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="rel208"></a>A.11.&nbsp;Version 2.0.8-release, 26 apr 2013</h2></div></div></div>
-<h3><a name="idp33855152"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1515" target="_top">#1515</a>, log strings over 2KB were clipped when <a class="link" href="#conf-query-log-format" title="11.4.6.&nbsp;query_log_format">query_log_format=plain</a></p></li>
+<h3><a name="idp8734448"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1515" target="_top">#1515</a>, log strings over 2KB were clipped when <a class="link" href="#conf-query-log-format" title="11.4.6.&nbsp;query_log_format">query_log_format=plain</a></p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1514" target="_top">#1514</a>, RT index disk chunk lose attribute update on daemon restart</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1512" target="_top">#1512</a>, crash while formatting log messages</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1511" target="_top">#1511</a>, crash on indexing PostgreSQL data source with <a class="link" href="#mva" title="3.4.&nbsp;MVA (multi-valued attributes)">MVA</a> attributes</p></li>
@@ -11652,7 +11652,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1405" target="_top">#1405</a>, between with mixed int float values</p></li>
 </ul></div></div>
 <div class="sect1" title="A.12.&nbsp;Version 2.0.7-release, 26 mar 2013"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="rel207"></a>A.12.&nbsp;Version 2.0.7-release, 26 mar 2013</h2></div></div></div>
-<h3><a name="idp33890736"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1475" target="_top">#1475</a>, memory leak in the expression parser</p></li>
+<h3><a name="idp8769856"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1475" target="_top">#1475</a>, memory leak in the expression parser</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1457" target="_top">#1457</a>, error messages over 2KB were clipped</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1454" target="_top">#1454</a>, searchd did not display an error message when the binlog path did not exist</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1441" target="_top">#1441</a>, SHOW META in a query batch was returning the last non-batch error</p></li>
@@ -11703,7 +11703,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>added more debug info about failed index loading</p></li>
 </ul></div></div>
 <div class="sect1" title="A.13.&nbsp;Version 2.0.6-release, 22 oct 2012"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="rel206"></a>A.13.&nbsp;Version 2.0.6-release, 22 oct 2012</h2></div></div></div>
-<h3><a name="idp33954208"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1322" target="_top">#1322</a>, J connector seems to be broken in rel20 , but works in trunk</p></li>
+<h3><a name="idp8833248"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1322" target="_top">#1322</a>, J connector seems to be broken in rel20 , but works in trunk</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1321" target="_top">#1321</a>, 'set names utf8' passes, but 'set names utf-8' doesn't because of syntax error '-'</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1318" target="_top">#1318</a>, unhandled float comparison operators at filter</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1317" target="_top">#1317</a>, FD leaks on thread seamless rotation</p></li>
@@ -11757,7 +11757,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>fixed x64 configurations for libstemmer</p></li>
 </ul></div></div>
 <div class="sect1" title="A.14.&nbsp;Version 2.0.5-release, 28 jul 2012"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="rel205"></a>A.14.&nbsp;Version 2.0.5-release, 28 jul 2012</h2></div></div></div>
-<h3><a name="idp34041408"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1258" target="_top">#1258</a>, <code class="code">xmlpipe2</code> refused to index indexes with <code class="code">docinfo=inline</code></p></li>
+<h3><a name="idp8920304"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1258" target="_top">#1258</a>, <code class="code">xmlpipe2</code> refused to index indexes with <code class="code">docinfo=inline</code></p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1257" target="_top">#1257</a>, legacy groupby modes vs <code class="code">dist_threads</code> could occasionally return wrong search results (race condition)</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1253" target="_top">#1253</a>, missing single-word query performance optimization (simplified ranker) vs prefix-expanded keywords vs <code class="code">dict=keywords</code></p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1252" target="_top">#1252</a>, COUNT(*) vs <a class="link" href="#conf-dist-threads" title="11.4.29.&nbsp;dist_threads">dist_threads</a> could occasionally crash (race condition)</p></li>
@@ -11813,7 +11813,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>fixed missing command-line switches documentation</p></li>
 </ul></div></div>
 <div class="sect1" title="A.15.&nbsp;Version 2.0.4-release, 02 mar 2012"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="rel204"></a>A.15.&nbsp;Version 2.0.4-release, 02 mar 2012</h2></div></div></div>
-<h3><a name="idp34142592"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=605" target="_top">#605</a>, pack vs mysql compress</p></li>
+<h3><a name="idp9021392"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=605" target="_top">#605</a>, pack vs mysql compress</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=783" target="_top">#783</a>, #862, #917, #985, #990, #1032 documentation bugs</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=885" target="_top">#885</a>, bitwise AND/OR were not available via API</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=984" target="_top">#984</a>, crash on indexing data with MAGIC_CODE_ZONE symbol</p></li>
@@ -11849,7 +11849,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1120" target="_top">#1120</a>, negative <a class="link" href="#api-funcgroup-querying" title="8.6.&nbsp;Querying">total_found</a>, docs and hits counter on huge indexes</p></li>
 </ul></div></div>
 <div class="sect1" title="A.16.&nbsp;Version 2.0.3-release, 23 dec 2011"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="rel203"></a>A.16.&nbsp;Version 2.0.3-release, 23 dec 2011</h2></div></div></div>
-<h3><a name="idp34200928"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1031" target="_top">#1031</a>, SphinxQL parsing syntax for MVA at insert \ replace statements</p></li>
+<h3><a name="idp9079632"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1031" target="_top">#1031</a>, SphinxQL parsing syntax for MVA at insert \ replace statements</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1027" target="_top">#1027</a>, stalls on attribute update in high-concurrency load</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1026" target="_top">#1026</a>, daemon crash on malformed API command</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=1021" target="_top">#1021</a>, <code class="code">max_children</code> option has been ignored with <code class="code">worker=threads</code></p></li>
@@ -11869,7 +11869,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>fixed crash log for 'fork' and 'prefork' workers</p></li>
 </ul></div></div>
 <div class="sect1" title="A.17.&nbsp;Version 2.0.2-beta, 15 nov 2011"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="rel202"></a>A.17.&nbsp;Version 2.0.2-beta, 15 nov 2011</h2></div></div></div>
-<h3><a name="idp34230576"></a>Major new features</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added keywords dictionary (<a class="link" href="#conf-dict" title="11.2.7.&nbsp;dict"><code class="code">dict=keywords</code></a>) support to RT indexes</p></li>
+<h3><a name="idp9109184"></a>Major new features</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added keywords dictionary (<a class="link" href="#conf-dict" title="11.2.7.&nbsp;dict"><code class="code">dict=keywords</code></a>) support to RT indexes</p></li>
 <li class="listitem"><p>added <a class="link" href="#conf-rt-attr-multi" title="11.2.58.&nbsp;rt_attr_multi">MVA</a>, <a class="link" href="#conf-index-exact-words" title="11.2.45.&nbsp;index_exact_words">index_exact_words</a> support to RT indexes (#888)</p></li>
 <li class="listitem"><p>added <a class="link" href="#mva" title="3.4.&nbsp;MVA (multi-valued attributes)">MVA64</a> (a set of BIGINTs) support to both disk and RT indexes (<a class="link" href="#conf-rt-attr-multi-64" title="11.2.59.&nbsp;rt_attr_multi_64">rt_attr_multi_64</a> directive)</p></li>
 <li class="listitem"><p>added an <a class="link" href="#expression-ranker" title="5.4.&nbsp;Expression based ranker (SPH_RANK_EXPR)">expression-based ranker</a>, and a number of new ranking factors</p></li>
@@ -11877,7 +11877,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>added <code class="code">WHERE</code> clause support to <a class="link" href="#sphinxql-update" title="7.23.&nbsp;UPDATE syntax">UPDATE</a> statement</p></li>
 <li class="listitem"><p>added <code class="code">bigint</code>, <code class="code">float</code>, and <code class="code">MVA</code> attribute support to <a class="link" href="#sphinxql-update" title="7.23.&nbsp;UPDATE syntax">UPDATE</a> statement</p></li>
 </ul></div>
-<h3><a name="idp34244720"></a>New features</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added support for upto <a class="link" href="#fields" title="3.2.&nbsp;Full-text fields">256 searchable fields</a> (was upto 32 before)</p></li>
+<h3><a name="idp9123328"></a>New features</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added support for upto <a class="link" href="#fields" title="3.2.&nbsp;Full-text fields">256 searchable fields</a> (was upto 32 before)</p></li>
 <li class="listitem"><p>added <a class="link" href="#expr-func-fibonacci"><code class="code">FIBONACCI()</code></a> function to <a class="link" href="#expressions" title="5.5.&nbsp;Expressions, functions, and operators">expressions</a></p></li>
 <li class="listitem"><p>added <a class="link" href="#api-func-buildexcerpts" title="8.7.1.&nbsp;BuildExcerpts">load_files_scattered option</a> to snippets</p></li>
 <li class="listitem"><p>added implicit attribute type promotions in multi-index result sets (#939)</p></li>
@@ -11898,7 +11898,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>improved <a class="link" href="#conf-index-sp" title="11.2.8.&nbsp;index_sp">sentence extraction</a> (handles salutations, starting initials better now)</p></li>
 <li class="listitem"><p>changed <a class="link" href="#conf-max-filter-values" title="11.4.21.&nbsp;max_filter_values">max_filter_values</a> sanity check to 10M values</p></li>
 </ul></div>
-<h3><a name="idp34273152"></a>New SphinxQL features</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added <a class="link" href="#sphinxql-flush-rtindex" title="7.25.&nbsp;FLUSH RTINDEX syntax">FLUSH RTINDEX</a> statement</p></li>
+<h3><a name="idp9151696"></a>New SphinxQL features</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added <a class="link" href="#sphinxql-flush-rtindex" title="7.25.&nbsp;FLUSH RTINDEX syntax">FLUSH RTINDEX</a> statement</p></li>
 <li class="listitem"><p>added <code class="code">dist_threads</code> directive (parallel processing), <code class="code">load_files</code>, <code class="code">load_files_scattered</code>, batch syntax (multiple documents) support to <a class="link" href="#sphinxql-call-snippets" title="7.14.&nbsp;CALL SNIPPETS syntax">CALL SNIPPETS</a> statement</p></li>
 <li class="listitem"><p>added <code class="code">OPTION comment='...'</code> support to <a class="link" href="#sphinxql-select" title="7.1.&nbsp;SELECT syntax">SELECT</a> statement (#944)</p></li>
 <li class="listitem"><p>added <a class="link" href="#sphinxql-show-variables" title="7.20.&nbsp;SHOW VARIABLES syntax">SHOW VARIABLES</a> statement</p></li>
@@ -11906,7 +11906,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>added complete <a class="link" href="#sphinxql-log-format" title="5.9.2.&nbsp;SphinxQL log format">SphinxQL error logging</a> (all errors are logged now, not just <code class="code">SELECT</code>s)</p></li>
 <li class="listitem"><p>improved <a class="link" href="#sphinxql-select" title="7.1.&nbsp;SELECT syntax">SELECT</a> statement syntax, made expressions aliases optional</p></li>
 </ul></div>
-<h3><a name="idp34289568"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=982" target="_top">#982</a>, empty binlogs prevented upgraded daemon from starting up</p></li>
+<h3><a name="idp9168080"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=982" target="_top">#982</a>, empty binlogs prevented upgraded daemon from starting up</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=978" target="_top">#978</a>, libsphinxclient build failed on sparc/sparc64 solaris</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=977" target="_top">#977</a>, eliminated (most) compiler warnings</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=969" target="_top">#969</a>, broken expression MVA/string argument type check prevented IF(IN(mva..)) and other valid expressions from working</p></li>
@@ -11974,7 +11974,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>fixed that field/zone conditions were not propagated to expanded keywords with <code class="code">dict=keywords</code></p></li>
 </ul></div></div>
 <div class="sect1" title="A.18.&nbsp;Version 2.0.1-beta, 22 apr 2011"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="rel201"></a>A.18.&nbsp;Version 2.0.1-beta, 22 apr 2011</h2></div></div></div>
-<h3><a name="idp34373328"></a>New general features</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added remapping support to <a class="link" href="#conf-blend-chars" title="11.2.50.&nbsp;blend_chars">blend_chars</a> directive</p></li>
+<h3><a name="idp9251856"></a>New general features</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added remapping support to <a class="link" href="#conf-blend-chars" title="11.2.50.&nbsp;blend_chars">blend_chars</a> directive</p></li>
 <li class="listitem"><p>added multi-threaded snippet batches support (requires a batch sent via API, <a class="link" href="#conf-dist-threads" title="11.4.29.&nbsp;dist_threads">dist_threads</a>, and <code class="code">load_files</code>)</p></li>
 <li class="listitem"><p>added collations (<a class="link" href="#conf-collation-server" title="11.4.34.&nbsp;collation_server">collation_server</a>, <a class="link" href="#conf-collation-libc-locale" title="11.4.35.&nbsp;collation_libc_locale">collation_libc_locale directives</a>)</p></li>
 <li class="listitem"><p>added support for sorting and grouping on string attributes (<code class="code">ORDER BY</code>, <code class="code">GROUP BY</code>, <code class="code">WITHIN GROUP ORDER BY</code>)</p></li>
@@ -11995,7 +11995,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>added id32 index support in id64 binaries (EXPERIMENTAL)</p></li>
 <li class="listitem"><p>added SphinxSE support for DELETE and REPLACE on SphinxQL tables</p></li>
 </ul></div>
-<h3><a name="idp34404992"></a>New SphinxQL features</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added new, more SQL compliant SphinxQL syntax; and a <a class="link" href="#conf-compat-sphinxql-magics" title="11.4.41.&nbsp;compat_sphinxql_magics">compat_sphinxql_magics</a> directive</p></li>
+<h3><a name="idp9283776"></a>New SphinxQL features</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added new, more SQL compliant SphinxQL syntax; and a <a class="link" href="#conf-compat-sphinxql-magics" title="11.4.41.&nbsp;compat_sphinxql_magics">compat_sphinxql_magics</a> directive</p></li>
 <li class="listitem"><p>added <a class="link" href="#expr-func-crc32">CRC32()</a>, <a class="link" href="#expr-func-day">DAY()</a>, <a class="link" href="#expr-func-month">MONTH()</a>, <a class="link" href="#expr-func-year">YEAR()</a>, <a class="link" href="#expr-func-yearmonth">YEARMONTH()</a>, <a class="link" href="#expr-func-yearmonthday">YEARMONTHDAY()</a> functions</p></li>
 <li class="listitem"><p>added <a class="link" href="#expr-ari-ops">DIV, MOD, and % operators</a></p></li>
 <li class="listitem"><p>added <a class="link" href="#sphinxql-select" title="7.1.&nbsp;SELECT syntax">reverse_scan=(0|1)</a> option to SELECT</p></li>
@@ -12009,19 +12009,19 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>added <a class="link" href="#sphinxql-multi-queries" title="7.33.&nbsp;Multi-statement queries">SphinxQL multi-query support</a></p></li>
 <li class="listitem"><p>added <a class="link" href="#sphinxql-describe" title="7.17.&nbsp;DESCRIBE syntax">DESCRIBE</a>, <a class="link" href="#sphinxql-show-tables" title="7.16.&nbsp;SHOW TABLES syntax">SHOW TABLES</a> statements</p></li>
 </ul></div>
-<h3><a name="idp34426864"></a>New command-line switches</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added <code class="code">--print-queries</code> switch to <code class="filename">indexer</code> that dumps SQL queries it runs</p></li>
+<h3><a name="idp9305520"></a>New command-line switches</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added <code class="code">--print-queries</code> switch to <code class="filename">indexer</code> that dumps SQL queries it runs</p></li>
 <li class="listitem"><p>added <code class="code">--sighup-each </code> switch to <code class="filename">indexer</code> that rotates indexes one by one</p></li>
 <li class="listitem"><p>added <code class="code">--strip-path</code> switch to <code class="filename">searchd</code> that skips file paths embedded in the index(-es)</p></li>
 <li class="listitem"><p>added <code class="code">--dumpconfig</code> switch to <code class="filename">indextool</code> that dumps an index header in <code class="filename">sphinx.conf</code> format</p></li>
 </ul></div>
-<h3><a name="idp34435328"></a>Major changes and optimizations</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>changed default preopen_indexes value to 1</p></li>
+<h3><a name="idp9313984"></a>Major changes and optimizations</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>changed default preopen_indexes value to 1</p></li>
 <li class="listitem"><p>optimized English stemmer (results in 1.3x faster snippets and indexing with morphology=stem_en)</p></li>
 <li class="listitem"><p>optimized snippets, 1.6x general speedup</p></li>
 <li class="listitem"><p>optimized const-list parsing in SphinxQL</p></li>
 <li class="listitem"><p>optimized full-document highlighting CPU/RAM use</p></li>
 <li class="listitem"><p>optimized binlog replay (improved performance on K-list update)</p></li>
 </ul></div>
-<h3><a name="idp34439664"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=767" target="_top">#767</a>, joined fields vs ODBC sources</p></li>
+<h3><a name="idp9318320"></a>Bug fixes</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=767" target="_top">#767</a>, joined fields vs ODBC sources</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=757" target="_top">#757</a>, wordforms shared by indexes with different settings</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=733" target="_top">#733</a>, loading of indexes in formats prior to v.14</p></li>
 <li class="listitem"><p>fixed <a class="ulink" href="http://sphinxsearch.com/bugs/view.php?id=763" target="_top">#763</a>, occasional snippets failures</p></li>
@@ -12374,7 +12374,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>fixed default ID range (that filtered out all 64-bit values) in Java and Python APIs</p></li>
 </ul></div></div>
 <div class="sect1" title="A.24.&nbsp;Version 0.9.8, 14 jul 2008"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="rel098"></a>A.24.&nbsp;Version 0.9.8, 14 jul 2008</h2></div></div></div>
-<h3><a name="idp34793872"></a>Indexing</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added support for 64-bit document and keyword IDs, --enable-id64 switch to configure</p></li>
+<h3><a name="idp9671856"></a>Indexing</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added support for 64-bit document and keyword IDs, --enable-id64 switch to configure</p></li>
 <li class="listitem"><p>added support for floating point attributes</p></li>
 <li class="listitem"><p>added support for bitfields in attributes, <a class="link" href="#conf-sql-attr-bool" title="11.1.21.&nbsp;sql_attr_bool">sql_attr_bool</a> directive and bit-widths part in <a class="link" href="#conf-sql-attr-uint" title="11.1.20.&nbsp;sql_attr_uint">sql_attr_uint</a> directive</p></li>
 <li class="listitem"><p>added support for multi-valued attributes (MVA)</p></li>
@@ -12396,7 +12396,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>improved ordinals sorting; now runs in fixed RAM</p></li>
 <li class="listitem"><p>improved handling of documents with zero/NULL ids, now skipping them instead of aborting</p></li>
 </ul></div>
-<h3><a name="idp34822208"></a>Search daemon</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added an option to unlink old index on succesful rotation, <a class="link" href="#conf-unlink-old" title="11.4.14.&nbsp;unlink_old">unlink_old</a> directive</p></li>
+<h3><a name="idp9700128"></a>Search daemon</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added an option to unlink old index on succesful rotation, <a class="link" href="#conf-unlink-old" title="11.4.14.&nbsp;unlink_old">unlink_old</a> directive</p></li>
 <li class="listitem"><p>added an option to keep index files open at all times (fixes subtle races on rotation), <a class="link" href="#conf-preopen" title="11.2.38.&nbsp;preopen">preopen</a> and <a class="link" href="#conf-preopen-indexes" title="11.4.13.&nbsp;preopen_indexes">preopen_indexes</a> directives</p></li>
 <li class="listitem"><p>added an option to profile searchd disk I/O, --iostats command-line option</p></li>
 <li class="listitem"><p>added an option to rotate index seamlessly (fully avoids query stalls), <a class="link" href="#conf-seamless-rotate" title="11.4.12.&nbsp;seamless_rotate">seamless_rotate</a> directive</p></li>
@@ -12410,7 +12410,7 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>added Windows --rotate support</p></li>
 <li class="listitem"><p>improved log timestamping, now with millisecond precision</p></li>
 </ul></div>
-<h3><a name="idp34834896"></a>Querying</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added extended engine V2 (faster, cleaner, better; SPH_MATCH_EXTENDED2 mode)</p></li>
+<h3><a name="idp9712944"></a>Querying</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added extended engine V2 (faster, cleaner, better; SPH_MATCH_EXTENDED2 mode)</p></li>
 <li class="listitem"><p>added ranking modes support (V2 engine only; <a class="link" href="#api-func-setrankingmode" title="8.3.2.&nbsp;SetRankingMode">SetRankingMode()</a> API call)</p></li>
 <li class="listitem"><p>added quorum searching support to query language (V2 engine only; example: "any three of all these words"/3)</p></li>
 <li class="listitem"><p>added query escaping support to query language, and <a class="link" href="#api-func-escapestring" title="8.7.4.&nbsp;EscapeString">EscapeString()</a> API call</p></li>
@@ -12431,14 +12431,14 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 <li class="listitem"><p>added optional limit on query time, <a class="link" href="#api-func-setmaxquerytime" title="8.2.2.&nbsp;SetMaxQueryTime">SetMaxQueryTime()</a> API call</p></li>
 <li class="listitem"><p>added optional limit on found matches count (4rd arg to <a class="link" href="#api-func-setlimits" title="8.2.1.&nbsp;SetLimits">SetLimits()</a> API call, so-called 'cutoff')</p></li>
 </ul></div>
-<h3><a name="idp34858624"></a>APIs and SphinxSE</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added pure C API (libsphinxclient)</p></li>
+<h3><a name="idp9736672"></a>APIs and SphinxSE</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added pure C API (libsphinxclient)</p></li>
 <li class="listitem"><p>added Ruby API (thanks to Dmytro Shteflyuk)</p></li>
 <li class="listitem"><p>added Java API</p></li>
 <li class="listitem"><p>added SphinxSE support for MVAs (use varchar), floats (use float), 64bit docids (use bigint)</p></li>
 <li class="listitem"><p>added SphinxSE options "floatrange", "geoanchor", "fieldweights", "indexweights", "maxquerytime", "comment", "host" and "port"; and support for "expr:CLAUSE"</p></li>
 <li class="listitem"><p>improved SphinxSE max query size (using MySQL condition pushdown), upto 256K now</p></li>
 </ul></div>
-<h3><a name="idp34863024"></a>General</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added scripting (shebang syntax) support to config files (example: #!/usr/bin/php in the first line)</p></li>
+<h3><a name="idp9741072"></a>General</h3><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>added scripting (shebang syntax) support to config files (example: #!/usr/bin/php in the first line)</p></li>
 <li class="listitem"><p>added unified config handling and validation to all programs</p></li>
 <li class="listitem"><p>added unified documentation </p></li>
 <li class="listitem"><p>added .spec file for RPM builds</p></li>
