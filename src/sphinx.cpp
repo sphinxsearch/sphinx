@@ -14756,6 +14756,8 @@ void CSphIndex_VLN::Dealloc ()
 	m_tSettings.m_eDocinfo = SPH_DOCINFO_NONE;
 
 	m_bPreallocated = false;
+	SafeDelete ( m_pFieldFilter );
+	SafeDelete ( m_pQueryTokenizer );
 	SafeDelete ( m_pTokenizer );
 	SafeDelete ( m_pDict );
 
