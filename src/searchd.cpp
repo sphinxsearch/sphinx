@@ -16614,6 +16614,7 @@ bool RotateIndexGreedy ( ServedIndex_t & tIndex, const char * sIndex )
 	}
 	sphLogDebug ( "RotateIndexGreedy: new index is readable" );
 
+	bool bNoMVP = true;
 	if ( !tIndex.m_bOnlyNew )
 	{
 		// rename current to old
@@ -16639,7 +16640,7 @@ bool RotateIndexGreedy ( ServedIndex_t & tIndex, const char * sIndex )
 
 			CSphString sFakeError;
 			CSphAutofile fdTest ( sBuf, SPH_O_READ, sFakeError );
-			bool bNoMVP = ( fdTest.GetFD()<0 );
+			bNoMVP = ( fdTest.GetFD()<0 );
 			fdTest.Close();
 			if ( bNoMVP )
 				break; ///< no file, nothing to hold
@@ -16668,8 +16669,13 @@ bool RotateIndexGreedy ( ServedIndex_t & tIndex, const char * sIndex )
 
 		// rollback old ones
 		if ( !tIndex.m_bOnlyNew )
-			for ( int j=0; j<=sphGetExtCount ( uVersion ); j++ ) ///< <=, not <, since we have the .mvp at the end of these lists
+		{
+			for ( int j=0; j<sphGetExtCount ( uVersion ); j++ )
 				TryRename ( sIndex, sPath, sphGetExts ( SPH_EXT_OLD, uVersion )[j], sphGetExts ( SPH_EXT_CUR, uVersion )[j], true );
+
+			if ( !bNoMVP )
+				TryRename ( sIndex, sPath, sphGetOldMvp(), sphGetCurMvp(), true );
+		}
 
 		return false;
 	}
