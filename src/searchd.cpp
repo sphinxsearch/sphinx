@@ -14089,6 +14089,7 @@ void HandleMysqlInsert ( SqlRowBuffer_c & tOut, const SqlStmt_t & tStmt,
 	// fire exit
 	if ( !sError.IsEmpty() )
 	{
+		pIndex->RollBack(); // clean up collected data
 		pServed->Unlock();
 		tOut.Error ( tStmt.m_sStmt, sError.cstr() );
 		return;
