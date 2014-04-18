@@ -2049,7 +2049,7 @@ ExtNode_i * ExtNode_i::Create ( const XQNode_t * pNode, const ISphQwordSetup & t
 				default:					assert ( 0 && "internal error: unhandled op in ExtNode_i::Create()" ); break;
 			}
 		}
-		if ( pNode->GetCount() )
+		if ( pCur && pNode->GetCount() )
 			return tSetup.m_pNodeCache->CreateProxy ( pCur, pNode, tSetup );
 		return pCur;
 	}
