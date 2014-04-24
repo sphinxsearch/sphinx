@@ -13454,6 +13454,20 @@ predicted_time_costs = doc=128, hit=96, skip=4096, match=128
 
 <appendix id="changelog"><title>Sphinx revision history</title>
 
+<sect1 id="rel218"><title>Version 2.1.8-release, ?? apr 2014</title>
+<bridgehead>Bug fixes</bridgehead>
+<itemizedlist>
+  <listitem><para>fixed #1923, crash at indexer with dict=keywords</para></listitem>
+  <listitem><para>fixed #1878, daemon doesn't reset regexp_filter after rotation with seamless_rotate=0</para></listitem>
+  <listitem><para>fixed #1932, fixed daemon index recovery after failed rotatioin</para></listitem>
+  <listitem><para>fixed #1933, quorum operator works incorrectly if it's number is exception</para></listitem>
+  <listitem><para>fixed #1918, fixed crash while hitless words are used within fulltext operators which require hits</para></listitem>
+  <listitem><para>fixed #1769, crash after unsuccessfull INSERT at RT index</para></listitem>
+  <listitem><para>fixed #1937, crash at SENTENCE operator</para></listitem>
+  <listitem><para>fixed #1682, field end modifier doesn't work with words cotaining blended chars</para></listitem>
+</itemizedlist>
+</sect1>
+
 <sect1 id="rel217"><title>Version 2.1.7-release, 30 mar 2014</title>
 <bridgehead>Bug fixes</bridgehead>
 <itemizedlist>
