@@ -358,6 +358,10 @@ index distlfake
 <!-- same, not using deprecated syntax -->
 <sphinxql>select gr, groupby(), count(*) from dist_no group by gr</sphinxql>
 
+<!-- regression weight as expression at distributed -->
+<sphinxql>select id, weight() * 11 as w from dist50</sphinxql>
+<sphinxql>SHOW META</sphinxql>
+
 </sphqueries>
 
 <db_create>
