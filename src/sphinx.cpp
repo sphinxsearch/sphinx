@@ -4223,6 +4223,8 @@ BYTE * CSphTokenizerBase2<IS_UTF8>::GetTokenSyn ( bool bQueryMode )
 	{
 		// initialize accumulators and range
 		BYTE * pFirstSeparator = NULL;
+		bool bWasEscaped = false;
+		BYTE * pLastEscape = NULL;
 
 		m_iAccum = 0;
 		m_pAccum = m_sAccum;
@@ -4279,6 +4281,7 @@ BYTE * CSphTokenizerBase2<IS_UTF8>::GetTokenSyn ( bool bQueryMode )
 			{
 				if ( iCode=='\\' && iLastCodepoint!='\\' )
 				{
+					pLastEscape = pCur;
 					iLastCodepoint = iCode;
 					continue;
 				} else if ( iLastCodepoint=='\\' && ( iFolded & FLAG_CODEPOINT_SYNONYM ) && ( iFolded & FLAG_CODEPOINT_SPECIAL ) )
@@ -4291,6 +4294,7 @@ BYTE * CSphTokenizerBase2<IS_UTF8>::GetTokenSyn ( bool bQueryMode )
 					continue;
 				}
 
+				bWasEscaped = ( iLastCodepoint=='\\' );
 				iLastCodepoint = iCode;
 			}
 
@@ -4585,8 +4589,9 @@ BYTE * CSphTokenizerBase2<IS_UTF8>::GetTokenSyn ( bool bQueryMode )
 			}
 		} else
 		{
+			assert ( !bWasEscaped || pLastEscape );
 			// if there was, token is ready but we should restart from that separator
-			m_pCur = pFirstSeparator;
+			m_pCur = ( bWasEscaped ? pLastEscape : pFirstSeparator );
 			pCur = m_pCur;
 		}
 
