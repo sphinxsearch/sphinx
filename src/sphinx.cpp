@@ -23073,12 +23073,32 @@ void CSphHTMLStripper::Strip ( BYTE * sData ) const
 		{
 			if ( s[1]=='#' )
 			{
-				// handle "&#number;" form
+				// handle "&#number;" and "&#xnumber;" forms
 				DWORD uCode = 0;
 				s += 2;
-				while ( isdigit(*s) )
-					uCode = uCode*10 + (*s++) - '0';
-				uCode %= 0x110000; // NOLINT there is no unicode codepoints bigger than this value
+
+				bool bHex = ( *s && ( *s=='x' || *s=='X') );
+				if ( !bHex )
+				{
+					while ( isdigit(*s) )
+						uCode = uCode*10 + (*s++) - '0';
+				} else
+				{
+					s++;
+					while ( *s )
+					{
+						if ( isdigit(*s) )
+							uCode = uCode*16 + (*s++) - '0';
+						else if ( *s>=0x41 && *s<=0x46 )
+							uCode = uCode*16 + (*s++) - 'A';
+						else if ( *s>=0x61 && *s<=0x66 )
+							uCode = uCode*16 + (*s++) - 'a';
+						else
+							break;
+					}
+				}
+
+				uCode = uCode % 0x110000; // there is no uniode codepoints bigger than this value
 
 				if ( uCode<=0x1f || *s!=';' ) // 0-31 are reserved codes
 					continue;
