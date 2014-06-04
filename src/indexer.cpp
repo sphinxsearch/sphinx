@@ -921,19 +921,6 @@ bool DoIndex ( const CSphConfigSection & hIndex, const char * sIndexName,
 	CSphDictSettings tDictSettings;
 	sphConfDictionary ( hIndex, tDictSettings );
 
-	bool bNeedExact = ( !tDictSettings.m_sMorphology.IsEmpty() || tDictSettings.m_dWordforms.GetLength() );
-	if ( tSettings.m_bIndexExactWords && !bNeedExact )
-	{
-		tSettings.m_bIndexExactWords = false;
-		fprintf ( stdout, "WARNING: index '%s': no morphology or wordforms, index_exact_words=1 has no effect, ignoring\n", sIndexName );
-	}
-
-	if ( tDictSettings.m_bWordDict && !tDictSettings.m_sMorphology.IsEmpty() && ( tSettings.m_iMinPrefixLen || tSettings.m_iMinInfixLen ) && !tSettings.m_bIndexExactWords )
-	{
-		tSettings.m_bIndexExactWords = true;
-		fprintf ( stdout, "WARNING: index '%s': dict=keywords and prefixes and morphology enabled, forcing index_exact_words=1\n", sIndexName );
-	}
-
 	ISphTokenizer * pTokenizer = ISphTokenizer::Create ( tTokSettings, NULL, sError );
 	if ( !pTokenizer )
 		sphDie ( "index '%s': %s", sIndexName, sError.cstr() );
@@ -969,6 +956,19 @@ bool DoIndex ( const CSphConfigSection & hIndex, const char * sIndexName,
 			: sphCreateDictionaryCRC ( tDictSettings, NULL, pTokenizer, sIndexName, sError );
 		if ( !pDict )
 			sphDie ( "index '%s': %s", sIndexName, sError.cstr() );
+
+		bool bNeedExact = ( pDict->HasMorphology() || pDict->GetWordformsFileInfos().GetLength() );
+		if ( tSettings.m_bIndexExactWords && !bNeedExact )
+		{
+			tSettings.m_bIndexExactWords = false;
+			fprintf ( stdout, "WARNING: index '%s': no morphology or wordforms, index_exact_words=1 has no effect, ignoring\n", sIndexName );
+		}
+
+		if ( tDictSettings.m_bWordDict && pDict->HasMorphology() && ( tSettings.m_iMinPrefixLen || tSettings.m_iMinInfixLen ) && !tSettings.m_bIndexExactWords )
+		{
+			tSettings.m_bIndexExactWords = true;
+			fprintf ( stdout, "WARNING: index '%s': dict=keywords and prefixes and morphology enabled, forcing index_exact_words=1\n", sIndexName );
+		}
 
 		pTokenizer = ISphTokenizer::CreateMultiformFilter ( pTokenizer, pDict->GetMultiWordforms () );
 
