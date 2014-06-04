@@ -751,7 +751,7 @@ CSphSource * SpawnSourceXMLPipe ( const CSphConfigSection & hSource, const char 
 {
 	assert ( hSource["type"]=="xmlpipe" || hSource["type"]=="xmlpipe2" );
 
-	if (! ( hSource.Exists ( "xmlpipe_command" ) ))
+	if ( !( hSource.Exists ( "xmlpipe_command" ) ) )
 	{
 		fprintf ( stdout, "ERROR: key 'xmlpipe_command' not found in source '%s'\n", sSourceName );
 		return NULL;
@@ -918,6 +918,22 @@ bool DoIndex ( const CSphConfigSection & hIndex, const char * sIndexName,
 	if ( !sphConfTokenizer ( hIndex, tTokSettings, sError ) )
 		sphDie ( "index '%s': %s", sIndexName, sError.cstr() );
 
+	CSphDictSettings tDictSettings;
+	sphConfDictionary ( hIndex, tDictSettings );
+
+	bool bNeedExact = ( !tDictSettings.m_sMorphology.IsEmpty() || tDictSettings.m_dWordforms.GetLength() );
+	if ( tSettings.m_bIndexExactWords && !bNeedExact )
+	{
+		tSettings.m_bIndexExactWords = false;
+		fprintf ( stdout, "WARNING: index '%s': no morphology or wordforms, index_exact_words=1 has no effect, ignoring\n", sIndexName );
+	}
+
+	if ( tDictSettings.m_bWordDict && !tDictSettings.m_sMorphology.IsEmpty() && ( tSettings.m_iMinPrefixLen || tSettings.m_iMinInfixLen ) && !tSettings.m_bIndexExactWords )
+	{
+		tSettings.m_bIndexExactWords = true;
+		fprintf ( stdout, "WARNING: index '%s': dict=keywords and prefixes and morphology enabled, forcing index_exact_words=1\n", sIndexName );
+	}
+
 	ISphTokenizer * pTokenizer = ISphTokenizer::Create ( tTokSettings, NULL, sError );
 	if ( !pTokenizer )
 		sphDie ( "index '%s': %s", sIndexName, sError.cstr() );
@@ -934,13 +950,11 @@ bool DoIndex ( const CSphConfigSection & hIndex, const char * sIndexName,
 			sphDie ( "index '%s': %s", sIndexName, sError.cstr() );
 
 	CSphDict * pDict = NULL;
-	CSphDictSettings tDictSettings;
 
 	// setup filters
 	if ( !g_sBuildStops )
 	{
 		// multiforms filter
-		sphConfDictionary ( hIndex, tDictSettings );
 
 		if ( tSettings.m_bAotFilter )
 		{
@@ -1171,19 +1185,6 @@ bool DoIndex ( const CSphConfigSection & hIndex, const char * sIndexName,
 		}
 
 		tSettings.m_bVerbose = bVerbose;
-
-		bool bNeedExact = ( pDict->HasMorphology() || pDict->GetWordformsFileInfos().GetLength() );
-		if ( tSettings.m_bIndexExactWords && !bNeedExact )
-		{
-			tSettings.m_bIndexExactWords = false;
-			fprintf ( stdout, "WARNING: index '%s': no morphology or wordforms, index_exact_words=1 has no effect, ignoring\n", sIndexName );
-		}
-
-		if ( tDictSettings.m_bWordDict && pDict->HasMorphology() && ( tSettings.m_iMinPrefixLen || tSettings.m_iMinInfixLen ) && !tSettings.m_bIndexExactWords )
-		{
-			tSettings.m_bIndexExactWords = true;
-			fprintf ( stdout, "WARNING: index '%s': dict=keywords and prefixes and morphology enabled, forcing index_exact_words=1\n", sIndexName );
-		}
 
 		if ( bGotAttrs && tSettings.m_eDocinfo==SPH_DOCINFO_NONE )
 		{
