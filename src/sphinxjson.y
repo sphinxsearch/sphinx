@@ -47,7 +47,16 @@ value:
 	TOK_INT
 	| TOK_FLOAT
 	| TOK_STRING
-	| '[' string_list ']'				{ $$ = $2; }
+	| '[' opt_string_list ']'				{ $$ = $2; }
+	;
+
+opt_string_list:
+	// empty
+		{
+			$$.m_eType = JSON_STRING_VECTOR;
+			$$.m_dValue.Reset();
+		}
+	| string_list
 	;
 
 string_list:
