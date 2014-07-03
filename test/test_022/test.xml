@@ -55,6 +55,12 @@ index test_num
 <query index="test">sOMEwHATmORElONGfORMtHATwOULDoVERFLOWsHORTfORMbUFFER</query>
 <query index="test_num">s01e01</query>
 <query index="test_num">season 1 episode 1</query>
+
+<!-- regression wordform with leading number -->
+<!-- meta should match for all queries below-->
+<query index="test_num">test 1</query>
+<query index="test_num">1 test</query>
+<query index="test_num">test one</query>
 </queries>
 
 <db_create>
