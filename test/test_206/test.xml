@@ -160,6 +160,39 @@ index rt1
 	rt_attr_string = s1
 	rt_attr_json = j1
 }
+
+source json_up1
+{
+	type			= mysql
+	<sql_settings/>
+	sql_query		= SELECT 1, 'test me' t, '{"R158S": 901, "rom": 202}' j
+	sql_attr_json	= j
+}
+index json_up1
+{
+	source = json_up1
+	path=<data_path/>/json_up1
+}
+source json_up2
+{
+	type			= mysql
+	<sql_settings/>
+	sql_query		= SELECT 100, 'test me' t, '{"R158S": 100, "rom": 303}' j
+	sql_attr_json	= j
+}
+
+index json_up2
+{
+	source = json_up2
+	path=<data_path/>/json_up2
+}
+index dist_up
+{
+	type			= distributed
+	agent		= <my_address/>:json_up1
+	agent		= <my_address/>:json_up2
+}
+
 </config>
 
 <db_create>
@@ -376,6 +409,17 @@ INSERT INTO json_attr ( id, gid, json ) VALUES
 <sphinxql>select * from json_attr where json.year>=2001.0 and json.year&lt;2003.0</sphinxql>
 <sphinxql>select * from json_attr where json.year>=2000.0001 and json.year&lt;2003.0001</sphinxql>
 <sphinxql>select * from json_attr where json.year>=2000.000001 and json.year&lt;2003.000001</sphinxql>
+
+<!-- crash on query multiple indexes with order by UPPERCASE json.field -->
+<sphinxql>select * from json_up1, json_up2 order by j.R158S asc</sphinxql>
+<sphinxql>select * from json_up1, json_up2 order by j.R158S desc</sphinxql>
+<sphinxql>select * from json_up1, json_up2 order by j.rom asc</sphinxql>
+<sphinxql>select * from json_up1, json_up2 order by j.rom desc</sphinxql>
+<sphinxql>select * from dist_up order by j.R158S asc</sphinxql>
+<sphinxql>select * from dist_up order by j.R158S desc</sphinxql>
+<sphinxql>select * from dist_up order by j.rom asc</sphinxql>
+<sphinxql>select * from dist_up order by j.rom desc</sphinxql>
+
 </sphqueries>
 
 </test>
