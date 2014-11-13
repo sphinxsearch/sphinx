@@ -413,7 +413,7 @@ protected:
 };
 
 template<>
-class TermAcceptor_c<TERM_POS_FIELD_LIMIT> : protected HitPointer
+class TermAcceptor_c<TERM_POS_FIELD_LIMIT> : protected HitPointer, public ISphNoncopyable
 {
 public:
 	TermAcceptor_c ( ISphQword *, const XQNode_t * pNode, const ISphQwordSetup & )
@@ -421,12 +421,9 @@ public:
 	{}
 protected:
 	inline bool					IsAcceptableHit ( const ExtHit_t * ) const;
-	inline void					Reset()
-	{
-		m_iMaxFieldPos = 0;
-	}
+	inline void					Reset() {}
 private:
-	int							m_iMaxFieldPos;
+	const int					m_iMaxFieldPos;
 };
 
 template<>
