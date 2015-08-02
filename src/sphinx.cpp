@@ -452,7 +452,7 @@ SphOffset_t CSphAutofile::GetSize ( SphOffset_t iMinSize, bool bCheckSizeT, CSph
 	}
 	if ( st.st_size<iMinSize )
 	{
-		sError.SetSprintf ( "failed to load %s: bad size "INT64_FMT" (at least "INT64_FMT" bytes expected)",
+		sError.SetSprintf ( "failed to load %s: bad size " INT64_FMT " (at least " INT64_FMT " bytes expected)",
 			GetFilename(), (int64_t)st.st_size, (int64_t)iMinSize );
 		return -1;
 	}
@@ -461,7 +461,7 @@ SphOffset_t CSphAutofile::GetSize ( SphOffset_t iMinSize, bool bCheckSizeT, CSph
 		size_t uCheck = (size_t)st.st_size;
 		if ( st.st_size!=SphOffset_t(uCheck) )
 		{
-			sError.SetSprintf ( "failed to load %s: bad size "INT64_FMT" (out of size_t; 4 GB limit on 32-bit machine hit?)",
+			sError.SetSprintf ( "failed to load %s: bad size " INT64_FMT " (out of size_t; 4 GB limit on 32-bit machine hit?)",
 				GetFilename(), (int64_t)st.st_size );
 			return -1;
 		}
@@ -494,7 +494,7 @@ bool CSphAutofile::Read ( void * pBuf, int64_t iCount, CSphString & sError )
 			if ( errno==EINTR )
 				continue;
 
-			sError.SetSprintf ( "read error in %s (%s); "INT64_FMT" of "INT64_FMT" bytes read",
+			sError.SetSprintf ( "read error in %s (%s); " INT64_FMT " of " INT64_FMT " bytes read",
 							GetFilename(), strerror(errno), iCount-iToRead, iCount );
 			return false;
 		}
@@ -502,7 +502,7 @@ bool CSphAutofile::Read ( void * pBuf, int64_t iCount, CSphString & sError )
 		// EOF
 		if ( iGot==0 )
 		{
-			sError.SetSprintf ( "unexpected EOF in %s (%s); "INT64_FMT" of "INT64_FMT" bytes read",
+			sError.SetSprintf ( "unexpected EOF in %s (%s); " INT64_FMT " of " INT64_FMT " bytes read",
 							GetFilename(), strerror(errno), iCount-iToRead, iCount );
 			return false;
 		}
@@ -519,7 +519,7 @@ bool CSphAutofile::Read ( void * pBuf, int64_t iCount, CSphString & sError )
 
 	if ( iToRead!=0 )
 	{
-		sError.SetSprintf ( "read error in %s (%s); "INT64_FMT" of "INT64_FMT" bytes read",
+		sError.SetSprintf ( "read error in %s (%s); " INT64_FMT " of " INT64_FMT " bytes read",
 							GetFilename(), strerror(errno), iCount-iToRead, iCount );
 		return false;
 	}
@@ -7137,7 +7137,7 @@ void CSphReader::UpdateCache ()
 	{
 		m_iBuffUsed = m_iBuffPos = 0;
 		m_bError = true;
-		m_sError.SetSprintf ( "pread error in %s: pos="INT64_FMT", len=%d, code=%d, msg=%s",
+		m_sError.SetSprintf ( "pread error in %s: pos=" INT64_FMT ", len=%d, code=%d, msg=%s",
 			m_sFilename.cstr(), (int64_t)iNewPos, iReadLen, errno, strerror(errno) );
 		return;
 	}
@@ -7714,7 +7714,7 @@ int CSphBin::ReadHit ( CSphAggregateHit * pOut, int iRowitems, CSphRowitem * pRo
 						// FIXME?! move this under PARANOID or something?
 						// or just introduce an assert() checked release build?
 						if ( uDelta>=sizeof(m_sKeyword) )
-							sphDie ( "INTERNAL ERROR: corrupted keyword length (len="UINT64_FMT", deltapos="UINT64_FMT")",
+							sphDie ( "INTERNAL ERROR: corrupted keyword length (len=" UINT64_FMT ", deltapos=" UINT64_FMT ")",
 								(uint64_t)uDelta, (uint64_t)(m_iFilePos-m_iLeft) );
 #else
 						assert ( uDelta>0 && uDelta<sizeof(m_sKeyword)-1 );
@@ -8809,7 +8809,7 @@ int CSphIndex_VLN::UpdateAttributes ( const CSphAttrUpdate & tUpd, int iIndex, C
 			}
 			if ( ( tCol.m_eAttrType==SPH_ATTR_UINT32SET || tCol.m_eAttrType==SPH_ATTR_INT64SET ) && m_bArenaProhibit )
 			{
-				sError.SetSprintf ( "MVA attribute '%s' can not be updated (already so many MVA "INT64_FMT", should be less %d)",
+				sError.SetSprintf ( "MVA attribute '%s' can not be updated (already so many MVA " INT64_FMT ", should be less %d)",
 					tCol.m_sName.cstr(), m_tMva.GetNumEntries(), INT_MAX );
 				return -1;
 			}
@@ -9209,7 +9209,7 @@ bool CSphIndex_VLN::LoadPersistentMVA ( CSphString & sError )
 	}
 	if ( m_bArenaProhibit )
 	{
-		sError.SetSprintf ( "MVA update disabled (already so many MVA "INT64_FMT", should be less %d)", m_tMva.GetNumEntries(), INT_MAX );
+		sError.SetSprintf ( "MVA update disabled (already so many MVA " INT64_FMT ", should be less %d)", m_tMva.GetNumEntries(), INT_MAX );
 		return false;
 	}
 
@@ -12146,7 +12146,7 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 
 	if ( m_tStats.m_iTotalDocuments>=INT_MAX )
 	{
-		m_sLastError.SetSprintf ( "index over %d documents not supported (got documents count="INT64_FMT")", INT_MAX, m_tStats.m_iTotalDocuments );
+		m_sLastError.SetSprintf ( "index over %d documents not supported (got documents count=" INT64_FMT ")", INT_MAX, m_tStats.m_iTotalDocuments );
 		return 0;
 	}
 
@@ -12315,7 +12315,7 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 		int64_t iMinMaxSize = tMinMax.GetExpectedSize ( m_tStats.m_iTotalDocuments );
 		if ( iMinMaxSize>INT_MAX || m_tStats.m_iTotalDocuments>INT_MAX )
 		{
-			m_sLastError.SetSprintf ( "attribute files (.spa) over 128 GB are not supported (min-max approximate="INT64_FMT", documents count="INT64_FMT")",
+			m_sLastError.SetSprintf ( "attribute files (.spa) over 128 GB are not supported (min-max approximate=" INT64_FMT ", documents count=" INT64_FMT ")",
 				iMinMaxSize, m_tStats.m_iTotalDocuments );
 			return 0;
 		}
@@ -12348,7 +12348,7 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 			{
 				// dupe, report it
 				if ( m_tSettings.m_bVerbose && uLastDupe!=uLastId )
-					sphWarn ( "duplicated document id="DOCID_FMT, uLastId );
+					sphWarn ( "duplicated document id=" DOCID_FMT, uLastId );
 
 				uLastDupe = uLastId;
 				iDupes++;
@@ -12389,7 +12389,7 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 							uLastMvaOff = rdMva.GetPos()/sizeof(DWORD);
 							int iPoolOff = dMvaPool.GetLength();
 							if ( uLastMvaOff>UINT_MAX )
-								sphDie ( "MVA counter overflows "UINT64_FMT" at document "DOCID_FMT", total MVA entries "UINT64_FMT" ( try to index less documents )", uLastMvaOff, uMvaID, rdMva.GetFilesize() );
+								sphDie ( "MVA counter overflows " UINT64_FMT " at document " DOCID_FMT ", total MVA entries " UINT64_FMT " ( try to index less documents )", uLastMvaOff, uMvaID, rdMva.GetFilesize() );
 
 							sphSetRowAttr ( pAttr, dMvaLocators[i], uLastMvaOff );
 							// there is the cloned row at the beginning of MVA pool, lets skip it
@@ -12492,7 +12492,7 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 		dBins.Reset ();
 
 		if ( uLastMvaOff>INT_MAX )
-			sphWarning ( "MVA update disabled (collected MVA "INT64_FMT", should be less %d)", uLastMvaOff, INT_MAX );
+			sphWarning ( "MVA update disabled (collected MVA " INT64_FMT ", should be less %d)", uLastMvaOff, INT_MAX );
 	}
 
 	dDocinfos.Reset ( 0 );
@@ -12914,7 +12914,7 @@ static bool CopyFile ( const char * sSrc, const char * sDst, CSphString & sErrSt
 			size_t iRead = sphReadThrottled ( tSrcFile.GetFD(), dData.Begin(), iSize, pThrottle );
 			if ( iRead!=iSize )
 			{
-				sErrStr.SetSprintf ( "read error in %s; "INT64_FMT" of %d bytes read", sSrc, (int64_t)iRead, iSize );
+				sErrStr.SetSprintf ( "read error in %s; " INT64_FMT " of %d bytes read", sSrc, (int64_t)iRead, iSize );
 				break;
 			}
 
@@ -13198,7 +13198,7 @@ static bool CheckDocsCount ( int64_t iDocs, CSphString & sError )
 	if ( iDocs<INT_MAX )
 		return true;
 
-	sError.SetSprintf ( "index over %d documents not supported (got "INT64_FMT" documents)", INT_MAX, iDocs );
+	sError.SetSprintf ( "index over %d documents not supported (got " INT64_FMT " documents)", INT_MAX, iDocs );
 	return false;
 }
 
@@ -13690,9 +13690,9 @@ bool CSphIndex_VLN::DoMerge ( const CSphIndex_VLN * pDstIndex, const CSphIndex_V
 		if ( iMinMaxSize>INT_MAX || iExpectedDocs>INT_MAX )
 		{
 			if ( iMinMaxSize>INT_MAX )
-				sError.SetSprintf ( "attribute files over 128 GB are not supported (projected_minmax_size="INT64_FMT")", iMinMaxSize );
+				sError.SetSprintf ( "attribute files over 128 GB are not supported (projected_minmax_size=" INT64_FMT ")", iMinMaxSize );
 			else if ( iExpectedDocs>INT_MAX )
-				sError.SetSprintf ( "indexes over 2B docs are not supported (projected_docs="INT64_FMT")", iExpectedDocs );
+				sError.SetSprintf ( "indexes over 2B docs are not supported (projected_docs=" INT64_FMT ")", iExpectedDocs );
 			return false;
 		}
 		CSphFixedVector<DWORD> dMinMaxBuffer ( (int)iMinMaxSize );
@@ -14220,7 +14220,7 @@ bool CSphIndex_VLN::BuildDocList ( SphAttr_t ** ppDocList, int64_t * pCount, CSp
 	int64_t iSizeMax = (size_t)m_iDocinfo;
 	if ( iSizeMax!=m_iDocinfo )
 	{
-		pError->SetSprintf ( "doc-list build size_t overflow (docs count="INT64_FMT", size max="INT64_FMT")", m_iDocinfo, iSizeMax );
+		pError->SetSprintf ( "doc-list build size_t overflow (docs count=" INT64_FMT ", size max=" INT64_FMT ")", m_iDocinfo, iSizeMax );
 		return false;
 	}
 
@@ -15646,8 +15646,8 @@ void CSphIndex_VLN::DebugDumpHeader ( FILE * fp, const char * sHeaderName, bool 
 	}
 
 	// skipped min doc, wordlist checkpoints
-	fprintf ( fp, "total-documents: "INT64_FMT"\n", m_tStats.m_iTotalDocuments );
-	fprintf ( fp, "total-bytes: "INT64_FMT"\n", int64_t(m_tStats.m_iTotalBytes) );
+	fprintf ( fp, "total-documents: " INT64_FMT "\n", m_tStats.m_iTotalDocuments );
+	fprintf ( fp, "total-bytes: " INT64_FMT "\n", int64_t(m_tStats.m_iTotalBytes) );
 	fprintf ( fp, "total-duplicates: %d\n", m_iTotalDups );
 
 	fprintf ( fp, "min-prefix-len: %d\n", m_tSettings.m_iMinPrefixLen );
@@ -15693,7 +15693,7 @@ void CSphIndex_VLN::DebugDumpHeader ( FILE * fp, const char * sHeaderName, bool 
 		if ( tEmbeddedFiles.m_bEmbeddedStopwords )
 		{
 			ARRAY_FOREACH ( i, tEmbeddedFiles.m_dStopwords )
-				fprintf ( fp, "\tdictionary-embedded-stopword [%d]: "DOCID_FMT"\n", i, tEmbeddedFiles.m_dStopwords[i] );
+				fprintf ( fp, "\tdictionary-embedded-stopword [%d]: " DOCID_FMT "\n", i, tEmbeddedFiles.m_dStopwords[i] );
 		}
 
 		ARRAY_FOREACH ( i, tSettings.m_dWordforms )
@@ -15710,7 +15710,7 @@ void CSphIndex_VLN::DebugDumpHeader ( FILE * fp, const char * sHeaderName, bool 
 	}
 
 	fprintf ( fp, "killlist-size: %u\n", 0 );
-	fprintf ( fp, "min-max-index: "INT64_FMT"\n", m_iMinMaxIndex );
+	fprintf ( fp, "min-max-index: " INT64_FMT "\n", m_iMinMaxIndex );
 
 	if ( m_pFieldFilter )
 	{
@@ -15738,10 +15738,10 @@ void CSphIndex_VLN::DebugDumpDocids ( FILE * fp )
 	const int64_t iDocinfoSize = iRowStride*m_iDocinfo*sizeof(DWORD);
 	const int64_t iMinmaxSize = iNumMinMaxRow*sizeof(CSphRowitem);
 
-	fprintf ( fp, "docinfo-bytes: docinfo="INT64_FMT", min-max="INT64_FMT", total="UINT64_FMT"\n"
+	fprintf ( fp, "docinfo-bytes: docinfo=" INT64_FMT ", min-max=" INT64_FMT ", total=" UINT64_FMT "\n"
 		, iDocinfoSize, iMinmaxSize, (uint64_t)m_tAttr.GetLengthBytes() );
 	fprintf ( fp, "docinfo-stride: %d\n", (int)(iRowStride*sizeof(DWORD)) );
-	fprintf ( fp, "docinfo-rows: "INT64_FMT"\n", iNumRows );
+	fprintf ( fp, "docinfo-rows: " INT64_FMT "\n", iNumRows );
 
 	if ( !m_tAttr.GetNumEntries() )
 		return;
@@ -15749,7 +15749,7 @@ void CSphIndex_VLN::DebugDumpDocids ( FILE * fp )
 	DWORD * pDocinfo = m_tAttr.GetWritePtr();
 	for ( int64_t iRow=0; iRow<iNumRows; iRow++, pDocinfo+=iRowStride )
 		printf ( INT64_FMT". id=" DOCID_FMT "\n", iRow+1, DOCINFO2ID ( pDocinfo ) );
-	printf ( "--- min-max="INT64_FMT" ---\n", iNumMinMaxRow );
+	printf ( "--- min-max=" INT64_FMT " ---\n", iNumMinMaxRow );
 	for ( int64_t iRow=0; iRow<(m_iDocinfoIndex+1)*2; iRow++, pDocinfo+=iRowStride )
 		printf ( "id=" DOCID_FMT "\n", DOCINFO2ID ( pDocinfo ) );
 }
@@ -15781,7 +15781,7 @@ void CSphIndex_VLN::DumpHitlist ( FILE * fp, const char * sKeyword, bool bID )
 		if ( !uWordID )
 			sphDie ( "keyword=%s, tok=%s, no wordid (stopped?)", sKeyword, sTok );
 
-		fprintf ( fp, "keyword=%s, tok=%s, wordid="UINT64_FMT"\n", sKeyword, sTok, uint64_t(uWordID) );
+		fprintf ( fp, "keyword=%s, tok=%s, wordid=" UINT64_FMT "\n", sKeyword, sTok, uint64_t(uWordID) );
 
 	} else
 	{
@@ -15789,7 +15789,7 @@ void CSphIndex_VLN::DumpHitlist ( FILE * fp, const char * sKeyword, bool bID )
 		if ( !uWordID )
 			sphDie ( "failed to convert keyword=%s to id (must be integer)", sKeyword );
 
-		fprintf ( fp, "wordid="UINT64_FMT"\n", uint64_t(uWordID) );
+		fprintf ( fp, "wordid=" UINT64_FMT "\n", uint64_t(uWordID) );
 	}
 
 	// open files
@@ -15832,14 +15832,14 @@ void CSphIndex_VLN::DumpHitlist ( FILE * fp, const char * sKeyword, bool bID )
 		if ( tKeyword.m_bHasHitlist )
 			for ( Hitpos_t uHit = tKeyword.GetNextHit(); uHit!=EMPTY_HIT; uHit = tKeyword.GetNextHit() )
 			{
-				fprintf ( fp, "doc="DOCID_FMT", hit=0x%08x\n", tKeyword.m_tDoc.m_uDocID, uHit ); // FIXME?
+				fprintf ( fp, "doc=" DOCID_FMT ", hit=0x%08x\n", tKeyword.m_tDoc.m_uDocID, uHit ); // FIXME?
 				iHits++;
 			}
 
 		if ( !iHits )
 		{
 			uint64_t uOff = tKeyword.m_iHitlistPos;
-			fprintf ( fp, "doc="DOCID_FMT", NO HITS, inline=%d, off="UINT64_FMT"\n",
+			fprintf ( fp, "doc=" DOCID_FMT ", NO HITS, inline=%d, off=" UINT64_FMT "\n",
 				tKeyword.m_tDoc.m_uDocID, (int)(uOff>>63), (uOff<<1)>>1 );
 		}
 	}
@@ -15926,7 +15926,7 @@ bool CSphIndex_VLN::Prealloc ( bool bStripPath )
 		m_bIsEmpty = ( m_tWordlist.m_tBuf.GetLengthBytes()<=1 );
 
 	if ( ( m_tWordlist.m_tBuf.GetLengthBytes()<=1 )!=( m_tWordlist.m_dCheckpoints.GetLength()==0 ) )
-		sphWarning ( "wordlist size mismatch (size="INT64_FMT", checkpoints=%d)", m_tWordlist.m_tBuf.GetLengthBytes(), m_tWordlist.m_dCheckpoints.GetLength() );
+		sphWarning ( "wordlist size mismatch (size=" INT64_FMT ", checkpoints=%d)", m_tWordlist.m_tBuf.GetLengthBytes(), m_tWordlist.m_dCheckpoints.GetLength() );
 
 	// make sure checkpoints are loadable
 	// pre-11 indices use different offset type (this is fixed up later during the loading)
@@ -15960,7 +15960,7 @@ bool CSphIndex_VLN::Prealloc ( bool bStripPath )
 		if ( iDocinfoSize < iRealDocinfoSize )
 		{
 			m_sLastError.SetSprintf ( "precomputed chunk size check mismatch" );
-			sphLogDebug ( "precomputed chunk size check mismatch (size="INT64_FMT", real="INT64_FMT", min-max="INT64_FMT", count="INT64_FMT")",
+			sphLogDebug ( "precomputed chunk size check mismatch (size=" INT64_FMT ", real=" INT64_FMT ", min-max=" INT64_FMT ", count=" INT64_FMT ")",
 				iDocinfoSize, iRealDocinfoSize, m_iMinMaxIndex, m_iDocinfo );
 			return false;
 		}
@@ -15987,7 +15987,7 @@ bool CSphIndex_VLN::Prealloc ( bool bStripPath )
 			if ( m_tMva.GetNumEntries()>INT_MAX )
 			{
 				m_bArenaProhibit = true;
-				sphWarning ( "MVA update disabled (loaded MVA "INT64_FMT", should be less %d)", m_tMva.GetNumEntries(), INT_MAX );
+				sphWarning ( "MVA update disabled (loaded MVA " INT64_FMT ", should be less %d)", m_tMva.GetNumEntries(), INT_MAX );
 			}
 		}
 
@@ -19290,7 +19290,7 @@ int CSphIndex_VLN::DebugCheck ( FILE * fp )
 			// progress bar
 			if ( iRow%1000==0 && bProgress )
 			{
-				fprintf ( fp, INT64_FMT"/"INT64_FMT"\r", iRow, iRowsTotal );
+				fprintf ( fp, INT64_FMT "/" INT64_FMT "\r", iRow, iRowsTotal );
 				fflush ( fp );
 			}
 		}
@@ -19462,7 +19462,7 @@ int CSphIndex_VLN::DebugCheck ( FILE * fp )
 			// progress bar
 			if ( iIndexEntry%1000==0 && bProgress )
 			{
-				fprintf ( fp, INT64_FMT"/"INT64_FMT"\r", iIndexEntry, m_iDocinfo );
+				fprintf ( fp, INT64_FMT "/" INT64_FMT "\r", iIndexEntry, m_iDocinfo );
 				fflush ( fp );
 			}
 		}
@@ -19489,9 +19489,9 @@ int CSphIndex_VLN::DebugCheck ( FILE * fp )
 	if ( !iFails )
 		fprintf ( fp, "check passed" );
 	else if ( iFails!=iFailsPrinted )
-		fprintf ( fp, "check FAILED, %d of "INT64_FMT" failures reported", iFailsPrinted, iFails );
+		fprintf ( fp, "check FAILED, %d of " INT64_FMT " failures reported", iFailsPrinted, iFails );
 	else
-		fprintf ( fp, "check FAILED, "INT64_FMT" failures reported", iFails );
+		fprintf ( fp, "check FAILED, " INT64_FMT " failures reported", iFails );
 	fprintf ( fp, ", %d.%d sec elapsed\n", (int)(tmCheck/1000000), (int)((tmCheck/100000)%10) );
 
 	return (int)Min ( iFails, 255 ); // this is the exitcode; so cap it
@@ -21743,7 +21743,7 @@ void InfixBuilder_c<SIZE>::SaveEntries ( CSphWriter & wrDict )
 		m_dBlocks[i].m_sInfix = pBlockWords+m_dBlocks[i].m_iInfixOffset;
 
 	if ( wrDict.GetPos()>UINT_MAX ) // FIXME!!! change to int64
-		sphDie ( "INTERNAL ERROR: dictionary size "INT64_FMT" overflow at infix save", wrDict.GetPos() );
+		sphDie ( "INTERNAL ERROR: dictionary size " INT64_FMT " overflow at infix save", wrDict.GetPos() );
 }
 
 
@@ -22368,7 +22368,7 @@ bool CSphDictKeywords::DictEnd ( DictHeader_t * pHeader, int iMemLimit, CSphStri
 		pHeader->m_iInfixBlocksOffset = pInfixer->SaveEntryBlocks ( m_wrDict );
 		pHeader->m_iInfixBlocksWordsSize = pInfixer->GetBlocksWordsSize();
 		if ( pHeader->m_iInfixBlocksOffset>UINT_MAX ) // FIXME!!! change to int64
-			sphDie ( "INTERNAL ERROR: dictionary size "INT64_FMT" overflow at dictend save", pHeader->m_iInfixBlocksOffset );
+			sphDie ( "INTERNAL ERROR: dictionary size " INT64_FMT " overflow at dictend save", pHeader->m_iInfixBlocksOffset );
 	}
 
 	// flush header
@@ -22735,7 +22735,7 @@ const char * CSphDictKeywords::HitblockGetKeyword ( SphWordID_t uWordID )
 		if ( m_dExceptions[i].m_pEntry->m_uWordid==uWordID )
 			return m_dExceptions[i].m_pEntry->m_pKeyword;
 
-	sphWarning ( "hash missing value in operator [] (wordid="INT64_FMT", hash=%d)", (int64_t)uWordID, uHash );
+	sphWarning ( "hash missing value in operator [] (wordid=" INT64_FMT ", hash=%d)", (int64_t)uWordID, uHash );
 	assert ( 0 && "hash missing value in operator []" );
 	return "\31oops";
 }
@@ -24773,7 +24773,7 @@ bool CSphSource_Document::CheckFileField ( const BYTE * sField )
 	int64_t iFileSize = tFileSource.GetSize();
 	if ( iFileSize+16 > m_iMaxFileBufferSize )
 	{
-		sphWarning ( "docid=" DOCID_FMT ": file '%s' too big for a field (size="INT64_FMT", max_file_field_buffer=%d)",
+		sphWarning ( "docid=" DOCID_FMT ": file '%s' too big for a field (size=" INT64_FMT ", max_file_field_buffer=%d)",
 			m_tDocInfo.m_uDocID, (const char *)sField, iFileSize, m_iMaxFileBufferSize );
 		return false;
 	}
@@ -24798,7 +24798,7 @@ int CSphSource_Document::LoadFileField ( BYTE ** ppField, CSphString & sError )
 	int64_t iFileSize = tFileSource.GetSize();
 	if ( iFileSize+16 > m_iMaxFileBufferSize )
 	{
-		sphWarning ( "docid=" DOCID_FMT ": file '%s' too big for a field (size="INT64_FMT", max_file_field_buffer=%d)",
+		sphWarning ( "docid=" DOCID_FMT ": file '%s' too big for a field (size=" INT64_FMT ", max_file_field_buffer=%d)",
 			m_tDocInfo.m_uDocID, (const char *)sField, iFileSize, m_iMaxFileBufferSize );
 		return -1;
 	}
@@ -25659,10 +25659,10 @@ bool CSphSource_SQL::SetupRanges ( const char * sRangeQuery, const char * sQuery
 {
 	// check step
 	if ( m_tParams.m_iRangeStep<=0 )
-		LOC_ERROR ( "sql_range_step="INT64_FMT": must be non-zero positive", m_tParams.m_iRangeStep );
+		LOC_ERROR ( "sql_range_step=" INT64_FMT ": must be non-zero positive", m_tParams.m_iRangeStep );
 
 	if ( m_tParams.m_iRangeStep<128 )
-		sphWarn ( "sql_range_step="INT64_FMT": too small; might hurt indexing performance!", m_tParams.m_iRangeStep );
+		sphWarn ( "sql_range_step=" INT64_FMT ": too small; might hurt indexing performance!", m_tParams.m_iRangeStep );
 
 	// check query for macros
 	for ( int i=0; i<MACRO_COUNT; i++ )
@@ -29971,7 +29971,7 @@ const char * CSphIndexProgress::BuildMessage() const
 	switch ( m_ePhase )
 	{
 		case PHASE_COLLECT:
-			snprintf ( sBuf, sizeof(sBuf), "collected "INT64_FMT" docs, %.1f MB", m_iDocuments,
+			snprintf ( sBuf, sizeof(sBuf), "collected " INT64_FMT " docs, %.1f MB", m_iDocuments,
 				float(m_iBytes)/1000000.0f );
 			break;
 
@@ -29981,7 +29981,7 @@ const char * CSphIndexProgress::BuildMessage() const
 			break;
 
 		case PHASE_COLLECT_MVA:
-			snprintf ( sBuf, sizeof(sBuf), "collected "INT64_FMT" attr values", m_iAttrs );
+			snprintf ( sBuf, sizeof(sBuf), "collected " INT64_FMT " attr values", m_iAttrs );
 			break;
 
 		case PHASE_SORT_MVA:
@@ -30188,7 +30188,7 @@ bool CWordlist::Preread ( const char * sName, DWORD uVersion, bool bWordDict, CS
 
 	if ( iFileSize-m_iDictCheckpointsOffset>=UINT_MAX )
 	{
-		sError.SetSprintf ( "dictionary meta overflow: meta size="INT64_FMT", total size="INT64_FMT", meta offset="INT64_FMT,
+		sError.SetSprintf ( "dictionary meta overflow: meta size=" INT64_FMT ", total size=" INT64_FMT ", meta offset=" INT64_FMT,
 			iFileSize-m_iDictCheckpointsOffset, iFileSize, (int64_t)m_iDictCheckpointsOffset );
 		return false;
 	}
@@ -31060,7 +31060,7 @@ void sphDictBuildInfixes ( const char * sPath )
 	tDictHeader.m_iInfixBlocksOffset = pInfixer->SaveEntryBlocks ( wrDict );
 	tDictHeader.m_iInfixBlocksWordsSize = pInfixer->GetBlocksWordsSize();
 	if ( tDictHeader.m_iInfixBlocksOffset>UINT_MAX ) // FIXME!!! change to int64
-		sphDie ( "INTERNAL ERROR: dictionary size "INT64_FMT" overflow at build infixes save", tDictHeader.m_iInfixBlocksOffset );
+		sphDie ( "INTERNAL ERROR: dictionary size " INT64_FMT " overflow at build infixes save", tDictHeader.m_iInfixBlocksOffset );
 
 
 	// flush header
@@ -31550,7 +31550,7 @@ void sphDictBuildSkiplists ( const char * sPath )
 		wrDict.PutBytes ( g_sTagInfixBlocks, strlen ( g_sTagInfixBlocks ) );
 		tDictHeader.m_iInfixBlocksOffset = wrDict.GetPos();
 		if ( tDictHeader.m_iInfixBlocksOffset>UINT_MAX ) // FIXME!!! change to int64
-			sphDie ( "INTERNAL ERROR: dictionary size "INT64_FMT" overflow at infix blocks save", wrDict.GetPos() );
+			sphDie ( "INTERNAL ERROR: dictionary size " INT64_FMT " overflow at infix blocks save", wrDict.GetPos() );
 
 		wrDict.ZipInt ( iBlocks );
 		for ( int i=0; i<iBlocks; i++ )
