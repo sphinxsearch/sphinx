@@ -19,11 +19,11 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #ifdef _WIN32
-	#define USE_MYSQL		0	/// whether to compile MySQL support
-	#define USE_PGSQL		1	/// whether to compile PgSQL support
-	#define USE_ODBC		0	/// whether to compile ODBC support
-	#define USE_LIBEXPAT	0	/// whether to compile libexpat support
-	#define USE_LIBICONV	0	/// whether to compile iconv support
+	#define USE_MYSQL		1	/// whether to compile MySQL support
+	#define USE_PGSQL		0	/// whether to compile PgSQL support
+	#define USE_ODBC		1	/// whether to compile ODBC support
+	#define USE_LIBEXPAT	1	/// whether to compile libexpat support
+	#define USE_LIBICONV	1	/// whether to compile iconv support
 	#define	USE_LIBSTEMMER	0	/// whether to compile libstemmber support
 	#define	USE_RE2			0	/// whether to compile RE2 support
 	#define USE_RLP			0	/// whether to compile RLP support
