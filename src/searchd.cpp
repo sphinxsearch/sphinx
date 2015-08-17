@@ -4177,7 +4177,7 @@ static void LogQuerySphinxql ( const CSphQuery & q, const CSphQueryResult & tRes
 	// OPTION clause
 	int iOpts = 0;
 
-	if ( q.m_iMaxMatches!=1000 )
+	if ( q.m_iMaxMatches!=DEFAULT_MAX_MATCHES )
 	{
 		tBuf.Appendf ( iOpts++ ? ", " : " OPTION " );
 		tBuf.Appendf ( "max_matches=%d", q.m_iMaxMatches );
