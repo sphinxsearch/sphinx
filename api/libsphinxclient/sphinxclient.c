@@ -311,7 +311,7 @@ static void sphinx_free_results ( sphinx_client * client )
 }
 
 
-void sock_close ( int sock );
+static sock_close ( int sock );
 
 
 #define safe_free(_ptr) \
@@ -1436,7 +1436,7 @@ static int sock_set_blocking ( int sock )
 }
 
 
-void sock_close ( int sock )
+static sock_close ( int sock );
 {
 	if ( sock<0 )
 		return;
