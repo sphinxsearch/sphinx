@@ -2100,6 +2100,7 @@ protected:
 
 		CSphVector<BYTE*> m_dTmpFieldStorage;
 		CSphVector<BYTE*> m_dTmpFieldPtrs;
+		CSphVector<BYTE> m_dFiltered;
 
 		int m_iStartPos;
 		Hitpos_t m_iHitPos;
@@ -2510,7 +2511,8 @@ enum ESphFilter
 	SPH_FILTER_FLOATRANGE	= 2,	///< filter by float range
 	SPH_FILTER_STRING		= 3,	///< filter by string value
 	SPH_FILTER_NULL			= 4,	///< filter by NULL
-	SPH_FILTER_USERVAR		= 5		///< filter by @uservar
+	SPH_FILTER_USERVAR		= 5,	///< filter by @uservar
+	SPH_FILTER_STRING_LIST	= 6		///< filter by string list
 };
 
 
@@ -2545,7 +2547,7 @@ public:
 		float			m_fMaxValue;	///< range max
 	};
 	CSphVector<SphAttr_t>	m_dValues;	///< integer values set
-	CSphString			m_sRefString;	///< reference string value
+	CSphVector<CSphString>	m_dStrings;	///< string values
 
 public:
 						CSphFilterSettings ();

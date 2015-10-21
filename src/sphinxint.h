@@ -44,6 +44,8 @@
 #define MVA_OFFSET_MASK		0x7fffffffUL	// MVA offset mask
 #define MVA_ARENA_FLAG		0x80000000UL	// MVA global-arena flag
 
+#define DEFAULT_MAX_MATCHES 1000
+
 //////////////////////////////////////////////////////////////////////////
 
 const DWORD		INDEX_MAGIC_HEADER			= 0x58485053;		///< my magic 'SPHX' header
@@ -328,6 +330,7 @@ public:
 	bool					GetErrorFlag () const		{ return m_bError; }
 	const CSphString &		GetErrorMessage () const	{ return m_sError; }
 	const CSphString &		GetFilename() const			{ return m_sFilename; }
+	void					ResetError();
 
 #if USE_64BIT
 	SphDocID_t	GetDocid ()		{ return GetOffset(); }

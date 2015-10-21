@@ -52,7 +52,6 @@ extern "C"
 #define NETOUTBUF				8192
 #define PING_INTERVAL			1000
 #define QLSTATE_FLUSH_MSEC		50
-#define DEFAULT_MAX_MATCHES		1000
 
 // don't shutdown on SIGKILL (debug purposes)
 // 1 - SIGKILL will shut down the whole daemon; 0 - watchdog will reincarnate the daemon
@@ -411,7 +410,7 @@ static CSphAtomic							g_iPersistentInUse;
 /// master-agent API protocol extensions version
 enum
 {
-	VER_MASTER = 11
+	VER_MASTER = 12
 };
 
 
@@ -1089,6 +1088,9 @@ void Shutdown ()
 		iDummy++; // to avoid gcc set but not used variable warning
 	}
 #endif
+
+	// force even long time searches to shut
+	sphInterruptNow();
 
 	// tell flush-rt thread to shutdown, and wait until it does
 	sphThreadJoin ( &g_tRtFlushThread );
@@ -2760,8 +2762,13 @@ int SearchRequestBuilder_t::CalcQueryLen ( const char * sIndexes, const CSphQuer
 			case SPH_FILTER_RANGE:		iReqSize += 16; break; // uint64 min-val, max-val
 			case SPH_FILTER_FLOATRANGE:	iReqSize += 8; break; // int/float min-val,max-val
 			case SPH_FILTER_USERVAR:
-			case SPH_FILTER_STRING:		iReqSize += 4 + tFilter.m_sRefString.Length(); break;
+			case SPH_FILTER_STRING:		iReqSize += 4 + ( tFilter.m_dStrings.GetLength()==1 ? tFilter.m_dStrings[0].Length() : 0 ); break;
 			case SPH_FILTER_NULL:		iReqSize += 1; break; // boolean value
+			case SPH_FILTER_STRING_LIST:	// int values-count; string[] values
+				iReqSize += 4;
+				ARRAY_FOREACH ( iString, tFilter.m_dStrings )
+					iReqSize += 4 + tFilter.m_dStrings[iString].Length();
+				break;
 		}
 	}
 	if ( q.m_bGeoAnchor )
@@ -2875,11 +2882,17 @@ void SearchRequestBuilder_t::SendQuery ( const char * sIndexes, NetOutputBuffer_
 
 			case SPH_FILTER_USERVAR:
 			case SPH_FILTER_STRING:
-				tOut.SendString ( tFilter.m_sRefString.cstr() );
+				tOut.SendString ( tFilter.m_dStrings.GetLength()==1 ? tFilter.m_dStrings[0].cstr() : NULL );
 				break;
 
 			case SPH_FILTER_NULL:
 				tOut.SendByte ( tFilter.m_bHasEqual );
+				break;
+
+			case SPH_FILTER_STRING_LIST:
+				tOut.SendInt ( tFilter.m_dStrings.GetLength() );
+				ARRAY_FOREACH ( iString, tFilter.m_dStrings )
+					tOut.SendString ( tFilter.m_dStrings[iString].cstr() );
 				break;
 		}
 		tOut.SendInt ( tFilter.m_bExclude );
@@ -3535,7 +3548,7 @@ bool ParseSearchQuery ( InputBuffer_c & tReq, ISphOutputBuffer & tOut, CSphQuery
 						}
 						break;
 					case SPH_FILTER_STRING:
-						tFilter.m_sRefString = tReq.GetString();
+						tFilter.m_dStrings.Add ( tReq.GetString() );
 						break;
 
 					case SPH_FILTER_NULL:
@@ -3543,8 +3556,22 @@ bool ParseSearchQuery ( InputBuffer_c & tReq, ISphOutputBuffer & tOut, CSphQuery
 						break;
 
 					case SPH_FILTER_USERVAR:
-						tFilter.m_sRefString = tReq.GetString();
+						tFilter.m_dStrings.Add ( tReq.GetString() );
 						break;
+
+					case SPH_FILTER_STRING_LIST:
+					{
+						int iCount = tReq.GetDword();
+						if ( iCount<0 || iCount>g_iMaxFilterValues )
+						{
+							SendErrorReply ( tOut, "invalid attribute '%s'(%d) set length %d (should be in 0..%d range)", tFilter.m_sAttrName.cstr(), iFilter, iCount, g_iMaxFilterValues );
+							return false;
+						}
+						tFilter.m_dStrings.Resize ( iCount );
+						ARRAY_FOREACH ( iString, tFilter.m_dStrings )
+							tFilter.m_dStrings[iString] = tReq.GetString();
+					}
+					break;
 
 					default:
 						SendErrorReply ( tOut, "unknown filter type (type-id=%d)", tFilter.m_eType );
@@ -3731,6 +3758,9 @@ bool ParseSearchQuery ( InputBuffer_c & tReq, ISphOutputBuffer & tOut, CSphQuery
 			int iSelectLen = tQuery.m_sSelect.Length();
 			tQuery.m_sSelect = ( iSelectLen>4 ? tQuery.m_sSelect.SubString ( 4, iSelectLen-4 ) : "*" );
 		}
+		// fixup select list
+		if ( tQuery.m_sSelect.IsEmpty () )
+			tQuery.m_sSelect = "*";
 
 		CSphString sError;
 		if ( !tQuery.ParseSelectList ( sError ) )
@@ -4143,11 +4173,18 @@ static void LogQuerySphinxql ( const CSphQuery & q, const CSphQueryResult & tRes
 
 				case SPH_FILTER_USERVAR:
 				case SPH_FILTER_STRING:
-					tBuf.Appendf ( " %s%s'%s'", f.m_sAttrName.cstr(), ( f.m_bHasEqual ? "=" : "!=" ), f.m_sRefString.cstr() );
+					tBuf.Appendf ( " %s%s'%s'", f.m_sAttrName.cstr(), ( f.m_bHasEqual ? "=" : "!=" ), ( f.m_dStrings.GetLength()==1 ? f.m_dStrings[0].cstr() : "" ) );
 					break;
 
 				case SPH_FILTER_NULL:
 					tBuf.Appendf ( " %s %s", f.m_sAttrName.cstr(), ( f.m_bHasEqual ? "IS NULL" : "IS NOT NULL" ) );
+					break;
+
+				case SPH_FILTER_STRING_LIST:
+					tBuf.Appendf ( " %s IN (", f.m_sAttrName.cstr () );
+					ARRAY_FOREACH ( iString, f.m_dStrings )
+						tBuf.Appendf ( "%s'%s'", ( iString>0 ? "," : "" ), f.m_dStrings[iString].cstr() );
+					tBuf.Appendf ( ")" );
 					break;
 
 				default:
@@ -4177,7 +4214,7 @@ static void LogQuerySphinxql ( const CSphQuery & q, const CSphQueryResult & tRes
 	// OPTION clause
 	int iOpts = 0;
 
-	if ( q.m_iMaxMatches!=1000 )
+	if ( q.m_iMaxMatches!=DEFAULT_MAX_MATCHES )
 	{
 		tBuf.Appendf ( iOpts++ ? ", " : " OPTION " );
 		tBuf.Appendf ( "max_matches=%d", q.m_iMaxMatches );
@@ -7086,7 +7123,11 @@ void SearchHandler_c::RunLocalSearches ( ISphMatchSorter * pLocalSorter, const c
 		{
 			CSphVector<CSphQueryResult*> dResults ( m_dResults.GetLength() );
 			ARRAY_FOREACH ( i, m_dResults )
+			{
 				dResults[i] = &m_dResults[i];
+				dResults[i]->m_pMva = NULL;
+				dResults[i]->m_pStrings = NULL;
+			}
 
 			dResults[m_iStart]->m_tIOStats.Start();
 			bResult = pServed->m_pIndex->MultiQueryEx ( dSorters.GetLength(), &m_dQueries[m_iStart], &dResults[m_iStart], &dSorters[0], tMultiArgs );
@@ -8459,6 +8500,7 @@ public:
 	CSphFilterSettings *	AddFilter ( const SqlNode_t & tCol, ESphFilter eType );
 	bool					AddStringFilter ( const SqlNode_t & tCol, const SqlNode_t & tVal, bool bExclude );
 	CSphFilterSettings *	AddValuesFilter ( const SqlNode_t & tCol ) { return AddFilter ( tCol, SPH_FILTER_VALUES ); }
+	bool					AddStringListFilter ( const SqlNode_t & tCol, SqlNode_t & tVal, bool bExclude );
 	bool					AddNullFilter ( const SqlNode_t & tCol, bool bEqualsNull );
 	void			AddHaving ();
 
@@ -9180,7 +9222,8 @@ bool SqlParser_c::AddUservarFilter ( const SqlNode_t & tCol, const SqlNode_t & t
 	CSphFilterSettings * pFilter = AddFilter ( tCol, SPH_FILTER_USERVAR );
 	if ( !pFilter )
 		return false;
-	ToString ( pFilter->m_sRefString, tVar ).ToLower();
+	CSphString & sUserVar = pFilter->m_dStrings.Add();
+	ToString ( sUserVar, tVar ).ToLower();
 	pFilter->m_bExclude = bExclude;
 	return true;
 }
@@ -9191,7 +9234,28 @@ bool SqlParser_c::AddStringFilter ( const SqlNode_t & tCol, const SqlNode_t & tV
 	CSphFilterSettings * pFilter = AddFilter ( tCol, SPH_FILTER_STRING );
 	if ( !pFilter )
 		return false;
-	ToStringUnescape ( pFilter->m_sRefString, tVal );
+	CSphString & sFilterString = pFilter->m_dStrings.Add();
+	ToStringUnescape ( sFilterString, tVal );
+	pFilter->m_bExclude = bExclude;
+	return true;
+}
+
+
+bool SqlParser_c::AddStringListFilter ( const SqlNode_t & tCol, SqlNode_t & tVal, bool bExclude )
+{
+	CSphFilterSettings * pFilter = AddFilter ( tCol, SPH_FILTER_STRING_LIST );
+	if ( !pFilter || !tVal.m_pValues.Ptr() )
+		return false;
+
+	pFilter->m_dStrings.Resize ( tVal.m_pValues->GetLength() );
+	ARRAY_FOREACH ( i, ( *tVal.m_pValues.Ptr() ) )
+	{
+		uint64_t uVal = ( *tVal.m_pValues.Ptr() )[i];
+		int iOff = ( uVal>>32 );
+		int iLen = ( uVal & 0xffffffff );
+		pFilter->m_dStrings[i].SetBinary ( m_pBuf + iOff, iLen );
+	}
+	tVal.m_pValues = NULL;
 	pFilter->m_bExclude = bExclude;
 	return true;
 }
@@ -11955,7 +12019,6 @@ void HandleMysqlInsert ( SqlRowBuffer_c & tOut, const SqlStmt_t & tStmt,
 
 	CSphVector<const char *> dStrings;
 	CSphVector<DWORD> dMvas;
-	CSphScopedPtr<ISphTokenizer> pTokenizer ( pIndex->CloneIndexingTokenizer() );
 
 	// convert attrs
 	for ( int c=0; c<tStmt.m_iRowsAffected; c++ )
@@ -12075,7 +12138,7 @@ void HandleMysqlInsert ( SqlRowBuffer_c & tOut, const SqlStmt_t & tStmt,
 			break;
 
 		// do add
-		pIndex->AddDocument ( pTokenizer.Ptr(), dFields.GetLength(), dFields.Begin(), tDoc,
+		pIndex->AddDocument ( pIndex->CloneIndexingTokenizer(), dFields.GetLength(), dFields.Begin(), tDoc,
 			bReplace, tStmt.m_sStringParam,
 			dStrings.Begin(), dMvas, sError, sWarning, pAccum );
 
@@ -13192,11 +13255,11 @@ void sphFormatFactors ( CSphVector<BYTE> & dOut, const unsigned int * pFactors, 
 		} else
 		{
 			iLen = snprintf ( (char *)dOut.Begin()+iOff, MAX_STR_LEN,
-				"%s{\"lcs\":%u, \"hit_count\":%u, \"word_count\":%u, "
+				"%s{\"field\":%d, \"lcs\":%u, \"hit_count\":%u, \"word_count\":%u, "
 				"\"tf_idf\":%f, \"min_idf\":%f, \"max_idf\":%f, \"sum_idf\":%f, "
 				"\"min_hit_pos\":%d, \"min_best_span_pos\":%d, \"exact_hit\":%u, \"max_window_hits\":%d, "
 				"\"min_gaps\":%d, \"exact_order\":%d, \"lccs\":%d, \"wlccs\":%f, \"atc\":%f}",
-				bFields ? ", " : "", sphinx_get_field_factor_int ( pField, SPH_FIELDF_LCS ), sphinx_get_field_factor_int ( pField, SPH_FIELDF_HIT_COUNT ), sphinx_get_field_factor_int ( pField, SPH_FIELDF_WORD_COUNT ),
+				bFields ? ", " : "", i, sphinx_get_field_factor_int ( pField, SPH_FIELDF_LCS ), sphinx_get_field_factor_int ( pField, SPH_FIELDF_HIT_COUNT ), sphinx_get_field_factor_int ( pField, SPH_FIELDF_WORD_COUNT ),
 				sphinx_get_field_factor_float ( pField, SPH_FIELDF_TF_IDF ), sphinx_get_field_factor_float ( pField, SPH_FIELDF_MIN_IDF ),
 				sphinx_get_field_factor_float ( pField, SPH_FIELDF_MAX_IDF ), sphinx_get_field_factor_float ( pField, SPH_FIELDF_SUM_IDF ),
 				sphinx_get_field_factor_int ( pField, SPH_FIELDF_MIN_HIT_POS ), sphinx_get_field_factor_int ( pField, SPH_FIELDF_MIN_BEST_SPAN_POS ),
@@ -13254,10 +13317,40 @@ static void ReturnZeroCount ( const CSphRsetSchema & tSchema, int iAttrsCount, c
 {
 	for ( int i=0; i<iAttrsCount; i++ )
 	{
-		if ( tSchema.GetAttr(i).m_sName==sName )
+		const CSphColumnInfo & tCol = tSchema.GetAttr(i);
+
+		if ( tCol.m_sName==sName ) // @count or its alias
 			dRows.PutNumeric<DWORD> ( "%u", 0 );
 		else
-			dRows.PutNULL();
+		{
+			// essentially the same as SELECT_DUAL, parse and print constant expressions
+			ESphAttr eAttrType;
+			CSphString sError;
+			ISphExpr * pExpr = sphExprParse ( tCol.m_sName.cstr(), tSchema, &eAttrType, NULL, sError, NULL );
+
+			if ( !pExpr || !pExpr->IsConst() )
+				eAttrType = SPH_ATTR_NONE;
+
+			CSphMatch tMatch;
+			const BYTE * pStr = NULL;
+
+			switch ( eAttrType )
+			{
+				case SPH_ATTR_STRINGPTR:
+					pExpr->StringEval ( tMatch, &pStr );
+					dRows.PutString ( (const char*)pStr );
+					SafeDelete ( pStr );
+					break;
+				case SPH_ATTR_INTEGER:	dRows.PutNumeric<int> ( "%d", pExpr->IntEval ( tMatch ) ); break;
+				case SPH_ATTR_BIGINT:	dRows.PutNumeric<SphAttr_t> ( INT64_FMT, pExpr->Int64Eval ( tMatch ) ); break;
+				case SPH_ATTR_FLOAT:	dRows.PutNumeric<float> ( "%f", pExpr->Eval ( tMatch ) ); break;
+				default:
+					dRows.PutNULL();
+					break;
+			}
+
+			SafeDelete ( pExpr );
+		}
 	}
 	dRows.Commit();
 }
@@ -13849,6 +13942,9 @@ void HandleMysqlMultiStmt ( const CSphVector<SqlStmt_t> & dStmt, CSphQueryResult
 			if ( !sWarning.IsEmpty() )
 				tRes.m_sWarning = sWarning;
 			SendMysqlSelectResult ( dRows, tRes, bMoreResultsFollow );
+			// mysql server breaks send on error
+			if ( !tRes.m_iSuccesses )
+				break;
 		} else if ( eStmt==STMT_SHOW_WARNINGS )
 			HandleMysqlWarning ( tMeta, dRows, bMoreResultsFollow );
 		else if ( eStmt==STMT_SHOW_STATUS || eStmt==STMT_SHOW_META || eStmt==STMT_SHOW_AGENT_STATUS )
@@ -14632,6 +14728,12 @@ static void AddAttrToIndex ( const SqlStmt_t & tStmt, const ServedIndex_c * pSer
 	if ( pServed->m_pIndex->GetMatchSchema().GetAttr ( sAttrToAdd.cstr() ) )
 	{
 		sError.SetSprintf ( "'%s' attribute already in schema", sAttrToAdd.cstr() );
+		return;
+	}
+
+	if ( tStmt.m_eAlterColType!=SPH_ATTR_STRING && pServed->m_pIndex->GetMatchSchema().GetFieldIndex ( sAttrToAdd.cstr () )!=-1 )
+	{
+		sError.SetSprintf ( "can not add attribute that shadows '%s' field", sAttrToAdd.cstr () );
 		return;
 	}
 
@@ -20206,6 +20308,9 @@ void ThdJobAPI_t::Call ()
 
 	sphLogDebugv ( "%p API job done, command=%d", this, m_iCommand );
 
+	if ( g_bShutdown )
+		return;
+
 	assert ( m_pLoop );
 	if ( tOut.GetSentCount() )
 	{
@@ -20256,7 +20361,7 @@ void ThdJobQL_t::Call ()
 	bool bProceed = LoopClientMySQL ( m_tState->m_uPacketID, m_tState->m_tSession, sQuery, m_tState->m_dBuf.GetLength(), bProfile, &tThdDesc, tIn, tOut );
 	m_tState->m_bKeepSocket = bProceed;
 
-	if ( bProceed )
+	if ( bProceed && !g_bShutdown )
 	{
 		assert ( m_pLoop );
 		tOut.SwapData ( m_tState->m_dBuf );
@@ -20325,13 +20430,16 @@ void ThdJobHttp_t::Call ()
 
 	m_tState->m_bKeepSocket = sphLoopClientHttp ( m_tState->m_dBuf, m_tState->m_iConnID );
 
-	assert ( m_pLoop );
-	NetSendData_t * pSend = new NetSendData_t ( m_tState.LeakPtr(), PROTO_HTTP );
-	m_pLoop->AddAction ( pSend );
-
 	g_tThdMutex.Lock ();
 	g_dThd.Remove ( &tThdDesc );
 	g_tThdMutex.Unlock ();
+
+	if ( g_bShutdown )
+		return;
+
+	assert ( m_pLoop );
+	NetSendData_t * pSend = new NetSendData_t ( m_tState.LeakPtr(), PROTO_HTTP );
+	m_pLoop->AddAction ( pSend );
 }
 
 
@@ -20799,6 +20907,7 @@ int WINAPI ServiceMain ( int argc, char **argv )
 
 		// FIXME! add opt=(csv)val handling here
 		OPT1 ( "--replay-flags=accept-desc-timestamp" )		uReplayFlags |= SPH_REPLAY_ACCEPT_DESC_TIMESTAMP;
+		OPT1 ( "--replay-flags=ignore-open-errors" )			uReplayFlags |= SPH_REPLAY_IGNORE_OPEN_ERROR;
 
 		// handle 1-arg options
 		else if ( (i+1)>=argc )		break;

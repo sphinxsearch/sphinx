@@ -1526,6 +1526,8 @@ bool RtIndex_t::AddDocument ( ISphTokenizer * pTokenizer, int iFields, const cha
 {
 	assert ( g_bRTChangesAllowed );
 
+	CSphScopedPtr<ISphTokenizer> tTokenizer ( pTokenizer );
+
 	if ( !tDoc.m_uDocID )
 		return true;
 
@@ -1551,27 +1553,27 @@ bool RtIndex_t::AddDocument ( ISphTokenizer * pTokenizer, int iFields, const cha
 	// OPTIMIZE? do not create filter on each(!) INSERT
 	if ( !m_tSettings.m_sIndexTokenFilter.IsEmpty() )
 	{
-		pTokenizer = ISphTokenizer::CreatePluginFilter ( pTokenizer->Clone ( SPH_CLONE_INDEX ), m_tSettings.m_sIndexTokenFilter, sError );
-		if ( !pTokenizer )
+		tTokenizer.ReplacePtr ( ISphTokenizer::CreatePluginFilter ( tTokenizer.Ptr(), m_tSettings.m_sIndexTokenFilter, sError ) );
+		if ( !tTokenizer.Ptr() )
 			return false;
-		if ( !pTokenizer->SetFilterSchema ( m_tSchema, sError ) )
+		if ( !tTokenizer->SetFilterSchema ( m_tSchema, sError ) )
 			return false;
 		if ( !sTokenFilterOptions.IsEmpty() )
-			if ( !pTokenizer->SetFilterOptions ( sTokenFilterOptions.cstr(), sError ) )
+			if ( !tTokenizer->SetFilterOptions ( sTokenFilterOptions.cstr(), sError ) )
 				return false;
 	}
 
 	// OPTIMIZE? do not create filter on each(!) INSERT
 	if ( m_tSettings.m_uAotFilterMask )
-		pTokenizer = sphAotCreateFilter ( pTokenizer->Clone ( SPH_CLONE_INDEX ), m_pDict, m_tSettings.m_bIndexExactWords, m_tSettings.m_uAotFilterMask );
+		tTokenizer.ReplacePtr ( sphAotCreateFilter ( tTokenizer.Ptr(), m_pDict, m_tSettings.m_bIndexExactWords, m_tSettings.m_uAotFilterMask ) );
 
 	CSphSource_StringVector tSrc ( iFields, ppFields, m_tSchema );
 
 	// SPZ setup
-	if ( m_tSettings.m_bIndexSP && !pTokenizer->EnableSentenceIndexing ( sError ) )
+	if ( m_tSettings.m_bIndexSP && !tTokenizer->EnableSentenceIndexing ( sError ) )
 		return false;
 
-	if ( !m_tSettings.m_sZones.IsEmpty() && !pTokenizer->EnableZoneIndexing ( sError ) )
+	if ( !m_tSettings.m_sZones.IsEmpty() && !tTokenizer->EnableZoneIndexing ( sError ) )
 		return false;
 
 	if ( m_tSettings.m_bHtmlStrip && !tSrc.SetStripHTML ( m_tSettings.m_sHtmlIndexAttrs.cstr(), m_tSettings.m_sHtmlRemoveElements.cstr(),
@@ -1584,7 +1586,7 @@ bool RtIndex_t::AddDocument ( ISphTokenizer * pTokenizer, int iFields, const cha
 		pFieldFilter = m_pFieldFilter->Clone();
 
 	tSrc.Setup ( m_tSettings );
-	tSrc.SetTokenizer ( pTokenizer );
+	tSrc.SetTokenizer ( tTokenizer.Ptr() );
 	tSrc.SetDict ( pAcc->m_pDict );
 	tSrc.SetFieldFilter ( pFieldFilter.Ptr() );
 	if ( !tSrc.Connect ( m_sLastError ) )
@@ -5499,7 +5501,7 @@ int RtIndex_t::DebugCheck ( FILE * fp )
 				{
 					ESphJsonType eType = (ESphJsonType)*p++;
 
-					if ( dStateStack.GetLength() && dStateStack.Last()==JSON_OBJECT )
+					if ( dStateStack.GetLength() && dStateStack.Last()==JSON_OBJECT && eType!=JSON_EOF )
 					{
 						int iKeyLen = sphJsonUnpackInt ( &p );
 						p += iKeyLen;
@@ -6635,18 +6637,22 @@ struct SphFinalArenaCopy_t : ISphMatchProcessor
 			case SPH_ATTR_JSON:
 			{
 				const SphAttr_t uOff = pMatch->GetAttr ( tLoc );
+				DWORD uRebased = 0;
 				if ( uOff>0 )
 				{
 					assert ( uOff<( I64C(1)<<32 ) ); // should be 32 bit offset
 					assert ( !bSegmentMatch || (int)uOff<m_dSegments[iStorageSrc]->m_dStrings.GetLength() );
-					DWORD uRebased = CopyPackedString ( pBaseString + uOff, m_dStorageString );
+					uRebased = CopyPackedString ( pBaseString + uOff, m_dStorageString );
 					iAttr = uRebased;
-					// store the map of full jsons in order to map json fields
-					if ( tLoc.m_eAttrType==SPH_ATTR_JSON )
-					{
-						m_dOriginalJson.Add ( (DWORD)uOff );
-						m_dMovedJson.Add ( uRebased );
-					}
+				}
+
+				// store the map of full jsons in order to map json fields
+				// note that m_dJsonAssoc mapping is calculated only once (see the m_dJsonAssoc[iJson]<0 condition)
+				// we have to consider empty fields too (if any) otherwise mapping will be incorrect or out of bounds
+				if ( tLoc.m_eAttrType==SPH_ATTR_JSON && m_dJsonAssoc.GetLength() )
+				{
+					m_dOriginalJson.Add ( (DWORD)uOff );
+					m_dMovedJson.Add ( uRebased );
 				}
 			}
 			break;
@@ -6682,8 +6688,8 @@ struct SphFinalArenaCopy_t : ISphMatchProcessor
 								iDistance = uOff - m_dOriginalJson[j];
 								k = j;
 							}
-							assert ( k>=0 );
-							m_dJsonAssoc[iJson] = k;
+						assert ( k>=0 );
+						m_dJsonAssoc[iJson] = k;
 					}
 					DWORD uNew = m_dMovedJson [ m_dJsonAssoc[iJson] ] - m_dOriginalJson [ m_dJsonAssoc[iJson] ] + uOff;
 					++iJson;
@@ -7386,10 +7392,14 @@ bool RtIndex_t::MultiQuery ( const CSphQuery * pQuery, CSphQueryResult * pResult
 		if ( tSetInfo.m_eAttrType==SPH_ATTR_STRING || tSetInfo.m_eAttrType==SPH_ATTR_JSON
 			|| tSetInfo.m_eAttrType==SPH_ATTR_UINT32SET || tSetInfo.m_eAttrType==SPH_ATTR_INT64SET )
 		{
-			const int iInLocator = m_tSchema.GetAttrIndex ( tSetInfo.m_sName.cstr() );
-			assert ( iInLocator>=0 );
+			const CSphColumnInfo * pCol = m_tSchema.GetAttr ( tSetInfo.m_sName.cstr() );
+			if ( !pCol && ( tSetInfo.m_eAttrType==SPH_ATTR_UINT32SET || tSetInfo.m_eAttrType==SPH_ATTR_INT64SET ) )
+			{
+				pCol = &tSetInfo;
+			}
+			assert ( pCol );
 
-			dGetLoc.Add().Set ( m_tSchema.GetAttr ( iInLocator ).m_tLocator, tSetInfo.m_eAttrType );
+			dGetLoc.Add().Set ( pCol->m_tLocator, tSetInfo.m_eAttrType );
 			dSetLoc.Add ( tSetInfo.m_tLocator );
 		}
 		iJsonFields += ( tSetInfo.m_eAttrType==SPH_ATTR_JSON_FIELD );
@@ -9542,7 +9552,14 @@ int RtBinlog_c::ReplayBinlog ( const SmallStringHash_T<CSphIndex*> & hIndexes, D
 
 	BinlogReader_c tReader;
 	if ( !tReader.Open ( sLog, sError ) )
+	{
+		if ( ( uReplayFlags & SPH_REPLAY_IGNORE_OPEN_ERROR )!=0 )
+		{
+			sphWarning ( "binlog: log open error: %s", sError.cstr() );
+			return 0;
+		} 
 		sphDie ( "binlog: log open error: %s", sError.cstr() );
+	}
 
 	const SphOffset_t iFileSize = tReader.GetFilesize();
 
@@ -10105,11 +10122,13 @@ bool sphRTSchemaConfigure ( const CSphConfigSection & hIndex, CSphSchema * pSche
 	CSphColumnInfo tCol;
 
 	// fields
+	SmallStringHash_T<BYTE> hFields;
 	for ( CSphVariant * v=hIndex("rt_field"); v; v=v->m_pNext )
 	{
 		tCol.m_sName = v->cstr();
 		tCol.m_sName.ToLower();
 		pSchema->m_dFields.Add ( tCol );
+		hFields.Add ( 1, tCol.m_sName );
 	}
 	if ( !pSchema->m_dFields.GetLength() )
 	{
@@ -10163,6 +10182,12 @@ bool sphRTSchemaConfigure ( const CSphConfigSection & hIndex, CSphSchema * pSche
 			}
 
 			pSchema->AddAttr ( tCol, false );
+
+			if ( tCol.m_eAttrType!=SPH_ATTR_STRING && hFields.Exists ( tCol.m_sName ) )
+			{
+				pError->SetSprintf ( "can not add attribute that shadows '%s' field", tCol.m_sName.cstr () );
+				return false;
+			}
 		}
 	}
 
