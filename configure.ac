@@ -426,6 +426,23 @@ else
 fi
 AM_CONDITIONAL(USE_PGSQL, test x$ac_cv_use_pgsql != xno -o x$ac_cv_use_satic_pgsql != xno )
 
+# Check if we should compile with Firebird support
+AC_ARG_WITH([firebird],
+            AC_HELP_STRING([--with-firebird], [compile with Firebird RDMS support (default is disabled)]),
+            [ac_cv_use_firebird=$withval], [ac_cv_use_firebird=no]
+)
+AC_MSG_CHECKING([whether to compile with Firebird RDMS support])
+if test x$ac_cv_use_firebird != xno; then
+	AC_MSG_RESULT([yes])
+    AC_CHECK_FIREBIRD([$ac_cv_use_firebird])
+    AC_DEFINE(USE_FIREBIRD,1,[Define to 1 if you want to compile with Firebird RDMS support])
+    AC_SUBST([FIREBIRD_LIBS])
+    AC_SUBST([FIREBIRD_CFLAGS])
+else
+	AC_MSG_RESULT([no])
+fi
+AM_CONDITIONAL(USE_FIREBIRD, test x$ac_cv_use_firebird != xno)
+
 # add macports include directory
 if (echo $MYSQL_LIBS | grep -q -- -L/opt/local/lib); then
    MYSQL_CFLAGS="$MYSQL_CFLAGS -I/opt/local/include"

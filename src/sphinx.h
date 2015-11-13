@@ -22,6 +22,7 @@
 	#define USE_MYSQL		1	/// whether to compile MySQL support
 	#define USE_PGSQL		0	/// whether to compile PgSQL support
 	#define USE_ODBC		1	/// whether to compile ODBC support
+	#define USE_FIREBIRD	0	/// whether to compile Firebird support
 	#define USE_LIBEXPAT	1	/// whether to compile libexpat support
 	#define USE_LIBICONV	1	/// whether to compile iconv support
 	#define	USE_LIBSTEMMER	0	/// whether to compile libstemmber support
@@ -52,6 +53,10 @@
 
 #if USE_PGSQL
 #include <libpq-fe.h>
+#endif
+
+#if USE_FIREBIRD
+#include <ibase.h>
 #endif
 
 #if USE_WINDOWS
@@ -2346,6 +2351,67 @@ protected:
 	virtual const char *	SqlFieldName ( int iIndex );
 };
 #endif // USE_PGSQL
+
+
+#if USE_FIREBIRD
+/// Firebird specific source params
+struct CSphSourceParams_FBSQL : CSphSourceParams_SQL
+{
+	CSphString		m_sCharset;
+	CSphString		m_sRole;
+					CSphSourceParams_FBSQL ();
+};
+
+
+/// Firebird source implementation
+/// multi-field plain-text documents fetched from given query
+struct CSphSource_FBSQL : CSphSource_SQL
+{
+							CSphSource_FBSQL ( const char * sName );
+	virtual					~CSphSource_FBSQL ();
+	bool					Setup ( const CSphSourceParams_FBSQL & pParams );
+
+protected:
+	/// config values
+	CSphString			m_sCharset;
+	CSphString			m_sRole;
+
+	/// API handles
+	ISC_STATUS_ARRAY	m_status;
+	isc_db_handle		m_database;
+	isc_tr_handle		m_transaction;
+	isc_stmt_handle		m_statement;
+
+	// error and record holders
+	static const int ERROR_BUFFER_SIZE = 1024;
+	char			m_error[ERROR_BUFFER_SIZE];
+
+	XSQLDA *		m_xsqlda;
+	char *			m_record;
+	size_t			m_recsize;
+	bool			m_selectable;
+	char *			m_blob;
+	size_t			m_blobsize;
+
+protected:
+	virtual void			SqlDismissResult ();
+	virtual bool			SqlQuery ( const char * sQuery );
+	virtual bool			SqlIsError ();
+	virtual const char *	SqlError ();
+	virtual bool			SqlConnect ();
+	virtual void			SqlDisconnect ();
+	virtual int				SqlNumFields ();
+	virtual bool			SqlFetchRow ();
+	virtual DWORD			SqlColumnLength ( int iIndex );
+	virtual const char *	SqlColumn ( int iIndex );
+	virtual const char *	SqlFieldName ( int iIndex );
+
+private:
+	char * putSphStringInDPB ( char * dpb, char clump, CSphString &str );
+	static size_t parseSQLDA ( XSQLDA * xsqlda, char * buff );
+};
+
+#endif // USE_FIREBIRD
 
 #if USE_ODBC
 struct CSphSourceParams_ODBC: CSphSourceParams_SQL
