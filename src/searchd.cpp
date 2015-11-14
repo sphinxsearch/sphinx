@@ -3897,7 +3897,7 @@ void LogQueryPlain ( const CSphQuery & tQuery, const CSphQueryResult & tRes )
 	// [matchmode/numfilters/sortmode matches (offset,limit)
 	static const char * sModes [ SPH_MATCH_TOTAL ] = { "all", "any", "phr", "bool", "ext", "scan", "ext2" };
 	static const char * sSort [ SPH_SORT_TOTAL ] = { "rel", "attr-", "attr+", "tsegs", "ext", "expr" };
-	tBuf.Appendf ( " [%s/%d/%s "INT64_FMT" (%d,%d)",
+	tBuf.Appendf ( " [%s/%d/%s " INT64_FMT " (%d,%d)",
 		sModes [ tQuery.m_eMode ], tQuery.m_dFilters.GetLength(), sSort [ tQuery.m_eSort ],
 		tRes.m_iTotalMatches, tQuery.m_iOffset, tQuery.m_iLimit );
 
@@ -4041,10 +4041,10 @@ static void LogQuerySphinxql ( const CSphQuery & q, const CSphQueryResult & tRes
 	tBuf += sTimeBuf;
 
 	if ( tRes.m_iMultiplier>1 )
-		tBuf.Appendf ( " conn %d real %d.%03d wall %d.%03d x%d found "INT64_FMT" *""/ ",
+		tBuf.Appendf ( " conn %d real %d.%03d wall %d.%03d x%d found " INT64_FMT " *""/ ",
 			iCid, iRealTime/1000, iRealTime%1000, iQueryTime/1000, iQueryTime%1000, tRes.m_iMultiplier, tRes.m_iTotalMatches );
 	else
-		tBuf.Appendf ( " conn %d real %d.%03d wall %d.%03d found "INT64_FMT" *""/ ",
+		tBuf.Appendf ( " conn %d real %d.%03d wall %d.%03d found " INT64_FMT " *""/ ",
 			iCid, iRealTime/1000, iRealTime%1000, iQueryTime/1000, iQueryTime%1000, tRes.m_iTotalMatches );
 
 	///////////////////////////////////
@@ -4086,9 +4086,9 @@ static void LogQuerySphinxql ( const CSphQuery & q, const CSphQueryResult & tRes
 					if ( f.m_dValues.GetLength()==1 )
 					{
 						if ( f.m_bExclude )
-							tBuf.Appendf ( " %s!="INT64_FMT, f.m_sAttrName.cstr(), (int64_t)f.m_dValues[0] );
+							tBuf.Appendf ( " %s!=" INT64_FMT, f.m_sAttrName.cstr(), (int64_t)f.m_dValues[0] );
 						else
-							tBuf.Appendf ( " %s="INT64_FMT, f.m_sAttrName.cstr(), (int64_t)f.m_dValues[0] );
+							tBuf.Appendf ( " %s=" INT64_FMT, f.m_sAttrName.cstr(), (int64_t)f.m_dValues[0] );
 					} else
 					{
 						if ( f.m_bExclude )
@@ -4103,7 +4103,7 @@ static void LogQuerySphinxql ( const CSphQuery & q, const CSphQueryResult & tRes
 							for ( int j=0; j<iLimit; ++j )
 							{
 								if ( j )
-									tBuf.Appendf ( ","INT64_FMT, (int64_t)f.m_dValues[j] );
+									tBuf.Appendf ( "," INT64_FMT, (int64_t)f.m_dValues[j] );
 								else
 									tBuf.Appendf ( INT64_FMT, (int64_t)f.m_dValues[j] );
 							}
@@ -4112,7 +4112,7 @@ static void LogQuerySphinxql ( const CSphQuery & q, const CSphQueryResult & tRes
 							for ( int j=iLimit-3; j<iLimit; ++j )
 							{
 								if ( j )
-									tBuf.Appendf ( ","INT64_FMT, (int64_t)f.m_dValues[j] );
+									tBuf.Appendf ( "," INT64_FMT, (int64_t)f.m_dValues[j] );
 								else
 									tBuf.Appendf ( INT64_FMT, (int64_t)f.m_dValues[j] );
 							}
@@ -4121,7 +4121,7 @@ static void LogQuerySphinxql ( const CSphQuery & q, const CSphQueryResult & tRes
 							ARRAY_FOREACH ( j, f.m_dValues )
 							{
 								if ( j )
-									tBuf.Appendf ( ","INT64_FMT, (int64_t)f.m_dValues[j] );
+									tBuf.Appendf ( "," INT64_FMT, (int64_t)f.m_dValues[j] );
 								else
 									tBuf.Appendf ( INT64_FMT, (int64_t)f.m_dValues[j] );
 							}
@@ -4134,17 +4134,17 @@ static void LogQuerySphinxql ( const CSphQuery & q, const CSphQueryResult & tRes
 					{
 						// no min, thus (attr<maxval)
 						const char * sOps[2][2] = { { "<", "<=" }, { ">=", ">" } };
-						tBuf.Appendf ( " %s%s"INT64_FMT, f.m_sAttrName.cstr(),
+						tBuf.Appendf ( " %s%s" INT64_FMT, f.m_sAttrName.cstr(),
 							sOps [ f.m_bExclude ][ f.m_bHasEqual ], f.m_iMaxValue );
 					} else if ( f.m_iMaxValue==INT64_MAX || ( f.m_iMaxValue==-1 && f.m_sAttrName=="@id" ) )
 					{
 						// mo max, thus (attr>minval)
 						const char * sOps[2][2] = { { ">", ">=" }, { "<", "<=" } };
-						tBuf.Appendf ( " %s%s"INT64_FMT, f.m_sAttrName.cstr(),
+						tBuf.Appendf ( " %s%s" INT64_FMT, f.m_sAttrName.cstr(),
 							sOps [ f.m_bExclude ][ f.m_bHasEqual ], f.m_iMinValue );
 					} else
 					{
-						tBuf.Appendf ( " %s%s BETWEEN "INT64_FMT" AND "INT64_FMT,
+						tBuf.Appendf ( " %s%s BETWEEN " INT64_FMT " AND " INT64_FMT,
 							f.m_sAttrName.cstr(), f.m_bExclude ? " NOT" : "",
 							f.m_iMinValue + !f.m_bHasEqual, f.m_iMaxValue - !f.m_bHasEqual );
 					}
@@ -6825,7 +6825,7 @@ void SearchHandler_c::RunLocalSearchesMT ()
 				tRes.m_iPredictedTime = CalcPredictedTimeMsec ( tRes );
 			}
 			if ( tRaw.m_iBadRows )
-				tRes.m_sWarning.SetSprintf ( "query result is inaccurate because of "INT64_FMT" missed documents", tRaw.m_iBadRows );
+				tRes.m_sWarning.SetSprintf ( "query result is inaccurate because of " INT64_FMT " missed documents", tRaw.m_iBadRows );
 
 			// extract matches from sorter
 			FlattenToRes ( pSorter, tRes, iOrderTag+iQuery-m_iStart );
@@ -7166,7 +7166,7 @@ void SearchHandler_c::RunLocalSearches ( ISphMatchSorter * pLocalSorter, const c
 
 				int64_t iBadRows = m_bMultiQueue ? tStats.m_iBadRows : tRes.m_iBadRows;
 				if ( iBadRows )
-					tRes.m_sWarning.SetSprintf ( "query result is inaccurate because of "INT64_FMT" missed documents", iBadRows );
+					tRes.m_sWarning.SetSprintf ( "query result is inaccurate because of " INT64_FMT " missed documents", iBadRows );
 
 				// multi-queue only returned one result set meta, so we need to replicate it
 				if ( m_bMultiQueue )
@@ -11252,7 +11252,7 @@ static void HandleClientSphinx ( int iSock, const char * sClientIP, ThdDesc_t * 
 	DWORD uServer = htonl ( SPHINX_SEARCHD_PROTO );
 	if ( sphSockSend ( iSock, (char*)&uServer, sizeof(uServer) )!=sizeof(uServer) )
 	{
-		sphWarning ( "failed to send server version (client=%s("INT64_FMT"))", sClientIP, iCID );
+		sphWarning ( "failed to send server version (client=%s(" INT64_FMT "))", sClientIP, iCID );
 		return;
 	}
 
@@ -11263,10 +11263,10 @@ static void HandleClientSphinx ( int iSock, const char * sClientIP, ThdDesc_t * 
 		iGot = sphSockRead ( iSock, &iMagic, sizeof(iMagic), g_iReadTimeout, false );
 
 	bool bReadErr = ( iGot!=sizeof(iMagic) );
-	sphLogDebugv ( "conn %s("INT64_FMT"): got handshake, major v.%d, err %d", sClientIP, iCID, iMagic, (int)bReadErr );
+	sphLogDebugv ( "conn %s(" INT64_FMT "): got handshake, major v.%d, err %d", sClientIP, iCID, iMagic, (int)bReadErr );
 	if ( bReadErr )
 	{
-		sphLogDebugv ( "conn %s("INT64_FMT"): exiting on handshake error", sClientIP, iCID );
+		sphLogDebugv ( "conn %s(" INT64_FMT "): exiting on handshake error", sClientIP, iCID );
 		return;
 	}
 
@@ -11291,14 +11291,14 @@ static void HandleClientSphinx ( int iSock, const char * sClientIP, ThdDesc_t * 
 		// on SIGTERM, bail unconditionally and immediately, at all times
 		if ( !bCommand && g_bGotSigterm )
 		{
-			sphLogDebugv ( "conn %s("INT64_FMT"): bailing on SIGTERM", sClientIP, iCID );
+			sphLogDebugv ( "conn %s(" INT64_FMT "): bailing on SIGTERM", sClientIP, iCID );
 			break;
 		}
 
 		// on SIGHUP vs pconn, bail if a pconn was idle for 1 sec
 		if ( bPersist && !bCommand && g_bGotSighup && sphSockPeekErrno()==ETIMEDOUT )
 		{
-			sphLogDebugv ( "conn %s("INT64_FMT"): bailing idle pconn on SIGHUP", sClientIP, iCID );
+			sphLogDebugv ( "conn %s(" INT64_FMT "): bailing idle pconn on SIGHUP", sClientIP, iCID );
 			break;
 		}
 
@@ -11308,7 +11308,7 @@ static void HandleClientSphinx ( int iSock, const char * sClientIP, ThdDesc_t * 
 			iPconnIdle += iTimeout;
 			bool bClientTimedout = ( iPconnIdle>=g_iClientTimeout );
 			if ( bClientTimedout )
-				sphLogDebugv ( "conn %s("INT64_FMT"): bailing idle pconn on client_timeout", sClientIP, iCID );
+				sphLogDebugv ( "conn %s(" INT64_FMT "): bailing idle pconn on client_timeout", sClientIP, iCID );
 
 			if ( !bClientTimedout )
 				continue;
@@ -11334,7 +11334,7 @@ static void HandleClientSphinx ( int iSock, const char * sClientIP, ThdDesc_t * 
 			// lets avoid agent log flood
 			//
 			// sphWarning ( "failed to receive client version and request (client=%s, error=%s)", sClientIP, sphSockError() );
-			sphLogDebugv ( "conn %s("INT64_FMT"): bailing on failed request header (sockerr=%s)", sClientIP, iCID, sphSockError() );
+			sphLogDebugv ( "conn %s(" INT64_FMT "): bailing on failed request header (sockerr=%s)", sClientIP, iCID, sphSockError() );
 			break;
 		}
 
@@ -11359,7 +11359,7 @@ static void HandleClientSphinx ( int iSock, const char * sClientIP, ThdDesc_t * 
 		assert ( iLength>=0 && iLength<=g_iMaxPacketSize );
 		if ( iLength && !tBuf.ReadFrom ( iLength ) )
 		{
-			sphWarning ( "failed to receive client request body (client=%s("INT64_FMT"), exp=%d, error='%s')", sClientIP, iCID, iLength, sphSockError() );
+			sphWarning ( "failed to receive client request body (client=%s(" INT64_FMT "), exp=%d, error='%s')", sClientIP, iCID, iLength, sphSockError() );
 			break;
 		}
 
@@ -11369,7 +11369,7 @@ static void HandleClientSphinx ( int iSock, const char * sClientIP, ThdDesc_t * 
 	if ( bPersist )
 		g_iPersistentInUse.Dec();
 
-	sphLogDebugv ( "conn %s("INT64_FMT"): exiting", sClientIP, iCID );
+	sphLogDebugv ( "conn %s(" INT64_FMT "): exiting", sClientIP, iCID );
 }
 
 
@@ -11394,7 +11394,7 @@ bool LoopClientSphinx ( int iCommand, int iCommandVer, int iLength, const char *
 	THD_STATE ( THD_QUERY );
 
 	bool bPersist = false;
-	sphLogDebugv ( "conn %s("INT64_FMT"): got command %d, handling", sClientIP, iCID, iCommand );
+	sphLogDebugv ( "conn %s(" INT64_FMT "): got command %d, handling", sClientIP, iCID, iCommand );
 	switch ( iCommand )
 	{
 		case SEARCHD_COMMAND_SEARCH:	HandleCommandSearch ( tOut, iCommandVer, tBuf, pThd ); break;
@@ -11404,7 +11404,7 @@ bool LoopClientSphinx ( int iCommand, int iCommandVer, int iLength, const char *
 		case SEARCHD_COMMAND_PERSIST:
 			{
 				bPersist = ( tBuf.GetInt()!=0 );
-				sphLogDebugv ( "conn %s("INT64_FMT"): pconn is now %s", sClientIP, iCID, bPersist ? "on" : "off" );
+				sphLogDebugv ( "conn %s(" INT64_FMT "): pconn is now %s", sClientIP, iCID, bPersist ? "on" : "off" );
 				if ( !bManagePersist ) // thread pool handles all persist connections
 					break;
 
@@ -16408,10 +16408,10 @@ static void SphinxqlStateThreadFunc ( void * )
 		ARRAY_FOREACH_COND ( i, dUservars, tmLast==g_tmSphinxqlState )
 		{
 			const CSphVector<SphAttr_t> & dVals = *dUservars[i].m_pVal;
-			int iLen = snprintf ( dBuf, sizeof ( dBuf ), "SET GLOBAL %s = ( "INT64_FMT, dUservars[i].m_sName.cstr(), dVals[0] );
+			int iLen = snprintf ( dBuf, sizeof ( dBuf ), "SET GLOBAL %s = ( " INT64_FMT, dUservars[i].m_sName.cstr(), dVals[0] );
 			for ( int j=1; j<dVals.GetLength(); j++ )
 			{
-				iLen += snprintf ( dBuf+iLen, sizeof ( dBuf ), ", "INT64_FMT, dVals[j] );
+				iLen += snprintf ( dBuf+iLen, sizeof ( dBuf ), ", " INT64_FMT, dVals[j] );
 
 				if ( iLen>=iMaxString && j<dVals.GetLength()-1 )
 				{

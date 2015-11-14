@@ -32,6 +32,10 @@
 
 	#define UNALIGNED_RAM_ACCESS	1
 	#define USE_LITTLE_ENDIAN		1
+#if _MSC_VER >= 1900
+	#define HAVE_STRNLEN			1
+	#define HAVE_RENAME				1
+#endif
 #else
 	#define USE_WINDOWS		0	/// whether to compile for Windows
 #endif

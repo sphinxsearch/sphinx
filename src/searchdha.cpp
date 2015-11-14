@@ -384,7 +384,7 @@ AgentDesc_c * MetaAgentDesc_t::StDiscardDead ()
 	// only one node with lowest error rating. Return it.
 	if ( !dCandidates.GetLength() )
 	{
-		sphLogDebug ( "HA selected %d node with best num of errors a row ("INT64_FMT")", iBestAgent, iErrARow );
+		sphLogDebug ( "HA selected %d node with best num of errors a row (" INT64_FMT ")", iBestAgent, iErrARow );
 		return &m_dHosts[iBestAgent];
 	}
 
@@ -397,7 +397,7 @@ AgentDesc_c * MetaAgentDesc_t::StDiscardDead ()
 	{
 		const HostDashboard_t & dDash = GetCommonStat ( iBestAgent );
 		fAge = ( dDash.m_iLastAnswerTime-dDash.m_iLastQueryTime ) / 1000.0f;
-		sLogStr = "HA selected %d node by weighted random, with best EaR ("INT64_FMT"), last answered in %f milliseconds";
+		sLogStr = "HA selected %d node by weighted random, with best EaR (" INT64_FMT "), last answered in %f milliseconds";
 	}
 
 	sphLogDebug ( sLogStr, iBestAgent, iErrARow, fAge );
