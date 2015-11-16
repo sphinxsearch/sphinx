@@ -479,6 +479,75 @@ fi
 ])
 
 dnl ---------------------------------------------------------------------------
+dnl Macro: AC_CHECK_FIREBIRD
+dnl First check for custom Firebird RDBMS paths in --with-firebird-* options.
+dnl If some paths are missing,  check if fb_config exists. 
+dnl ---------------------------------------------------------------------------
+
+AC_DEFUN([AC_CHECK_FIREBIRD],[
+
+# Check for custom includes path
+if test [ -z "$ac_cv_firebird_includes" ] 
+then 
+	AC_ARG_WITH([firebird-includes], 
+		AC_HELP_STRING([--with-firebird-includes], [path to Firebird RDBMS header files]),
+		[ac_cv_firebird_includes=$withval])
+fi
+if test [ -n "$ac_cv_firebird_includes" ]
+then
+	AC_CACHE_CHECK([Firebird RDBMS includes], [ac_cv_firebird_includes], [ac_cv_firebird_includes=""])
+	FIREBIRD_CFLAGS="-I$ac_cv_firebird_includes"
+fi
+
+# Check for custom library path
+if test [ -z "$ac_cv_firebird_libs" ]
+then
+	AC_ARG_WITH([firebird-libs], 
+		AC_HELP_STRING([--with-firebird-libs], [path to Firebird RDBMS libraries]),
+		[ac_cv_firebird_libs=$withval])
+fi
+if test [ -n "$ac_cv_firebird_libs" ]
+then
+	AC_CACHE_CHECK([Firebird RDBMS libraries], [ac_cv_firebird_libs], [ac_cv_firebird_libs=""])
+	FIREBIRD_LIBS="-L$ac_cv_firebird_libs -lfbclient"
+fi
+
+# If some path is missing, try to autodetermine with fb_config
+if test [ -z "$ac_cv_firebird_includes" -o -z "$ac_cv_firebird_libs" ]
+then
+    if test [ -z "$fbconfig" ]
+    then 
+        AC_PATH_PROG(fbconfig,fb_config)
+    fi
+    if test [ -z "$fbconfig" ]
+    then
+        AC_MSG_ERROR([fb_config executable not found
+********************************************************************************
+ERROR: cannot find Firebird RDBMS libraries. If you want to compile with 
+       Firebird RDBMS support, you must either specify file locations explicitly 
+       using --with-firebird-includes and --with-firebird-libs options, or make 
+       sure path to fb_config is listed in your PATH environment variable. If you
+       want to disable Firebird RDBMS support, use --without-firebird option.
+********************************************************************************
+])
+    else
+        if test [ -z "$ac_cv_firebird_includes" ]
+        then
+            AC_MSG_CHECKING(Firebird RDBMS C flags)
+            FIREBIRD_CFLAGS="`${fbconfig} --cflags`"
+            AC_MSG_RESULT($FIREBIRD_CFLAGS)
+        fi
+        if test [ -z "$ac_cv_firebird_libs" ]
+        then
+            AC_MSG_CHECKING(Firebird RDBMS linker flags)
+            FIREBIRD_LIBS="`${fbconfig} --libs`"
+            AC_MSG_RESULT($FIREBIRD_LIBS)
+        fi
+    fi
+fi
+])
+
+dnl ---------------------------------------------------------------------------
 dnl Macro: SPHINX_CONFIGURE_PART
 dnl
 dnl Tells what stage is ./configure running now, nicely formatted
