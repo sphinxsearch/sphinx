@@ -15754,11 +15754,20 @@ void HandleMysqlCallSuggests ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 	const ServedIndex_t * pServed = GetCallIndex ( tOut, tStmt, sError );
 	if ( pServed )
 	{
-		const char * sQuery = tStmt.m_dInsertValues[0].m_sVal.cstr();
+		CSphQuery & tQuery = tStmt.m_tQuery;
+		tQuery.m_sQuery = tStmt.m_dInsertValues[0].m_sVal;
 
-		// :TODO:
-
+		CSphVector<CSphKeywordInfo> dKeywords;
+		bool bRes = pServed->m_pIndex->GetSuggests ( dKeywords, &tQuery, &sError );
 		pServed->Unlock ();
+
+		// :REFACTOR:
+		if ( !bRes )
+		{
+			sError.SetSprintf ( "suggest extraction failed: %s", sError.cstr() );
+			tOut.Error ( tStmt.m_sStmt, sError.cstr() );
+			return;
+		}
 
 		tOut.HeadBegin ( 3 );
 		tOut.HeadColumn("suggest");
