@@ -1266,6 +1266,7 @@ public:
 	virtual bool				GetKeywords ( CSphVector <CSphKeywordInfo> & dKeywords, const char * szQuery, bool bGetStats, CSphString * pError ) const;
 	virtual bool				FillKeywords ( CSphVector <CSphKeywordInfo> & dKeywords ) const;
 	void						AddKeywordStats ( BYTE * sWord, const BYTE * sTokenized, CSphDict * pDict, bool bGetStats, int iQpos, RtQword_t * pQueryWord, CSphVector <CSphKeywordInfo> & dKeywords, const SphChunkGuard_t & tGuard ) const;
+	virtual bool				GetSuggests ( CSphVector <CSphKeywordInfo> & dKeywords, const CSphQuery * pQuery, CSphString * pError );
 
 	void						CopyDocinfo ( CSphMatch & tMatch, const DWORD * pFound ) const;
 	const CSphRowitem *			FindDocinfo ( const RtSegment_t * pSeg, SphDocID_t uDocID ) const;
@@ -7695,6 +7696,91 @@ bool RtIndex_t::FillKeywords ( CSphVector<CSphKeywordInfo> & dKeywords ) const
 	return bGot;
 }
 
+bool RtIndex_t::GetSuggests ( CSphVector <CSphKeywordInfo> & dKeywords, const CSphQuery * pQuery, CSphString * pError )
+{
+	// REFACTOR:
+
+	// force ext2 mode for them
+	// FIXME! eliminate this const breakage
+	const_cast<CSphQuery*> ( pQuery )->m_eMode = SPH_MATCH_EXTENDED2;
+
+	SphChunkGuard_t tGuard;
+	GetReaderChunks ( tGuard );
+
+	// wrappers
+	// OPTIMIZE! make a lightweight clone here? and/or remove double clone?
+	CSphScopedPtr<ISphTokenizer> pTokenizer ( m_pTokenizer->Clone ( SPH_CLONE_QUERY ) );
+	sphSetupQueryTokenizer ( pTokenizer.Ptr() );
+
+	CSphScopedPtr<CSphDict> tDictCloned ( NULL );
+	CSphDict * pDict = m_pDict;
+	if ( pDict->HasState() )
+	{
+		tDictCloned = pDict = pDict->Clone();
+	}
+
+	CSphScopedPtr<CSphDict> tDictStar ( NULL );
+	pDict = SetupStarDict ( tDictStar, pDict, pTokenizer.Ptr() );
+
+	CSphScopedPtr<CSphDict> tDictExact ( NULL );
+	pDict = SetupExactDict ( tDictExact, pDict, pTokenizer.Ptr(), true );
+
+	// REFACTOR:
+
+	XQQuery_t tParsed;
+	// FIXME!!! provide segments list instead index to tTermSetup.m_pIndex
+	bool bParsed = sphParseExtendedQuery ( tParsed, pQuery->m_sQuery.cstr(), pQuery, pTokenizer.Ptr(), &m_tSchema, pDict, m_tSettings );
+
+	bool bRes = true;
+	if ( !bParsed )
+	{
+		*pError = tParsed.m_sParseError;
+		bRes = false;
+	}
+	// TODO: send as warning
+	if ( bRes && !tParsed.m_sParseWarning.IsEmpty() )
+	{
+		*pError = tParsed.m_sParseWarning;
+		bRes = false;
+	}
+
+	if ( bRes )
+	{
+		// REFACTOR:
+
+		// this should be after keyword expansion
+		if ( m_tSettings.m_uAotFilterMask )
+			TransformAotFilter ( tParsed.m_pRoot, pDict->GetWordforms(), m_tSettings );
+
+		// expanding prefix in word dictionary case
+		CSphScopedPayload tPayloads;
+		if ( m_bKeywordDict && ( m_tSettings.m_iMinPrefixLen>0 || m_tSettings.m_iMinInfixLen>0 ) )
+		{
+			ExpansionContext_t tExpCtx;
+			tExpCtx.m_pWordlist = this;
+			tExpCtx.m_pBuf = NULL;
+
+			CSphQueryResultMeta tResults;
+			tExpCtx.m_pResult = &tResults;
+
+			tExpCtx.m_iMinPrefixLen = m_tSettings.m_iMinPrefixLen;
+			tExpCtx.m_iMinInfixLen = m_tSettings.m_iMinInfixLen;
+			tExpCtx.m_iExpansionLimit = m_iExpansionLimit;
+			tExpCtx.m_bHasMorphology = m_pDict->HasMorphology();
+			tExpCtx.m_bMergeSingles = true;
+			tExpCtx.m_pPayloads = &tPayloads;
+			tExpCtx.m_pIndexData = &tGuard.m_dRamChunks;
+
+			tParsed.m_pRoot = sphExpandXQNode ( tParsed.m_pRoot, tExpCtx );
+
+			// REFACTOR:
+
+			// :TODO!!!:
+		}
+	}
+
+	return bRes;
+}
 
 static const RtSegment_t * UpdateFindSegment ( const SphChunkGuard_t & tGuard, const CSphRowitem ** ppRow, SphDocID_t uDocID )
 {
