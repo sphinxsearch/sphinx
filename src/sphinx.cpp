@@ -15382,7 +15382,6 @@ const DWORD * CSphIndex_VLN::FindDocinfo ( SphDocID_t uDocID ) const
 
 	assert ( m_tSettings.m_eDocinfo==SPH_DOCINFO_EXTERN );
 	assert ( !m_tAttr.IsEmpty() );
-	assert ( m_tSchema.GetAttrsCount() );
 
 	int iStride = DOCINFO_IDSIZE + m_tSchema.GetRowSize();
 	int64_t iStart = 0;
