@@ -12554,7 +12554,17 @@ void HandleMysqlCallSuggests ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 		tOut.HeadColumn("hits");
 		tOut.HeadEnd ();
 
-		// :TODO:
+		char sBuf[16];
+		ARRAY_FOREACH ( i, dKeywords )
+		{
+			tOut.PutString ( dKeywords[i].m_sNormalized.cstr() );
+			snprintf ( sBuf, sizeof(sBuf), "%d", dKeywords[i].m_iDocs );
+			tOut.PutString ( sBuf );
+			snprintf ( sBuf, sizeof(sBuf), "%d", dKeywords[i].m_iHits );
+			tOut.PutString ( sBuf );
+
+			tOut.Commit();
+		}
 
 		tOut.Eof ();
 	}

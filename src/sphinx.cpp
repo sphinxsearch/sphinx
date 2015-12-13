@@ -17227,7 +17227,7 @@ XQNode_t * sphExpandXQNode ( XQNode_t * pNode, ExpansionContext_t & tCtx )
 		return pNode;
 
 	bool bUseTermMerge = ( tCtx.m_bMergeSingles && pNode->m_dSpec.m_dZones.GetLength()==0 );
-	ISphWordlist::Args_t tWordlist ( bUseTermMerge, tCtx.m_iExpansionLimit, tCtx.m_bHasMorphology, tCtx.m_eHitless, tCtx.m_pIndexData );
+	ISphWordlist::Args_t tWordlist ( bUseTermMerge, tCtx.m_iExpansionLimit, tCtx.m_bHasMorphology, tCtx.m_eHitless, tCtx.m_pIndexData, tCtx.m_dKeywords );
 
 	if ( !sphIsWild(*sFull) || tCtx.m_iMinInfixLen==0 )
 	{
@@ -17364,6 +17364,7 @@ ExpansionContext_t::ExpansionContext_t()
 	, m_pPayloads ( NULL )
 	, m_eHitless ( SPH_HITLESS_NONE )
 	, m_pIndexData ( NULL )
+	, m_dKeywords ( NULL )
 {}
 
 
@@ -30598,12 +30599,13 @@ const BYTE * CWordlist::AcquireDict ( const CSphWordlistCheckpoint * pCheckpoint
 }
 
 
-ISphWordlist::Args_t::Args_t ( bool bPayload, int iExpansionLimit, bool bHasMorphology, ESphHitless eHitless, const void * pIndexData )
+ISphWordlist::Args_t::Args_t ( bool bPayload, int iExpansionLimit, bool bHasMorphology, ESphHitless eHitless, const void * pIndexData, CSphVector <CSphKeywordInfo> * dKeywords )
 	: m_bPayload ( bPayload )
 	, m_iExpansionLimit ( iExpansionLimit )
 	, m_bHasMorphology ( bHasMorphology )
 	, m_eHitless ( eHitless )
 	, m_pIndexData ( pIndexData )
+	, m_dKeywords ( dKeywords )
 {
 	m_sBuf.Reserve ( 2048 * SPH_MAX_WORD_LEN * 3 );
 	m_dExpanded.Reserve ( 2048 );

@@ -1941,8 +1941,9 @@ public:
 		int							m_iTotalDocs;
 		int							m_iTotalHits;
 		const void *				m_pIndexData;
+		CSphVector <CSphKeywordInfo> * m_dKeywords;
 
-		Args_t ( bool bPayload, int iExpansionLimit, bool bHasMorphology, ESphHitless eHitless, const void * pIndexData );
+		Args_t ( bool bPayload, int iExpansionLimit, bool bHasMorphology, ESphHitless eHitless, const void * pIndexData, CSphVector <CSphKeywordInfo> * dKeywords );
 		~Args_t ();
 		void AddExpanded ( const BYTE * sWord, int iLen, int iDocs, int iHits );
 		const char * GetWordExpanded ( int iIndex ) const;
@@ -1986,6 +1987,7 @@ struct ExpansionContext_t
 	CSphScopedPayload * m_pPayloads;
 	ESphHitless m_eHitless;
 	const void * m_pIndexData;
+	CSphVector <CSphKeywordInfo> * m_dKeywords;
 
 	ExpansionContext_t ();
 };
