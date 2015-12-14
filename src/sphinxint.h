@@ -1941,7 +1941,7 @@ public:
 		int							m_iTotalDocs;
 		int							m_iTotalHits;
 		const void *				m_pIndexData;
-		CSphVector <CSphKeywordInfo> * m_dKeywords;
+		CSphVector <CSphKeywordInfo> * m_pKeywords;
 
 		Args_t ( bool bPayload, int iExpansionLimit, bool bHasMorphology, ESphHitless eHitless, const void * pIndexData, CSphVector <CSphKeywordInfo> * dKeywords );
 		~Args_t ();
@@ -1987,7 +1987,7 @@ struct ExpansionContext_t
 	CSphScopedPayload * m_pPayloads;
 	ESphHitless m_eHitless;
 	const void * m_pIndexData;
-	CSphVector <CSphKeywordInfo> * m_dKeywords;
+	CSphVector <CSphKeywordInfo> * m_pKeywords;
 
 	ExpansionContext_t ();
 };
@@ -2003,6 +2003,8 @@ inline bool sphIsExpandedPayload ( int iDocs, int iHits )
 {
 	return ( iHits<=256 || iDocs<32 ); // magic threshold; mb make this configurable?
 }
+
+void sphAddKeyword ( CSphVector <CSphKeywordInfo> * pKeywords, const char * sWord, int iDocs, int iHits );
 
 
 template<typename T>

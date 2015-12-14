@@ -1642,12 +1642,20 @@ private:
 	bool						LoadPersistentMVA ( CSphString & sError );
 
 	bool						JuggleFile ( const char* szExt, CSphString & sError, bool bNeedOrigin=true ) const;
-	XQNode_t *					ExpandPrefix ( XQNode_t * pNode, CSphQueryResultMeta * pResult, CSphScopedPayload * pPayloads, DWORD uQueryDebugFlags ) const;
+public:
+	XQNode_t *					ExpandPrefix ( XQNode_t * pNode, CSphQueryResultMeta * pResult, CSphScopedPayload * pPayloads, DWORD uQueryDebugFlags, CSphVector<CSphKeywordInfo> * pKeywords = NULL ) const;
+private:
 
 	bool						BuildDone ( const BuildHeader_t & tBuildHeader, CSphString & sError ) const;
 };
 
 volatile int CSphIndex_VLN::m_iIndexTagSeq = 0;
+
+
+XQNode_t * VLNExpandPrefix (const CSphIndex * pIndex, XQNode_t * pNode, CSphQueryResultMeta * pResult, CSphScopedPayload * pPayloads, CSphVector<CSphKeywordInfo> * pKeywords )
+{
+	return static_cast<const CSphIndex_VLN *>(pIndex)->ExpandPrefix ( pNode, pResult, pPayloads, pKeywords );
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // UTILITY FUNCTIONS
@@ -17227,7 +17235,7 @@ XQNode_t * sphExpandXQNode ( XQNode_t * pNode, ExpansionContext_t & tCtx )
 		return pNode;
 
 	bool bUseTermMerge = ( tCtx.m_bMergeSingles && pNode->m_dSpec.m_dZones.GetLength()==0 );
-	ISphWordlist::Args_t tWordlist ( bUseTermMerge, tCtx.m_iExpansionLimit, tCtx.m_bHasMorphology, tCtx.m_eHitless, tCtx.m_pIndexData, tCtx.m_dKeywords );
+	ISphWordlist::Args_t tWordlist ( bUseTermMerge, tCtx.m_iExpansionLimit, tCtx.m_bHasMorphology, tCtx.m_eHitless, tCtx.m_pIndexData, tCtx.m_pKeywords );
 
 	if ( !sphIsWild(*sFull) || tCtx.m_iMinInfixLen==0 )
 	{
@@ -17364,11 +17372,11 @@ ExpansionContext_t::ExpansionContext_t()
 	, m_pPayloads ( NULL )
 	, m_eHitless ( SPH_HITLESS_NONE )
 	, m_pIndexData ( NULL )
-	, m_dKeywords ( NULL )
+	, m_pKeywords ( NULL )
 {}
 
 
-XQNode_t * CSphIndex_VLN::ExpandPrefix ( XQNode_t * pNode, CSphQueryResultMeta * pResult, CSphScopedPayload * pPayloads, DWORD uQueryDebugFlags ) const
+XQNode_t * CSphIndex_VLN::ExpandPrefix ( XQNode_t * pNode, CSphQueryResultMeta * pResult, CSphScopedPayload * pPayloads, DWORD uQueryDebugFlags, CSphVector<CSphKeywordInfo> * pKeywords ) const
 {
 	if ( !pNode || !m_pDict->GetSettings().m_bWordDict || ( m_tSettings.m_iMinPrefixLen<=0 && m_tSettings.m_iMinInfixLen<=0 ) )
 		return pNode;
@@ -17386,6 +17394,7 @@ XQNode_t * CSphIndex_VLN::ExpandPrefix ( XQNode_t * pNode, CSphQueryResultMeta *
 	tCtx.m_bMergeSingles = ( m_tSettings.m_eDocinfo!=SPH_DOCINFO_INLINE && ( uQueryDebugFlags & QUERY_DEBUG_NO_PAYLOAD )==0 );
 	tCtx.m_pPayloads = pPayloads;
 	tCtx.m_eHitless = m_tSettings.m_eHitless;
+	tCtx.m_pKeywords = pKeywords;
 
 	pNode = sphExpandXQNode ( pNode, tCtx );
 	pNode->Check ( true );
@@ -30599,13 +30608,13 @@ const BYTE * CWordlist::AcquireDict ( const CSphWordlistCheckpoint * pCheckpoint
 }
 
 
-ISphWordlist::Args_t::Args_t ( bool bPayload, int iExpansionLimit, bool bHasMorphology, ESphHitless eHitless, const void * pIndexData, CSphVector <CSphKeywordInfo> * dKeywords )
+ISphWordlist::Args_t::Args_t ( bool bPayload, int iExpansionLimit, bool bHasMorphology, ESphHitless eHitless, const void * pIndexData, CSphVector <CSphKeywordInfo> * pKeywords )
 	: m_bPayload ( bPayload )
 	, m_iExpansionLimit ( iExpansionLimit )
 	, m_bHasMorphology ( bHasMorphology )
 	, m_eHitless ( eHitless )
 	, m_pIndexData ( pIndexData )
-	, m_dKeywords ( dKeywords )
+	, m_pKeywords ( pKeywords )
 {
 	m_sBuf.Reserve ( 2048 * SPH_MAX_WORD_LEN * 3 );
 	m_dExpanded.Reserve ( 2048 );
@@ -30660,10 +30669,11 @@ struct DiskExpandedPayload_t
 
 struct DictEntryDiskPayload_t
 {
-	explicit DictEntryDiskPayload_t ( bool bPayload, ESphHitless eHitless )
+	explicit DictEntryDiskPayload_t ( bool bPayload, ESphHitless eHitless, CSphVector<CSphKeywordInfo> * pKeywords )
 	{
 		m_bPayload = bPayload;
 		m_eHitless = eHitless;
+		m_pKeywords = pKeywords;
 		if ( bPayload )
 			m_dWordPayload.Reserve ( 1000 );
 
@@ -30673,6 +30683,13 @@ struct DictEntryDiskPayload_t
 
 	void Add ( const CSphDictEntry & tWord, int iWordLen )
 	{
+		if ( m_pKeywords )
+		{
+			// 1 byte - length
+			sphAddKeyword ( m_pKeywords, (const char *)tWord.m_sKeyword, tWord.m_iDocs, tWord.m_iHits );
+			return;
+		}
+
 		if ( !m_bPayload || !sphIsExpandedPayload ( tWord.m_iDocs, tWord.m_iHits ) ||
 			m_eHitless==SPH_HITLESS_ALL || ( m_eHitless==SPH_HITLESS_SOME && ( tWord.m_iDocs & HITLESS_DOC_FLAG )!=0 ) ) // FIXME!!! do we need hitless=some as payloads?
 		{
@@ -30767,6 +30784,7 @@ struct DictEntryDiskPayload_t
 	CSphVector<DiskExpandedEntry_t>		m_dWordExpand;
 	CSphVector<DiskExpandedPayload_t>	m_dWordPayload;
 	CSphVector<BYTE>					m_dWordBuf;
+	CSphVector<CSphKeywordInfo> *		m_pKeywords;
 };
 
 
@@ -30778,7 +30796,7 @@ void CWordlist::GetPrefixedWords ( const char * sSubstring, int iSubLen, const c
 	if ( !m_dCheckpoints.GetLength() )
 		return;
 
-	DictEntryDiskPayload_t tDict2Payload ( tArgs.m_bPayload, tArgs.m_eHitless );
+	DictEntryDiskPayload_t tDict2Payload ( tArgs.m_bPayload, tArgs.m_eHitless, tArgs.m_pKeywords );
 
 	const CSphWordlistCheckpoint * pCheckpoint = FindCheckpoint ( sSubstring, iSubLen, 0, true );
 	const int iSkipMagic = ( BYTE(*sSubstring)<0x20 ); // whether to skip heading magic chars in the prefix, like NONSTEMMED maker
@@ -30942,7 +30960,7 @@ void CWordlist::GetInfixedWords ( const char * sSubstring, int iSubLen, const ch
 	if ( !sphLookupInfixCheckpoints ( sSubstring, iBytes1, m_tBuf.GetWritePtr(), m_dInfixBlocks, m_iInfixCodepointBytes, dPoints ) )
 		return;
 
-	DictEntryDiskPayload_t tDict2Payload ( tArgs.m_bPayload, tArgs.m_eHitless );
+	DictEntryDiskPayload_t tDict2Payload ( tArgs.m_bPayload, tArgs.m_eHitless, tArgs.m_pKeywords );
 	const int iSkipMagic = ( tArgs.m_bHasMorphology ? 1 : 0 ); // whether to skip heading magic chars in the prefix, like NONSTEMMED maker
 
 	// walk those checkpoints, check all their words

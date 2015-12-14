@@ -6150,13 +6150,23 @@ struct RtExpandedTraits_fn
 	const BYTE * m_sBase;
 };
 
+void sphAddKeyword ( CSphVector <CSphKeywordInfo> * pKeywords, const char * sWord, int iDocs, int iHits )
+{
+	CSphKeywordInfo & tInfo = pKeywords->Add();
+	// maybe 1 byte < 0x20 - magic prefix
+	if ( BYTE(*sWord) < 0x20 )
+		sWord++;
+	tInfo.m_sNormalized = sWord;
+	tInfo.m_iDocs = iDocs;
+	tInfo.m_iHits = iHits;
+}
 
 struct DictEntryRtPayload_t
 {
-	DictEntryRtPayload_t ( bool bPayload, int iSegments, CSphVector <CSphKeywordInfo> * dKeywords )
+	DictEntryRtPayload_t ( bool bPayload, int iSegments, CSphVector <CSphKeywordInfo> * pKeywords )
 	{
 		m_bPayload = bPayload;
-		m_dKeywords = dKeywords;
+		m_pKeywords = pKeywords;
 
 		if ( bPayload )
 		{
@@ -6175,18 +6185,10 @@ struct DictEntryRtPayload_t
 
 	void Add ( const RtWord_t * pWord, int iSegment )
 	{
-		if ( m_dKeywords )
+		if ( m_pKeywords )
 		{
-			CSphKeywordInfo & tInfo = m_dKeywords->Add();
 			// 1 byte - length
-			// maybe 1 byte < 0x20 - magic prefix
-			const char * sWord = (const char *)pWord->m_sWord + 1;
-			if ( BYTE(*sWord) < 0x20 )
-				sWord++;
-			tInfo.m_sNormalized = sWord;
-			tInfo.m_iDocs = pWord->m_uDocs;
-			tInfo.m_iHits = pWord->m_uHits;
-
+			sphAddKeyword ( m_pKeywords, (const char *)pWord->m_sWord + 1, pWord->m_uDocs, pWord->m_uHits );
 			return;
 		}
 
@@ -6317,14 +6319,14 @@ struct DictEntryRtPayload_t
 	CSphVector<RtExpandedPayload_t>	m_dWordPayload;
 	CSphVector<BYTE>				m_dWordBuf;
 	CSphVector<Slice_t>				m_dSeg;
-	CSphVector <CSphKeywordInfo> *  m_dKeywords;
+	CSphVector <CSphKeywordInfo> *  m_pKeywords;
 };
 
 
 void RtIndex_t::GetPrefixedWords ( const char * sSubstring, int iSubLen, const char * sWildcard, Args_t & tArgs ) const
 {
 	const CSphFixedVector<RtSegment_t*> & dSegments = *((CSphFixedVector<RtSegment_t*> *)tArgs.m_pIndexData);
-	DictEntryRtPayload_t tDict2Payload ( tArgs.m_bPayload, dSegments.GetLength(), tArgs.m_dKeywords );
+	DictEntryRtPayload_t tDict2Payload ( tArgs.m_bPayload, dSegments.GetLength(), tArgs.m_pKeywords );
 	const int iSkipMagic = ( BYTE(*sSubstring)<0x20 ); // whether to skip heading magic chars in the prefix, like NONSTEMMED maker
 	ARRAY_FOREACH ( iSeg, dSegments )
 	{
@@ -6433,7 +6435,7 @@ void RtIndex_t::GetInfixedWords ( const char * sSubstring, int iSubLen, const ch
 	const int iSkipMagic = ( tArgs.m_bHasMorphology ? 1 : 0 ); // whether to skip heading magic chars in the prefix, like NONSTEMMED maker
 	const CSphFixedVector<RtSegment_t*> & dSegments = *((CSphFixedVector<RtSegment_t*> *)tArgs.m_pIndexData);
 
-	DictEntryRtPayload_t tDict2Payload ( tArgs.m_bPayload, dSegments.GetLength(), tArgs.m_dKeywords );
+	DictEntryRtPayload_t tDict2Payload ( tArgs.m_bPayload, dSegments.GetLength(), tArgs.m_pKeywords );
 	ARRAY_FOREACH ( iSeg, dSegments )
 	{
 		const RtSegment_t * pSeg = dSegments[iSeg];
@@ -7714,6 +7716,9 @@ bool RtIndex_t::FillKeywords ( CSphVector<CSphKeywordInfo> & dKeywords ) const
 	return bGot;
 }
 
+XQNode_t * VLNExpandPrefix ( const CSphIndex * pIndex, XQNode_t * pNode, CSphQueryResultMeta * pResult,
+							 CSphScopedPayload * pPayloads, CSphVector <CSphKeywordInfo> * pKeywords );
+
 bool RtIndex_t::GetSuggests ( CSphVector <CSphKeywordInfo> & dKeywords, const CSphQuery * pQuery, CSphString * pError )
 {
 	// REFACTOR:
@@ -7770,6 +7775,11 @@ bool RtIndex_t::GetSuggests ( CSphVector <CSphKeywordInfo> & dKeywords, const CS
 		if ( m_tSettings.m_uAotFilterMask )
 			TransformAotFilter ( tParsed.m_pRoot, pDict->GetWordforms(), m_tSettings );
 
+		CSphQueryResultMeta tResults;
+
+		ARRAY_FOREACH ( iChunk, tGuard.m_dDiskChunks )
+			tParsed.m_pRoot = VLNExpandPrefix ( tGuard.m_dDiskChunks[iChunk], tParsed.m_pRoot, &tResults, NULL, &dKeywords );
+
 		// expanding prefix in word dictionary case
 		CSphScopedPayload tPayloads;
 		if ( m_bKeywordDict && ( m_tSettings.m_iMinPrefixLen>0 || m_tSettings.m_iMinInfixLen>0 ) )
@@ -7778,7 +7788,7 @@ bool RtIndex_t::GetSuggests ( CSphVector <CSphKeywordInfo> & dKeywords, const CS
 			tExpCtx.m_pWordlist = this;
 			tExpCtx.m_pBuf = NULL;
 
-			CSphQueryResultMeta tResults;
+			//CSphQueryResultMeta tResults;
 			tExpCtx.m_pResult = &tResults;
 
 			tExpCtx.m_iMinPrefixLen = m_tSettings.m_iMinPrefixLen;
@@ -7789,7 +7799,7 @@ bool RtIndex_t::GetSuggests ( CSphVector <CSphKeywordInfo> & dKeywords, const CS
 			tExpCtx.m_pPayloads = &tPayloads;
 			tExpCtx.m_pIndexData = &tGuard.m_dRamChunks;
 
-			tExpCtx.m_dKeywords = &dKeywords;
+			tExpCtx.m_pKeywords = &dKeywords;
 
 			tParsed.m_pRoot = sphExpandXQNode ( tParsed.m_pRoot, tExpCtx );
 
