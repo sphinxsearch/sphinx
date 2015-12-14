@@ -7804,8 +7804,6 @@ bool RtIndex_t::GetSuggests ( CSphVector <CSphKeywordInfo> & dKeywords, const CS
 			tParsed.m_pRoot = sphExpandXQNode ( tParsed.m_pRoot, tExpCtx );
 
 			// REFACTOR:
-
-			// :TODO!!!:
 		}
 	}
 
