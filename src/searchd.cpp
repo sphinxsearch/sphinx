@@ -15743,12 +15743,24 @@ void HandleMysqlCallSuggests ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 
 	// string query, string index
 	int iArgs = tStmt.m_dInsertValues.GetLength();
-	if ( iArgs != 2
+	if ( iArgs < 2
 		|| tStmt.m_dInsertValues[0].m_iType!=TOK_QUOTED_STRING
 		|| tStmt.m_dInsertValues[1].m_iType!=TOK_QUOTED_STRING )
 	{
-		tOut.Error ( tStmt.m_sStmt, "bad argument count or types in SUGGESTS() call" );
+		tOut.Error ( tStmt.m_sStmt, "bad arguments in SUGGESTS() call: (string, string ...) needed" );
 		return;
+	}
+
+	int iLimit = 0;
+	if ( iArgs >= 3 )
+	{
+		SqlInsert_t & tVar = tStmt.m_dInsertValues[2];
+		if ( tVar.m_iType!=TOK_CONST_INT )
+		{
+			tOut.Error ( tStmt.m_sStmt, "bad arguments in SUGGESTS() call: third one must be INT" );
+			return;
+		}
+		iLimit = tVar.m_iVal;
 	}
 
 	const ServedIndex_t * pServed = GetCallIndex ( tOut, tStmt, sError );
@@ -15769,6 +15781,37 @@ void HandleMysqlCallSuggests ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 			return;
 		}
 
+		// SUM(m_iHits) GROUP BY m_sNormalized ORDER BY m_iHits DESC
+
+		// GROUP BY
+		sphSort ( dKeywords.Begin(), dKeywords.GetLength(), bind ( &CSphKeywordInfo::m_sNormalized ) );
+
+		if ( dKeywords.GetLength() )
+		{
+			int i=0;
+			CSphKeywordInfo* kw = dKeywords.Begin();
+			for ( int j=1; j<dKeywords.GetLength(); j++ )
+			{
+				CSphKeywordInfo& kw2 = dKeywords[j];
+				if ( kw->m_sNormalized == kw2.m_sNormalized )
+				{
+					kw->m_iHits += kw2.m_iHits;
+					kw->m_iDocs += kw2.m_iDocs;
+				}
+				else
+				{
+					i++;
+					kw++;
+					if ( i != j )
+						*kw = kw2;
+				}
+			}
+			dKeywords.Resize ( i+1 );
+		}
+
+		// ORDER BY
+		sphSort ( dKeywords.Begin(), dKeywords.GetLength(), bind ( &CSphKeywordInfo::m_iHits ) );
+
 		tOut.HeadBegin ( 3 );
 		tOut.HeadColumn("suggest");
 		tOut.HeadColumn("docs");
@@ -15776,12 +15819,15 @@ void HandleMysqlCallSuggests ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 		tOut.HeadEnd ();
 
 		char sBuf[16];
-		ARRAY_FOREACH ( i, dKeywords )
+		int  iLen = dKeywords.GetLength();
+		iLimit = iLimit ? Min ( iLimit, iLen ) : iLen ;
+		for ( int i=0; i<iLimit; i++ )
 		{
-			tOut.PutString ( dKeywords[i].m_sNormalized.cstr() );
-			snprintf ( sBuf, sizeof(sBuf), "%d", dKeywords[i].m_iDocs );
+			CSphKeywordInfo& kw = dKeywords[iLen-i-1];
+			tOut.PutString ( kw.m_sNormalized.cstr() );
+			snprintf ( sBuf, sizeof(sBuf), "%d", kw.m_iDocs );
 			tOut.PutString ( sBuf );
-			snprintf ( sBuf, sizeof(sBuf), "%d", dKeywords[i].m_iHits );
+			snprintf ( sBuf, sizeof(sBuf), "%d", kw.m_iHits );
 			tOut.PutString ( sBuf );
 
 			tOut.Commit();
