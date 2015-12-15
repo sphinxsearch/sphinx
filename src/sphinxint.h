@@ -1936,7 +1936,7 @@ inline bool sphIsExpandedPayload ( int iDocs, int iHits )
 }
 
 void sphAddKeyword ( CSphVector <CSphKeywordInfo> * pKeywords, const char * sWord, int iDocs, int iHits );
-
+bool sphCheckParsedQuery ( bool & bParsed, XQQuery_t & tParsed, CSphString * pError );
 
 template<typename T>
 struct ExpandedOrderDesc_T

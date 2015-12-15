@@ -1551,6 +1551,7 @@ public:
 	virtual bool				GetKeywords ( CSphVector <CSphKeywordInfo> & dKeywords, const char * szQuery, bool bGetStats, CSphString * pError ) const;
 	template <class Qword> bool	DoGetKeywords ( CSphVector <CSphKeywordInfo> & dKeywords, const char * szQuery, bool bGetStats, bool bFillOnly, CSphString * pError ) const;
 	virtual bool 				FillKeywords ( CSphVector <CSphKeywordInfo> & dKeywords ) const;
+	virtual bool				GetSuggests ( CSphVector <CSphKeywordInfo> & dKeywords, const CSphQuery * pQuery, CSphString * pError );
 
 	virtual bool				Merge ( CSphIndex * pSource, const CSphVector<CSphFilterSettings> & dFilters, bool bMergeKillLists );
 
@@ -18165,6 +18166,61 @@ bool CSphIndex_VLN::FillKeywords ( CSphVector <CSphKeywordInfo> & dKeywords ) co
 {
 	WITH_QWORD ( this, false, Qword, return DoGetKeywords<Qword> ( dKeywords, NULL, true, true, NULL ) );
 	return false;
+}
+
+bool sphCheckParsedQuery ( bool & bParsed, XQQuery_t & tParsed, CSphString * pError )
+{
+	if ( !bParsed )
+		*pError = tParsed.m_sParseError;
+
+	// TODO: send as warning
+	if ( bParsed && !tParsed.m_sParseWarning.IsEmpty() )
+	{
+		*pError = tParsed.m_sParseWarning;
+		bParsed = false;
+	}
+	return bParsed;
+}
+
+bool CSphIndex_VLN::GetSuggests ( CSphVector <CSphKeywordInfo> & dKeywords, const CSphQuery * pQuery, CSphString * pError )
+{
+	// :REFACTOR:
+
+	CSphScopedPtr<CSphDict> tDictCloned ( NULL );
+	CSphDict * pDictBase = m_pDict;
+	if ( pDictBase->HasState() )
+		tDictCloned = pDictBase = pDictBase->Clone();
+
+	CSphScopedPtr<CSphDict> tDict ( NULL );
+	CSphDict * pDict = SetupStarDict ( tDict, pDictBase );
+
+	CSphScopedPtr<CSphDict> tDict2 ( NULL );
+	pDict = SetupExactDict ( tDict2, pDict );
+
+	CSphVector<BYTE> dFiltered;
+	const BYTE * sModifiedQuery = (BYTE *)pQuery->m_sQuery.cstr();
+	if ( m_pFieldFilter && m_pFieldFilter->Apply ( sModifiedQuery, 0, dFiltered ) )
+		sModifiedQuery = dFiltered.Begin();
+
+	// :REFACTOR: end
+
+	XQQuery_t tParsed;
+	bool bRes = sphParseExtendedQuery ( tParsed, (const char*)sModifiedQuery, pQuery, m_pQueryTokenizer, &m_tSchema, pDict, m_tSettings );
+	if ( sphCheckParsedQuery ( bRes, tParsed, pError ) )
+	{
+		// :REFACTOR:
+
+		// this should be after keyword expansion
+		if ( m_tSettings.m_uAotFilterMask )
+			TransformAotFilter ( tParsed.m_pRoot, pDict->GetWordforms(), m_tSettings );
+
+		// :REFACTOR: end
+
+		CSphQueryResultMeta tResults;
+		tParsed.m_pRoot = ExpandPrefix ( tParsed.m_pRoot, &tResults, NULL, &dKeywords );
+	}
+
+	return bRes;
 }
 
 

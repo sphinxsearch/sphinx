@@ -7580,22 +7580,8 @@ bool RtIndex_t::GetSuggests ( CSphVector <CSphKeywordInfo> & dKeywords, const CS
 
 	XQQuery_t tParsed;
 	// FIXME!!! provide segments list instead index to tTermSetup.m_pIndex
-	bool bParsed = sphParseExtendedQuery ( tParsed, pQuery->m_sQuery.cstr(), pQuery, pTokenizer.Ptr(), &m_tSchema, pDict, m_tSettings );
-
-	bool bRes = true;
-	if ( !bParsed )
-	{
-		*pError = tParsed.m_sParseError;
-		bRes = false;
-	}
-	// TODO: send as warning
-	if ( bRes && !tParsed.m_sParseWarning.IsEmpty() )
-	{
-		*pError = tParsed.m_sParseWarning;
-		bRes = false;
-	}
-
-	if ( bRes )
+	bool bRes = sphParseExtendedQuery ( tParsed, pQuery->m_sQuery.cstr(), pQuery, pTokenizer.Ptr(), &m_tSchema, pDict, m_tSettings );
+	if ( sphCheckParsedQuery ( bRes, tParsed, pError ) )
 	{
 		// REFACTOR:
 
