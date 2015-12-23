@@ -1545,6 +1545,16 @@ is supposed to be extremely rare, though.</para></listitem>
 <listitem><para>Multiple INSERTs grouped in a single transaction perform
 better than equivalent single-row transactions and are recommended for
 batch loading of data.</para></listitem>
+<listitem><para>RT indexes are forced to have docinfo=extern and so at least one attribute must be, e.g.:
+<programlisting>
+index rt
+{
+    ...
+    rt_attr_json = properties
+    ...
+}
+</programlisting>
+</para></listitem>
 </itemizedlist>
 </sect1>
 
