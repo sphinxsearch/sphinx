@@ -12516,7 +12516,7 @@ void HandleMysqlCallKeywords ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 	tOut.Eof();
 }
 
-void HandleMysqlCallSuggests ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
+void HandleMysqlCallExpansions ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 {
 	CSphString sError;
 
@@ -12526,7 +12526,7 @@ void HandleMysqlCallSuggests ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 		|| tStmt.m_dInsertValues[0].m_iType!=TOK_QUOTED_STRING
 		|| tStmt.m_dInsertValues[1].m_iType!=TOK_QUOTED_STRING )
 	{
-		tOut.Error ( tStmt.m_sStmt, "bad arguments in SUGGESTS() call: (string, string ...) needed" );
+		tOut.Error ( tStmt.m_sStmt, "bad arguments in EXPANSIONS() call: (string, string ...) needed" );
 		return;
 	}
 
@@ -12536,7 +12536,7 @@ void HandleMysqlCallSuggests ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 		SqlInsert_t & tVar = tStmt.m_dInsertValues[2];
 		if ( tVar.m_iType!=TOK_CONST_INT )
 		{
-			tOut.Error ( tStmt.m_sStmt, "bad arguments in SUGGESTS() call: third one must be INT" );
+			tOut.Error ( tStmt.m_sStmt, "bad arguments in EXPANSIONS() call: third one must be INT" );
 			return;
 		}
 		iLimit = tVar.m_iVal;
@@ -12549,13 +12549,13 @@ void HandleMysqlCallSuggests ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 		tQuery.m_sQuery = tStmt.m_dInsertValues[0].m_sVal;
 
 		CSphVector<CSphKeywordInfo> dKeywords;
-		bool bRes = pServed->m_pIndex->GetSuggests ( dKeywords, &tQuery, &sError );
+		bool bRes = pServed->m_pIndex->GetExpansions ( dKeywords, &tQuery, &sError );
 		pServed->Unlock ();
 
 		// :REFACTOR:
 		if ( !bRes )
 		{
-			sError.SetSprintf ( "suggest extraction failed: %s", sError.cstr() );
+			sError.SetSprintf ( "expansion failed: %s", sError.cstr() );
 			tOut.Error ( tStmt.m_sStmt, sError.cstr() );
 			return;
 		}
@@ -12592,7 +12592,7 @@ void HandleMysqlCallSuggests ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 		sphSort ( dKeywords.Begin(), dKeywords.GetLength(), bind ( &CSphKeywordInfo::m_iHits ) );
 
 		tOut.HeadBegin ( 3 );
-		tOut.HeadColumn("suggest");
+		tOut.HeadColumn("expansion");
 		tOut.HeadColumn("docs");
 		tOut.HeadColumn("hits");
 		tOut.HeadEnd ();
