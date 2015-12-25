@@ -1220,7 +1220,7 @@ public:
 	virtual bool				GetKeywords ( CSphVector <CSphKeywordInfo> & dKeywords, const char * szQuery, bool bGetStats, CSphString * pError ) const;
 	virtual bool				FillKeywords ( CSphVector <CSphKeywordInfo> & dKeywords ) const;
 	void						AddKeywordStats ( BYTE * sWord, const BYTE * sTokenized, CSphDict * pDict, bool bGetStats, int iQpos, RtQword_t * pQueryWord, CSphVector <CSphKeywordInfo> & dKeywords, const SphChunkGuard_t & tGuard ) const;
-	virtual bool				GetSuggests ( CSphVector <CSphKeywordInfo> & dKeywords, const CSphQuery * pQuery, CSphString * pError );
+	virtual bool				GetExpansions ( CSphVector <CSphKeywordInfo> & dKeywords, const CSphQuery * pQuery, CSphString * pError );
 
 	void						CopyDocinfo ( CSphMatch & tMatch, const DWORD * pFound ) const;
 	const CSphRowitem *			FindDocinfo ( const RtSegment_t * pSeg, SphDocID_t uDocID ) const;
@@ -7547,7 +7547,7 @@ bool RtIndex_t::FillKeywords ( CSphVector<CSphKeywordInfo> & dKeywords ) const
 XQNode_t * VLNExpandPrefix ( const CSphIndex * pIndex, XQNode_t * pNode, CSphQueryResultMeta * pResult,
 							 CSphScopedPayload * pPayloads, CSphVector <CSphKeywordInfo> * pKeywords );
 
-bool RtIndex_t::GetSuggests ( CSphVector <CSphKeywordInfo> & dKeywords, const CSphQuery * pQuery, CSphString * pError )
+bool RtIndex_t::GetExpansions ( CSphVector <CSphKeywordInfo> & dKeywords, const CSphQuery * pQuery, CSphString * pError )
 {
 	// REFACTOR:
 
@@ -7583,12 +7583,6 @@ bool RtIndex_t::GetSuggests ( CSphVector <CSphKeywordInfo> & dKeywords, const CS
 	bool bRes = sphParseExtendedQuery ( tParsed, pQuery->m_sQuery.cstr(), pQuery, pTokenizer.Ptr(), &m_tSchema, pDict, m_tSettings );
 	if ( sphCheckParsedQuery ( bRes, tParsed, pError ) )
 	{
-		// REFACTOR:
-
-		// this should be after keyword expansion
-		if ( m_tSettings.m_uAotFilterMask )
-			TransformAotFilter ( tParsed.m_pRoot, pDict->GetWordforms(), m_tSettings );
-
 		CSphQueryResultMeta tResults;
 
 		ARRAY_FOREACH ( iChunk, tGuard.m_dDiskChunks )
@@ -7616,8 +7610,6 @@ bool RtIndex_t::GetSuggests ( CSphVector <CSphKeywordInfo> & dKeywords, const CS
 			tExpCtx.m_pKeywords = &dKeywords;
 
 			tParsed.m_pRoot = sphExpandXQNode ( tParsed.m_pRoot, tExpCtx );
-
-			// REFACTOR:
 		}
 	}
 
