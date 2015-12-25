@@ -1655,7 +1655,7 @@ volatile int CSphIndex_VLN::m_iIndexTagSeq = 0;
 
 XQNode_t * VLNExpandPrefix (const CSphIndex * pIndex, XQNode_t * pNode, CSphQueryResultMeta * pResult, CSphScopedPayload * pPayloads, CSphVector<CSphKeywordInfo> * pKeywords )
 {
-	return static_cast<const CSphIndex_VLN *>(pIndex)->ExpandPrefix ( pNode, pResult, pPayloads, pKeywords );
+	return static_cast<const CSphIndex_VLN *>(pIndex)->ExpandPrefix ( pNode, pResult, pPayloads, 0, pKeywords );
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -16818,8 +16818,14 @@ bool CSphIndex_VLN::GetExpansions ( CSphVector <CSphKeywordInfo> & dKeywords, co
 
 	CSphVector<BYTE> dFiltered;
 	const BYTE * sModifiedQuery = (BYTE *)pQuery->m_sQuery.cstr();
-	if ( m_pFieldFilter && m_pFieldFilter->Apply ( sModifiedQuery, 0, dFiltered ) )
-		sModifiedQuery = dFiltered.Begin();
+
+	CSphScopedPtr<ISphFieldFilter> pFieldFilter ( NULL );
+	if ( m_pFieldFilter )
+	{
+		pFieldFilter = m_pFieldFilter->Clone();
+		if ( pFieldFilter->Apply ( sModifiedQuery, strlen ( (char*)sModifiedQuery ), dFiltered, true ) )
+			sModifiedQuery = dFiltered.Begin();
+	}
 
 	// :REFACTOR: end
 
@@ -16828,7 +16834,7 @@ bool CSphIndex_VLN::GetExpansions ( CSphVector <CSphKeywordInfo> & dKeywords, co
 	if ( sphCheckParsedQuery ( bRes, tParsed, pError ) )
 	{
 		CSphQueryResultMeta tResults;
-		tParsed.m_pRoot = ExpandPrefix ( tParsed.m_pRoot, &tResults, NULL, &dKeywords );
+		tParsed.m_pRoot = ExpandPrefix ( tParsed.m_pRoot, &tResults, NULL, 0, &dKeywords );
 	}
 
 	return bRes;

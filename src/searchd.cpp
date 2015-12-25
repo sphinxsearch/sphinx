@@ -12430,9 +12430,9 @@ void HandleMysqlCallSnippets ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt, ThdDesc
 	tOut.Eof();
 }
 
-static const ServedIndex_t * GetCallIndex ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt, CSphString & sError )
+static const ServedIndex_c * GetCallIndex ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt, CSphString & sError )
 {
-	const ServedIndex_t * pServed = g_pLocalIndexes->GetRlockedEntry ( tStmt.m_dInsertValues[1].m_sVal );
+	const ServedIndex_c * pServed = g_pLocalIndexes->GetRlockedEntry ( tStmt.m_dInsertValues[1].m_sVal );
 	if ( !pServed || !pServed->m_bEnabled || !pServed->m_pIndex )
 	{
 		if ( pServed )
@@ -12468,7 +12468,7 @@ void HandleMysqlCallKeywords ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 		return;
 	}
 
-	const ServedIndex_t * pServed = GetCallIndex ( tOut, tStmt, sError );
+	const ServedIndex_c * pServed = GetCallIndex ( tOut, tStmt, sError );
 	if ( !pServed )
 		return;
 
@@ -12542,7 +12542,7 @@ void HandleMysqlCallExpansions ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 		iLimit = tVar.m_iVal;
 	}
 
-	const ServedIndex_t * pServed = GetCallIndex ( tOut, tStmt, sError );
+	const ServedIndex_c * pServed = GetCallIndex ( tOut, tStmt, sError );
 	if ( pServed )
 	{
 		CSphQuery & tQuery = tStmt.m_tQuery;
@@ -15431,6 +15431,10 @@ public:
 			{
 				StatCountCommand ( SEARCHD_COMMAND_KEYWORDS );
 				HandleMysqlCallKeywords ( tOut, *pStmt );
+			} else if ( pStmt->m_sCallProc=="EXPANSIONS" )
+			{
+				//StatCountCommand ( SEARCHD_COMMAND_EXPANSIONS );
+				HandleMysqlCallExpansions ( tOut, *pStmt );
 			} else
 			{
 				m_sError.SetSprintf ( "no such builtin procedure %s", pStmt->m_sCallProc.cstr() );
