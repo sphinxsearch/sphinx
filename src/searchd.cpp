@@ -12430,6 +12430,27 @@ void HandleMysqlCallSnippets ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt, ThdDesc
 	tOut.Eof();
 }
 
+static const ServedIndex_t * GetCallIndex ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt, CSphString & sError )
+{
+	const ServedIndex_t * pServed = g_pLocalIndexes->GetRlockedEntry ( tStmt.m_dInsertValues[1].m_sVal );
+	if ( !pServed || !pServed->m_bEnabled || !pServed->m_pIndex )
+	{
+		if ( pServed )
+			pServed->Unlock();
+
+		pServed = g_pTemplateIndexes->GetRlockedEntry ( tStmt.m_dInsertValues[1].m_sVal );
+		if ( !pServed || !pServed->m_bEnabled || !pServed->m_pIndex )
+		{
+			sError.SetSprintf ( "no such index %s", tStmt.m_dInsertValues[1].m_sVal.cstr() );
+			tOut.Error ( tStmt.m_sStmt, sError.cstr() );
+			if ( pServed )
+				pServed->Unlock();
+			pServed = NULL;
+		}
+	}
+
+	return pServed;
+}
 
 void HandleMysqlCallKeywords ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 {
@@ -12447,22 +12468,9 @@ void HandleMysqlCallKeywords ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 		return;
 	}
 
-	const ServedIndex_c * pServed = g_pLocalIndexes->GetRlockedEntry ( tStmt.m_dInsertValues[1].m_sVal );
-	if ( !pServed || !pServed->m_bEnabled || !pServed->m_pIndex )
-	{
-		if ( pServed )
-			pServed->Unlock();
-
-		pServed = g_pTemplateIndexes->GetRlockedEntry ( tStmt.m_dInsertValues[1].m_sVal );
-		if ( !pServed || !pServed->m_bEnabled || !pServed->m_pIndex )
-		{
-			sError.SetSprintf ( "no such index %s", tStmt.m_dInsertValues[1].m_sVal.cstr() );
-			tOut.Error ( tStmt.m_sStmt, sError.cstr() );
-			if ( pServed )
-				pServed->Unlock();
-			return;
-		}
-	}
+	const ServedIndex_t * pServed = GetCallIndex ( tOut, tStmt, sError );
+	if ( !pServed )
+		return;
 
 	CSphVector<CSphKeywordInfo> dKeywords;
 	bool bStats = ( iArgs==3 && tStmt.m_dInsertValues[2].m_iVal!=0 );
@@ -12506,6 +12514,41 @@ void HandleMysqlCallKeywords ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 		tOut.Commit();
 	}
 	tOut.Eof();
+}
+
+void HandleMysqlCallSuggests ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
+{
+	CSphString sError;
+
+	// string query, string index
+	int iArgs = tStmt.m_dInsertValues.GetLength();
+	if ( iArgs != 2
+		|| tStmt.m_dInsertValues[0].m_iType!=TOK_QUOTED_STRING
+		|| tStmt.m_dInsertValues[1].m_iType!=TOK_QUOTED_STRING )
+	{
+		tOut.Error ( tStmt.m_sStmt, "bad argument count or types in SUGGESTS() call" );
+		return;
+	}
+
+	const ServedIndex_t * pServed = GetCallIndex ( tOut, tStmt, sError );
+	if ( pServed )
+	{
+		const char * sQuery = tStmt.m_dInsertValues[0].m_sVal.cstr();
+
+		// :TODO:
+
+		pServed->Unlock ();
+
+		tOut.HeadBegin ( 3 );
+		tOut.HeadColumn("suggest");
+		tOut.HeadColumn("docs");
+		tOut.HeadColumn("hits");
+		tOut.HeadEnd ();
+
+		// :TODO:
+
+		tOut.Eof ();
+	}
 }
 
 
