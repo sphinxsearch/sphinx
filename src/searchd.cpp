@@ -12430,6 +12430,27 @@ void HandleMysqlCallSnippets ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt, ThdDesc
 	tOut.Eof();
 }
 
+static const ServedIndex_c * GetCallIndex ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt, CSphString & sError )
+{
+	const ServedIndex_c * pServed = g_pLocalIndexes->GetRlockedEntry ( tStmt.m_dInsertValues[1].m_sVal );
+	if ( !pServed || !pServed->m_bEnabled || !pServed->m_pIndex )
+	{
+		if ( pServed )
+			pServed->Unlock();
+
+		pServed = g_pTemplateIndexes->GetRlockedEntry ( tStmt.m_dInsertValues[1].m_sVal );
+		if ( !pServed || !pServed->m_bEnabled || !pServed->m_pIndex )
+		{
+			sError.SetSprintf ( "no such index %s", tStmt.m_dInsertValues[1].m_sVal.cstr() );
+			tOut.Error ( tStmt.m_sStmt, sError.cstr() );
+			if ( pServed )
+				pServed->Unlock();
+			pServed = NULL;
+		}
+	}
+
+	return pServed;
+}
 
 void HandleMysqlCallKeywords ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 {
@@ -12447,22 +12468,9 @@ void HandleMysqlCallKeywords ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 		return;
 	}
 
-	const ServedIndex_c * pServed = g_pLocalIndexes->GetRlockedEntry ( tStmt.m_dInsertValues[1].m_sVal );
-	if ( !pServed || !pServed->m_bEnabled || !pServed->m_pIndex )
-	{
-		if ( pServed )
-			pServed->Unlock();
-
-		pServed = g_pTemplateIndexes->GetRlockedEntry ( tStmt.m_dInsertValues[1].m_sVal );
-		if ( !pServed || !pServed->m_bEnabled || !pServed->m_pIndex )
-		{
-			sError.SetSprintf ( "no such index %s", tStmt.m_dInsertValues[1].m_sVal.cstr() );
-			tOut.Error ( tStmt.m_sStmt, sError.cstr() );
-			if ( pServed )
-				pServed->Unlock();
-			return;
-		}
-	}
+	const ServedIndex_c * pServed = GetCallIndex ( tOut, tStmt, sError );
+	if ( !pServed )
+		return;
 
 	CSphVector<CSphKeywordInfo> dKeywords;
 	bool bStats = ( iArgs==3 && tStmt.m_dInsertValues[2].m_iVal!=0 );
@@ -12506,6 +12514,106 @@ void HandleMysqlCallKeywords ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
 		tOut.Commit();
 	}
 	tOut.Eof();
+}
+
+void HandleMysqlCallExpansions ( SqlRowBuffer_c & tOut, SqlStmt_t & tStmt )
+{
+	CSphString sError;
+
+	// string query, string index
+	int iArgs = tStmt.m_dInsertValues.GetLength();
+	if ( iArgs < 2
+		|| tStmt.m_dInsertValues[0].m_iType!=TOK_QUOTED_STRING
+		|| tStmt.m_dInsertValues[1].m_iType!=TOK_QUOTED_STRING )
+	{
+		tOut.Error ( tStmt.m_sStmt, "bad arguments in EXPANSIONS() call: (string, string ...) needed" );
+		return;
+	}
+
+	int iLimit = 0;
+	if ( iArgs >= 3 )
+	{
+		SqlInsert_t & tVar = tStmt.m_dInsertValues[2];
+		if ( tVar.m_iType!=TOK_CONST_INT )
+		{
+			tOut.Error ( tStmt.m_sStmt, "bad arguments in EXPANSIONS() call: third one must be INT" );
+			return;
+		}
+		iLimit = tVar.m_iVal;
+	}
+
+	const ServedIndex_c * pServed = GetCallIndex ( tOut, tStmt, sError );
+	if ( pServed )
+	{
+		CSphQuery & tQuery = tStmt.m_tQuery;
+		tQuery.m_sQuery = tStmt.m_dInsertValues[0].m_sVal;
+
+		CSphVector<CSphKeywordInfo> dKeywords;
+		bool bRes = pServed->m_pIndex->GetExpansions ( dKeywords, &tQuery, &sError );
+		pServed->Unlock ();
+
+		// :REFACTOR:
+		if ( !bRes )
+		{
+			sError.SetSprintf ( "expansion failed: %s", sError.cstr() );
+			tOut.Error ( tStmt.m_sStmt, sError.cstr() );
+			return;
+		}
+
+		// SUM(m_iHits) GROUP BY m_sNormalized ORDER BY m_iHits DESC
+
+		// GROUP BY
+		sphSort ( dKeywords.Begin(), dKeywords.GetLength(), bind ( &CSphKeywordInfo::m_sNormalized ) );
+
+		if ( dKeywords.GetLength() )
+		{
+			int i=0;
+			CSphKeywordInfo* kw = dKeywords.Begin();
+			for ( int j=1; j<dKeywords.GetLength(); j++ )
+			{
+				CSphKeywordInfo& kw2 = dKeywords[j];
+				if ( kw->m_sNormalized == kw2.m_sNormalized )
+				{
+					kw->m_iHits += kw2.m_iHits;
+					kw->m_iDocs += kw2.m_iDocs;
+				}
+				else
+				{
+					i++;
+					kw++;
+					if ( i != j )
+						*kw = kw2;
+				}
+			}
+			dKeywords.Resize ( i+1 );
+		}
+
+		// ORDER BY
+		sphSort ( dKeywords.Begin(), dKeywords.GetLength(), bind ( &CSphKeywordInfo::m_iHits ) );
+
+		tOut.HeadBegin ( 3 );
+		tOut.HeadColumn("expansion");
+		tOut.HeadColumn("docs");
+		tOut.HeadColumn("hits");
+		tOut.HeadEnd ();
+
+		char sBuf[16];
+		int  iLen = dKeywords.GetLength();
+		iLimit = iLimit ? Min ( iLimit, iLen ) : iLen ;
+		for ( int i=0; i<iLimit; i++ )
+		{
+			CSphKeywordInfo& kw = dKeywords[iLen-i-1];
+			tOut.PutString ( kw.m_sNormalized.cstr() );
+			snprintf ( sBuf, sizeof(sBuf), "%d", kw.m_iDocs );
+			tOut.PutString ( sBuf );
+			snprintf ( sBuf, sizeof(sBuf), "%d", kw.m_iHits );
+			tOut.PutString ( sBuf );
+
+			tOut.Commit();
+		}
+
+		tOut.Eof ();
+	}
 }
 
 
@@ -15323,6 +15431,10 @@ public:
 			{
 				StatCountCommand ( SEARCHD_COMMAND_KEYWORDS );
 				HandleMysqlCallKeywords ( tOut, *pStmt );
+			} else if ( pStmt->m_sCallProc=="EXPANSIONS" )
+			{
+				//StatCountCommand ( SEARCHD_COMMAND_EXPANSIONS );
+				HandleMysqlCallExpansions ( tOut, *pStmt );
 			} else
 			{
 				m_sError.SetSprintf ( "no such builtin procedure %s", pStmt->m_sCallProc.cstr() );
