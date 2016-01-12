@@ -57,6 +57,9 @@
 #endif
 #endif
 
+// PAGE_SIZE may be in <limits.h>
+#undef PAGE_SIZE
+
 #if USE_LIBICONV
 #include "iconv.h"
 #endif
