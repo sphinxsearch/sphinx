@@ -852,8 +852,6 @@ class SphinxClient
 	function SetFilter ( $attribute, $values, $exclude=false )
 	{
 		assert ( is_string($attribute) );
-		assert ( is_array($values) );
-		assert ( count($values) );
 
 		if ( is_array($values) && count($values) )
 		{
