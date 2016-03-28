@@ -852,8 +852,9 @@ class SphinxClient
 	function SetFilter ( $attribute, $values, $exclude=false )
 	{
 		assert ( is_string($attribute) );
+		assert ( is_array($values) );
 
-		if ( is_array($values) && count($values) )
+		if ( count($values) )
 		{
 			foreach ( $values as $value )
 				assert ( is_numeric($value) );
