@@ -4110,10 +4110,10 @@ properly.
 
 Second, we additionally need to know the language-specific string sorting
 rules. For instance, when sorting according to US rules in en_US locale,
-the accented character 'ï¿½' (small letter i with diaeresis) should be placed
+the accented character 'ï' (small letter i with diaeresis) should be placed
 somewhere after 'z'. However, when sorting with French rules and fr_FR
 locale in mind, it should be placed between 'i' and 'j'. And some other set
-of rules might choose to ignore accents at all, allowing 'ï¿½' and 'i' to be
+of rules might choose to ignore accents at all, allowing 'ï' and 'i' to be
 mixed arbitrarily.
 
 Third, but not least, we might need case-sensitive sorting in some
