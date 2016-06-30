@@ -1287,10 +1287,10 @@ Example application code (in PHP):
 
    | // only search posts by author whose ID is 123
    | $cl->SetFilter ( "author_id", array ( 123 ) );
-   | 
+   |
    | // only search posts in sub-forums 1, 3 and 7
    | $cl->SetFilter ( "forum_id", array ( 1,3,7 ) );
-   | 
+   |
    | // sort found posts by posting date in descending order
    | $cl->SetSortMode ( SPH_SORT_ATTR_DESC, "post_date" );
 
@@ -1299,6 +1299,8 @@ not full-text indexed; they are stored in the index as is. Currently
 supported attribute types are:
 
    * unsigned integers (1-bit to 32-bit wide);
+
+   * signed big integers (64-bit wide);
 
    * UNIX timestamps;
 
@@ -1530,7 +1532,7 @@ fetch another chunk of documents. Here's an example.
 Example 3.1. Ranged query usage example
 
    | # in sphinx.conf
-   | 
+   |
    | sql_query_range = SELECT MIN(id),MAX(id) FROM documents
    | sql_range_step = 1000
    | sql_query = SELECT * FROM documents WHERE id>=$start AND id<=$end
@@ -1574,14 +1576,14 @@ Example 3.2. xmlpipe2 document stream
 
    | <?xml version="1.0" encoding="utf-8"?>
    | <sphinx:docset>
-   | 
+   |
    | <sphinx:schema>
    | <sphinx:field name="subject"/>
    | <sphinx:field name="content"/>
    | <sphinx:attr name="published" type="timestamp"/>
    | <sphinx:attr name="author_id" type="int" bits="16" default="1"/>
    | </sphinx:schema>
-   | 
+   |
    | <sphinx:document id="1234">
    | <content>this is the main content <![CDATA[[and this <cdata> entry
    | must be handled properly by xml parser lib]]></content>
@@ -1590,21 +1592,21 @@ Example 3.2. xmlpipe2 document stream
    | in <b class="red">randomized</b> order</subject>
    | <misc>some undeclared element</misc>
    | </sphinx:document>
-   | 
+   |
    | <sphinx:document id="1235">
    | <subject>another subject</subject>
    | <content>here comes another document, and i am given to understand,
    | that in-document field order must not matter, sir</content>
    | <published>1012325467</published>
    | </sphinx:document>
-   | 
+   |
    | <!-- ... even more sphinx:document entries here ... -->
-   | 
+   |
    | <sphinx:killlist>
    | <id>1234</id>
    | <id>4567</id>
    | </sphinx:killlist>
-   | 
+   |
    | </sphinx:docset>
 
 Arbitrary fields and attributes are allowed. They also can occur in the
@@ -1766,7 +1768,7 @@ Example 3.3. Fully automated live updates
    |     counter_id INTEGER PRIMARY KEY NOT NULL,
    |     max_doc_id INTEGER NOT NULL
    | );
-   | 
+   |
    | # in sphinx.conf
    | source main
    | {
@@ -1776,21 +1778,21 @@ Example 3.3. Fully automated live updates
    |     sql_query = SELECT id, title, body FROM documents \
    |         WHERE id<=( SELECT max_doc_id FROM sph_counter WHERE counter_id=1 )
    | }
-   | 
+   |
    | source delta : main
    | {
    |     sql_query_pre = SET NAMES utf8
    |     sql_query = SELECT id, title, body FROM documents \
    |         WHERE id>( SELECT max_doc_id FROM sph_counter WHERE counter_id=1 )
    | }
-   | 
+   |
    | index main
    | {
    |     source = main
    |     path = /path/to/main
    |     # ... all the other settings
    | }
-   | 
+   |
    | # note how all other settings are copied from main,
    | # but source and path are overridden (they MUST be)
    | index delta : main
@@ -1892,15 +1894,15 @@ example session with the sample index above:
    | Welcome to the MySQL monitor.  Commands end with ; or \g.
    | Your MySQL connection id is 1
    | Server version: 1.10-dev (r2153)
-   | 
+   |
    | Type 'help;' or '\h' for help. Type '\c' to clear the buffer.
-   | 
+   |
    | mysql> INSERT INTO rt VALUES ( 1, 'first record', 'test one', 123 );
    | Query OK, 1 row affected (0.05 sec)
-   | 
+   |
    | mysql> INSERT INTO rt VALUES ( 2, 'second record', 'test two', 234 );
    | Query OK, 1 row affected (0.00 sec)
-   | 
+   |
    | mysql> SELECT * FROM rt;
    | +------+--------+------+
    | | id   | weight | gid  |
@@ -1909,7 +1911,7 @@ example session with the sample index above:
    | |    2 |      1 |  234 |
    | +------+--------+------+
    | 2 rows in set (0.02 sec)
-   | 
+   |
    | mysql> SELECT * FROM rt WHERE MATCH('test');
    | +------+--------+------+
    | | id   | weight | gid  |
@@ -1918,7 +1920,7 @@ example session with the sample index above:
    | |    2 |   1643 |  234 |
    | +------+--------+------+
    | 2 rows in set (0.01 sec)
-   | 
+   |
    | mysql> SELECT * FROM rt WHERE MATCH('@title test');
    | Empty set (0.00 sec)
 
@@ -1930,7 +1932,7 @@ to implement updates.
 
    | mysql> INSERT INTO rt ( id, title ) VALUES ( 3, 'third row' ), ( 4, 'fourth entry' );
    | Query OK, 2 rows affected (0.01 sec)
-   | 
+   |
    | mysql> SELECT * FROM rt;
    | +------+--------+------+
    | | id   | weight | gid  |
@@ -1941,10 +1943,10 @@ to implement updates.
    | |    4 |      1 |    0 |
    | +------+--------+------+
    | 4 rows in set (0.00 sec)
-   | 
+   |
    | mysql> DELETE FROM rt WHERE id=2;
    | Query OK, 0 rows affected (0.00 sec)
-   | 
+   |
    | mysql> SELECT * FROM rt WHERE MATCH('test');
    | +------+--------+------+
    | | id   | weight | gid  |
@@ -1952,13 +1954,13 @@ to implement updates.
    | |    1 |   1500 |  123 |
    | +------+--------+------+
    | 1 row in set (0.00 sec)
-   | 
+   |
    | mysql> INSERT INTO rt VALUES ( 1, 'first record on steroids', 'test one', 123 );
    | ERROR 1064 (42000): duplicate id '1'
-   | 
+   |
    | mysql> REPLACE INTO rt VALUES ( 1, 'first record on steroids', 'test one', 123 );
    | Query OK, 1 row affected (0.01 sec)
-   | 
+   |
    | mysql> SELECT * FROM rt WHERE MATCH('steroids');
    | +------+--------+------+
    | | id   | weight | gid  |
@@ -2466,7 +2468,7 @@ an implicit list of all documents:
 
    | // correct query
    | aaa -(bbb -(ccc ddd))
-   | 
+   |
    | // queries that are non-computable
    | -aaa
    | aaa | -bbb
@@ -2639,7 +2641,7 @@ omitted and the ranker name is case insensitive. Example:
 
    | // SphinxAPI
    | $client->SetRankingMode ( SPH_RANK_SPH04 );
-   | 
+   |
    | // SphinxQL
    | mysql_query ( "SELECT ... OPTION ranker=sph04" );
 
@@ -2679,7 +2681,7 @@ document-level ranking factors.
 5.4.4. Quick summary of the ranking factors
 -------------------------------------------
 
-Table 5.1. 
+Table 5.1.
 
 +-------------------+----------+-------+----------------------------------------------------+
 | Name              | Level    | Type  | Summary                                            |
@@ -3357,7 +3359,7 @@ GEODIST()
    and a few examples are as follows:
 
       | GEODIST(lat1, lon1, lat2, lon2, { option=value, ... })
-      | 
+      |
       | GEODIST(40.7643929, -73.9997683, 40.7642578, -73.9994565, {in=degrees, out=feet})
       | GEODIST(51.50, -0.12, 29.98, 31.13, {in=deg, out=mi}}
 
@@ -3441,14 +3443,14 @@ PACKEDFACTORS()
       |     word0=(tf=1, idf=-0.062982),
       |     word1=(tf=1, idf=0.215338)
       | 1 row in set (0.00 sec)
-      | 
+      |
       | mysql> SELECT id, PACKEDFACTORS({json=1}) FROM test1
       |     -> WHERE MATCH('test one') OPTION ranker=expr('1') \G
       | *************************** 1. row ***************************
       |                      id: 1
       | packedfactors({json=1}):
       | {
-      | 
+      |
       |     "bm25": 569,
       |     "bm25a": 0.617197,
       |     "field_mask": 2,
@@ -3483,7 +3485,7 @@ PACKEDFACTORS()
       |             "idf": 0.215338
       |         }
       |     ]
-      | 
+      |
       | }
       | 1 row in set (0.01 sec)
 
@@ -3893,7 +3895,7 @@ per line in the actual log.)
 
    | /* Fri Jun 29 21:17:58.609 2007 2011 conn 2 real 0.004 wall 0.004 found 35254 */
    | SELECT * FROM lj WHERE MATCH('test') OPTION ranker=proximity;
-   | 
+   |
    | /* Fri Jun 29 21:20:34 2007.555 conn 3 real 0.024 wall 0.024 found 19886 */
    | SELECT * FROM lj WHERE MATCH('test') GROUP BY channel_id
    | OPTION ranker=proximity;
@@ -3941,9 +3943,9 @@ querying Sphinx using MySQL client:
    | Welcome to the MySQL monitor.  Commands end with ; or \g.
    | Your MySQL connection id is 1
    | Server version: 0.9.9-dev (r1734)
-   | 
+   |
    | Type 'help;' or '\h' for help. Type '\c' to clear the buffer.
-   | 
+   |
    | mysql> SELECT * FROM test1 WHERE MATCH('test')
    |     -> ORDER BY group_id ASC OPTION ranker=bm25;
    | +------+--------+----------+------------+
@@ -4054,7 +4056,7 @@ sorting modes:
    | require ( "sphinxapi.php" );
    | $cl = new SphinxClient ();
    | $cl->SetMatchMode ( SPH_MATCH_EXTENDED );
-   | 
+   |
    | $cl->SetSortMode ( SPH_SORT_RELEVANCE );
    | $cl->AddQuery ( "the", "lj" );
    | $cl->SetSortMode ( SPH_SORT_EXTENDED, "published desc" );
@@ -4343,7 +4345,7 @@ library file, and you must return SPH_UDF_VERSION (a value defined in
 sphinxudf.h) from it. Here's an example.
 
    | #include <sphinxudf.h>
-   | 
+   |
    | // our library will be called udfexample.so, thus, so it must define
    | // a version function named udfexample_ver()
    | int udfexample_ver()
@@ -4400,11 +4402,11 @@ deinitialization, respectively.
    |     // allocate and initialize a little bit of temporary storage
    |     init->func_data = malloc ( sizeof(int) );
    |     *(int*)init->func_data = 123;
-   | 
+   |
    |     // return a success code
    |     return 0;
    | }
-   | 
+   |
    | void testfunc_deinit ( SPH_UDF_INIT * init )
    | {
    |     // free up our temporary storage
@@ -4592,7 +4594,7 @@ And this is how you use it:
 
    | mysql> CREATE PLUGIN myrank TYPE 'ranker' SONAME 'myrank.dll';
    | Query OK, 0 rows affected (0.00 sec)
-   | 
+   |
    | mysql> SELECT id, weight() FROM test1 WHERE MATCH('test')
    |     -> OPTION ranker=myrank('');
    | +------+----------+
@@ -5239,7 +5241,7 @@ uses the relative frequency of each word in the dictionary: higher
 frequency means higher split probability. You can generate such a file
 using the indexer tool, as in
 
-   | indexer --buildstops dict.txt 100000 --buildfreqs myindex -c /path/to/sphinx.conf   
+   | indexer --buildstops dict.txt 100000 --buildfreqs myindex -c /path/to/sphinx.conf
 
 which will write the 100,000 most frequent words, along with their counts,
 from myindex into dict.txt. The output file is a text file, so you can edit
@@ -5745,7 +5747,7 @@ predicted_time in OPTION clause.
    | |    4 |   1480 |        2 | 1231721236 |
    | +------+--------+----------+------------+
    | 3 rows in set (0.01 sec)
-   | 
+   |
    | mysql> SHOW META;
    | +-----------------------+-------+
    | | Variable_name         | Value |
@@ -5805,10 +5807,10 @@ be returned along with the query itself:
    | mysql> SELECT * FROM test1 WHERE MATCH('@@title hello') \G
    | ERROR 1064 (42000): index test1: syntax error, unexpected TOK_FIELDLIMIT
    | near '@title hello'
-   | 
+   |
    | mysql> SELECT * FROM test1 WHERE MATCH('@title -hello') \G
    | ERROR 1064 (42000): index test1: query is non-computable (single NOT operator)
-   | 
+   |
    | mysql> SELECT * FROM test1 WHERE MATCH('"test doc"/3') \G
    | *************************** 1. row ***************************
    |         id: 4
@@ -5816,7 +5818,7 @@ be returned along with the query itself:
    |   group_id: 2
    | date_added: 1231721236
    | 1 row in set, 1 warning (0.00 sec)
-   | 
+   |
    | mysql> SHOW WARNINGS \G
    | *************************** 1. row ***************************
    |   Level: warning
@@ -5937,10 +5939,10 @@ Section 8.1, <<SELECT syntax>> for details).
    | |  107 | 1007 | 107,208     | 107  |
    | +------+------+-------------+------+
    | 8 rows in set (0.00 sec)
-   | 
+   |
    | mysql> delete from rt where match ('dumy') and mva1>206;
    | Query OK, 2 rows affected (0.00 sec)
-   | 
+   |
    | mysql> select * from rt;
    | +------+------+-------------+------+
    | | id   | gid  | mva1        | mva2 |
@@ -5953,10 +5955,10 @@ Section 8.1, <<SELECT syntax>> for details).
    | |  105 | 1005 | 105,206     | 105  |
    | +------+------+-------------+------+
    | 6 rows in set (0.00 sec)
-   | 
+   |
    | mysql> delete from rt where id in (100,104,105);
    | Query OK, 3 rows affected (0.01 sec)
-   | 
+   |
    | mysql> select * from rt;
    | +------+------+---------+------+
    | | id   | gid  | mva1    | mva2 |
@@ -5966,10 +5968,10 @@ Section 8.1, <<SELECT syntax>> for details).
    | |  103 | 1003 | 103,204 | 103  |
    | +------+------+---------+------+
    | 3 rows in set (0.00 sec)
-   | 
+   |
    | mysql> delete from rt where mva1 in (102,204);
    | Query OK, 2 rows affected (0.01 sec)
-   | 
+   |
    | mysql> select * from rt;
    | +------+------+---------+------+
    | | id   | gid  | mva1    | mva2 |
@@ -6017,7 +6019,7 @@ distibuted index. Example:
    | // in session 1
    | mysql> SET GLOBAL @myfilter=(2,3,5,7,11,13);
    | Query OK, 0 rows affected (0.00 sec)
-   | 
+   |
    | // later in session 2
    | mysql> SELECT * FROM test1 WHERE group_id IN @myfilter;
    | +------+--------+----------+------------+-----------------+------+
@@ -6084,7 +6086,7 @@ Examples:
 
    | mysql> SET autocommit=0;
    | Query OK, 0 rows affected (0.00 sec)
-   | 
+   |
    | mysql> SET GLOBAL query_log_format=sphinxql;
    | Query OK, 0 rows affected (0.00 sec)
 
@@ -6256,7 +6258,7 @@ queries that the server receives. Example:
 
    | mysql> CREATE FUNCTION avgmva RETURNS INT SONAME 'udfexample.dll';
    | Query OK, 0 rows affected (0.03 sec)
-   | 
+   |
    | mysql> SELECT *, AVGMVA(tag) AS q from test1;
    | +------+--------+---------+-----------+
    | | id   | weight | tag     | q         |
@@ -6373,7 +6375,7 @@ float values in JSON array. No strings, arrays and other types yet.
 
    | mysql> UPDATE myindex SET enabled=0 WHERE id=123;
    | Query OK, 1 rows affected (0.00 sec)
-   | 
+   |
    | mysql> UPDATE myindex
    |   SET bigattr=-100000000000,
    |     fattr=3465.23,
@@ -6440,10 +6442,10 @@ warnings regarding the keyword sets mismatch.
    | | date_added | timestamp |
    | +------------+-----------+
    | 4 rows in set (0.01 sec)
-   | 
+   |
    | mysql> alter table plain add column test integer;
    | Query OK, 0 rows affected (0.04 sec)
-   | 
+   |
    | mysql> desc plain;
    | +------------+-----------+
    | | Field      | Type      |
@@ -6455,10 +6457,10 @@ warnings regarding the keyword sets mismatch.
    | | test       | uint      |
    | +------------+-----------+
    | 5 rows in set (0.00 sec)
-   | 
+   |
    | mysql> alter table plain drop column group_id;
    | Query OK, 0 rows affected (0.01 sec)
-   | 
+   |
    | mysql> desc plain;
    | +------------+-----------+
    | | Field      | Type      |
@@ -6514,10 +6516,10 @@ indexes. The complete list is as follows.
    | | testattr  | uint    |
    | +-----------+---------+
    | 3 rows in set (0.00 sec)
-   | 
+   |
    | mysql> SELECT * FROM rt;
    | Empty set (0.00 sec)
-   | 
+   |
    | mysql> SELECT * FROM disk WHERE MATCH('test');
    | +------+--------+----------+------------+
    | | id   | weight | group_id | date_added |
@@ -6528,10 +6530,10 @@ indexes. The complete list is as follows.
    | |    4 |   1304 |        1 | 1313643256 |
    | +------+--------+----------+------------+
    | 4 rows in set (0.00 sec)
-   | 
+   |
    | mysql> ATTACH INDEX disk TO RTINDEX rt;
    | Query OK, 0 rows affected (0.00 sec)
-   | 
+   |
    | mysql> DESC rt;
    | +------------+-----------+
    | | Field      | Type      |
@@ -6543,7 +6545,7 @@ indexes. The complete list is as follows.
    | | date_added | timestamp |
    | +------------+-----------+
    | 5 rows in set (0.00 sec)
-   | 
+   |
    | mysql> SELECT * FROM rt WHERE MATCH('test');
    | +------+--------+----------+------------+
    | | id   | weight | group_id | date_added |
@@ -6554,7 +6556,7 @@ indexes. The complete list is as follows.
    | |    4 |   1304 |        1 | 1313643256 |
    | +------+--------+----------+------------+
    | 4 rows in set (0.00 sec)
-   | 
+   |
    | mysql> SELECT * FROM disk WHERE MATCH('test');
    | ERROR 1064 (42000): no enabled local indexes to search
 
@@ -6616,7 +6618,7 @@ since the daemon startup).
 
    | mysql> UPDATE testindex SET channel_id=1107025 WHERE id=1;
    | Query OK, 1 row affected (0.04 sec)
-   | 
+   |
    | mysql> FLUSH ATTRIBUTES;
    | +------+
    | | tag  |
@@ -6787,7 +6789,7 @@ Here's a complete instrumentation example:
 
    | mysql> SET profiling=1;
    | Query OK, 0 rows affected (0.00 sec)
-   | 
+   |
    | mysql> SELECT id FROM lj WHERE MATCH('the test') LIMIT 1;
    | +--------+
    | | id     |
@@ -6795,7 +6797,7 @@ Here's a complete instrumentation example:
    | | 946418 |
    | +--------+
    | 1 row in set (0.05 sec)
-   | 
+   |
    | mysql> SHOW PROFILE;
    | +--------------+----------+----------+
    | | Status       | Duration | Switches |
@@ -6961,12 +6963,12 @@ Here's a complete instrumentation example:
 
    | mysql> SET profiling=1 \G
    | Query OK, 0 rows affected (0.00 sec)
-   | 
+   |
    | mysql> SELECT id FROM lj WHERE MATCH('the i') LIMIT 1 \G
    | *************************** 1. row ***************************
    | id: 39815
    | 1 row in set (1.53 sec)
-   | 
+   |
    | mysql> SHOW PLAN \G
    | *************************** 1. row ***************************
    | Variable: transformed_tree
@@ -7149,17 +7151,17 @@ mysqli interface in PHP and DBI/DBD libraries in Perl are known to work.
 Here's a PHP sample showing how to utilize mysqli interface with Sphinx.
 
    | <?php
-   | 
+   |
    | $link = mysqli_connect ( "127.0.0.1", "root", "", "", 9306 );
    | if ( mysqli_connect_errno() )
    |     die ( "connect failed: " . mysqli_connect_error() );
-   | 
+   |
    | $batch = "SELECT * FROM test1 ORDER BY group_id ASC;";
    | $batch .= "SELECT * FROM test1 ORDER BY group_id DESC";
-   | 
+   |
    | if ( !mysqli_multi_query ( $link, $batch ) )
    |     die ( "query failed" );
-   | 
+   |
    | do
    | {
    |     // fetch and print result set
@@ -7169,11 +7171,11 @@ Here's a PHP sample showing how to utilize mysqli interface with Sphinx.
    |             printf ( "id=%s\n", $row[0] );
    |         mysqli_free_result($result);
    |     }
-   | 
+   |
    |     // print divider
    |     if ( mysqli_more_results($link) )
    |         printf ( "------\n" );
-   | 
+   |
    | } while ( mysqli_next_result($link) );
 
 Its output with the sample test1 index included with Sphinx is as follows.
@@ -8039,12 +8041,12 @@ to change them at all. Here's an example:
 
    | $cl->SetSortMode ( SPH_SORT_RELEVANCE );
    | $cl->AddQuery ( "hello world", "documents" );
-   | 
+   |
    | $cl->SetSortMode ( SPH_SORT_ATTR_DESC, "price" );
    | $cl->AddQuery ( "ipod", "products" );
-   | 
+   |
    | $cl->AddQuery ( "harry potter", "books" );
-   | 
+   |
    | $results = $cl->RunQueries ();
 
 With the code above, 1st query will search for "hello world" in "documents"
@@ -8572,7 +8574,7 @@ Let's begin with an example create statement and search query:
    |     group_id    INTEGER,
    |     INDEX(query)
    | ) ENGINE=SPHINX CONNECTION="sphinx://localhost:9312/test";
-   | 
+   |
    | SELECT * FROM t1 WHERE query='test it;mode=any';
 
 First 3 columns of search table must have a types of INTEGER UNSINGED or
@@ -8647,7 +8649,7 @@ number of options can be specified. Available options are:
 
       | # only include groups 1, 5 and 19
       | ... WHERE query='test;filter=group_id,1,5,19;';
-      | 
+      |
       | # exclude groups 3 and 11
       | ... WHERE query='test;!filter=group_id,3,11;';
 
@@ -8656,7 +8658,7 @@ number of options can be specified. Available options are:
 
       | # include groups from 3 to 7, inclusive
       | ... WHERE query='test;range=group_id,3,7;';
-      | 
+      |
       | # exclude groups from 5 to 25
       | ... WHERE query='test;!range=group_id,5,25;';
 
@@ -8665,7 +8667,7 @@ number of options can be specified. Available options are:
 
       | # filter by a float size
       | ... WHERE query='test;floatrange=size,2,3;';
-      | 
+      |
       | # pick all results within 1000 meter from geoanchor
       | ... WHERE query='test;floatrange=@geodist,0,1000;';
 
@@ -8833,7 +8835,7 @@ engines. Here's an example with "documents" from example.sql:
    | | this is my test document number one | 2006-06-17 14:04:28 |
    | +-------------------------------------+---------------------+
    | 2 rows in set (0.00 sec)
-   | 
+   |
    | mysql> SHOW ENGINE SPHINX STATUS;
    | +--------+-------+---------------------------------------------+
    | | Type   | Name  | Status                                      |
@@ -8876,7 +8878,7 @@ Usage examples:
    |     'sphinx://192.168.1.1/' AS sphinx, true AS exact_phrase,
    |     '[b]' AS before_match, '[/b]' AS after_match)
    | FROM documents;
-   | 
+   |
    | SELECT title, sphinx_snippets(text, 'index', 'mysql php') AS text
    |     FROM sphinx, documents
    |     WHERE query='mysql php' AND sphinx.id=documents.id;
@@ -9465,7 +9467,7 @@ Example:
    | sql_joined_field = \
    |     tagstext from query; \
    |     SELECT docid, CONCAT('tag',tagid) FROM tags ORDER BY docid ASC
-   | 
+   |
    | sql_joined_field = bigint tag from ranged-query; \
    |     SELECT id, tag FROM tags WHERE id>=$start AND id<=$end ORDER BY id ASC; \
    |     SELECT MIN(id), MAX(id) FROM tags
@@ -10173,7 +10175,7 @@ some additional information yourself. Two typical approaches include:
       |     sql_query = SELECT id*10+1, ... FROM table1
       |     ...
       | }
-      | 
+      |
       | source src2
       | {
       |     sql_query = SELECT id*10+2, ... FROM table2
@@ -10188,7 +10190,7 @@ some additional information yourself. Two typical approaches include:
       |     sql_attr_uint = source_id
       |     ...
       | }
-      | 
+      |
       | source src2
       | {
       |     sql_query = SELECT id, 2 AS source_id FROM table2
@@ -10906,7 +10908,7 @@ Example:
    | # default are English and Russian letters
    | charset_table = 0..9, A..Z->a..z, _, a..z, \
    |     U+410..U+42F->U+430..U+44F, U+430..U+44F, U+401->U+451, U+451
-   | 	
+   |
    | # english charset defined with alias
    | charset_table = 0..9, english, _
 
@@ -11306,12 +11308,12 @@ Example:
    | # sharding an index over 3 servers
    | agent = box2:9312:chunk2
    | agent = box3:9312:chunk3
-   | 
+   |
    | # config on box2
    | # sharding an index over 3 servers
    | agent = box1:9312:chunk2
    | agent = box3:9312:chunk3
-   | 
+   |
    | # config on box3
    | # sharding an index over 3 servers
    | agent = box1:9312:chunk2
@@ -11367,10 +11369,10 @@ Example:
    | # in just 2 chunks but with 2 failover mirrors for each chunk
    | # box1, box2 carry chunk1 as local
    | # box3, box4 carry chunk2 as local
-   | 
+   |
    | # config on box1, box2
    | agent = box3:9312|box4:9312:chunk2
-   | 
+   |
    | # config on box3, box4
    | agent = box1:9312|box2:9312:chunk1
 
@@ -12118,7 +12120,7 @@ Example:
 
    | # index '13-inch' as '13inch'
    | regexp_filter = \b(\d+)\" => \1inch
-   | 
+   |
    | # index 'blue' or 'red' as 'color'
    | regexp_filter = (blue|red) => color
 
@@ -12928,9 +12930,9 @@ Example:
    |     local = chunk3
    |     local = chunk4
    | }
-   | 
+   |
    | # ...
-   | 
+   |
    | dist_threads = 4
 
 12.4.27. binlog_path

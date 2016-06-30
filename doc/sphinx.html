@@ -450,12 +450,12 @@ the data, and to be easily accessed by scripting languages. However, Sphinx
 does not depend on nor require any specific database to function.
 </p><p>
 Applications can access Sphinx search daemon (searchd) using any of
-the three different access methods: a) via Sphinx own implementation of MySQL 
+the three different access methods: a) via Sphinx own implementation of MySQL
 network protocol (using a small SQL subset called SphinxQL, this is recommended
 way), b) via native search API (SphinxAPI) or c) via MySQL server with a
 pluggable storage engine (SphinxSE).
 </p><p>
-Official native SphinxAPI implementations for PHP, Perl, Python, Ruby and Java 
+Official native SphinxAPI implementations for PHP, Perl, Python, Ruby and Java
 are included within the distribution package. API is very lightweight
 so porting it to a new language is known to take a few hours or days.
 Third party API ports and plugins exist for Perl, C#, Haskell,
@@ -628,8 +628,8 @@ during last years, the obvious decision is to continue developing Sphinx
 </dl></div>
 <div class="sect1" title="2.1.&nbsp;Supported systems"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="supported-system"></a>2.1.&nbsp;Supported systems</h2></div></div></div>
 <p>
-Sphinx can be compiled either from source or installed using prebuilt 
-packages. Most modern UNIX systems with a C++ compiler should be able 
+Sphinx can be compiled either from source or installed using prebuilt
+packages. Most modern UNIX systems with a C++ compiler should be able
 to compile and run Sphinx without any modifications.
 </p><p>
 Currently known systems Sphinx has been successfully running on are:
@@ -731,7 +731,7 @@ do not seem to help you, please don't hesitate to contact me.
 </ol></div>
 <p>Sphinx <code class="filename">searchd</code> daemon can be started/stopped using service command:</p><p><strong class="userinput"><code>$ sudo service sphinxsearch start</code></strong></p></div>
 <div class="sect1" title="2.4.&nbsp;Installing Sphinx packages on RedHat and CentOS"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="installing-redhat"></a>2.4.&nbsp;Installing Sphinx packages on RedHat and CentOS</h2></div></div></div>
-<p>Currently we distribute Sphinx RPMS and SRPMS on our website for both 5.x and 6.x 
+<p>Currently we distribute Sphinx RPMS and SRPMS on our website for both 5.x and 6.x
 versions of Red Hat Enterprise Linux, but they can be installed on CentOS as well.</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>Before installation make sure you have these packages installed:</p><p><strong class="userinput"><code>$ yum install postgresql-libs unixODBC</code></strong></p></li>
 <li class="listitem"><p>Download RedHat RPM from Sphinx website and install it:</p><p><strong class="userinput"><code>$ rpm -Uhv sphinx-2.2.1-1.rhel6.x86_64.rpm</code></strong></p></li>
 <li class="listitem"><p>After preparing configuration file (see <a class="link" href="#quick-tour" title="2.7.&nbsp;Quick Sphinx usage tour">Quick tour</a>), you can start searchd daemon:</p><p><strong class="userinput"><code>$ service searchd start</code></strong></p></li>
@@ -806,7 +806,7 @@ possible that someone may use it. And now we're urging you: don't use it.
 The default value is 'inline' and it's a new standard. 'plain' hit_format
 is obsolete and will be removed in the near future.</p></li>
 <li class="listitem"><p>docinfo=inline is deprecated. You can now use
-<a class="link" href="#conf-ondisk-attrs" title="12.2.68.&nbsp;ondisk_attrs">ondisk_attrs</a> or 
+<a class="link" href="#conf-ondisk-attrs" title="12.2.68.&nbsp;ondisk_attrs">ondisk_attrs</a> or
 <a class="link" href="#conf-ondisk-attrs-default" title="12.4.46.&nbsp;ondisk_attrs_default">ondisk_attrs_default</a> instead.</p></li>
 <li class="listitem"><p>workers=threads is a new default for all OS now.
 We're gonna get rid of other modes in future.</p></li>
@@ -1039,6 +1039,7 @@ Attributes are named. Attribute names are case insensitive.
 Attributes are <span class="emphasis"><em>not</em></span> full-text indexed; they are stored in the index as is.
 Currently supported attribute types are:
 </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>unsigned integers (1-bit to 32-bit wide);</p></li>
+<li class="listitem"><p>signed big integers (64-bit wide);</p></li>
 <li class="listitem"><p>UNIX timestamps;</p></li>
 <li class="listitem"><p>floating point values (32-bit, IEEE 754 single precision);</p></li>
 <li class="listitem"><p><a class="link" href="#conf-sql-attr-string" title="12.1.23.&nbsp;sql_attr_string">strings</a> (since 1.10-beta);</p></li>
@@ -2499,7 +2500,7 @@ atc = log(1+sum(pair_tc))
 Note that this final dampening logarithm is exactly the reason you should use
 OPTION idf=plain, because without it, the expression inside the log() could be negative.
 </p><p>
-Having closer keyword occurrences actually contributes <span class="emphasis"><em>much</em></span> more 
+Having closer keyword occurrences actually contributes <span class="emphasis"><em>much</em></span> more
 to ATC than having more frequent keywords. Indeed, when the keywords are right next to
 each other, distance=1 and k=1; when there just one word in between them, distance=2 and
 k=0.297, with two words between, distance=3 and k=0.146, and so on. At the same time
@@ -2846,10 +2847,10 @@ LENGTH(json_attr.some_array) returns number of elements in array.
 <dd><p>Returns sort key value of the worst found element in the current top-N matches if sort key is float and 0 otherwise.</p></dd><dt><span class="term"><a name="expr-func-min-top-weight"></a>MIN_TOP_WEIGHT()</span></dt>
 <dd><p>Returns weight of the worst found element in the current top-N matches.</p></dd><dt><span class="term"><a name="expr-func-packedfactors"></a>PACKEDFACTORS()</span></dt>
 <dd><p>
-PACKEDFACTORS(), introduced in version 2.1.1-beta, can be used in queries, 
+PACKEDFACTORS(), introduced in version 2.1.1-beta, can be used in queries,
 either to just see all the weighting factors calculated when doing the matching, or to
 provide a binary attribute that can be used to write a custom ranking UDF.
-This function works only if expression ranker is specified and the query 
+This function works only if expression ranker is specified and the query
 is not a full scan, otherwise it will return an error. Starting with 2.2.2-beta
 PACKEDFACTORS() can take an optional argument that disables ATC ranking factor calculation:
 </p><pre class="programlisting">
@@ -2932,7 +2933,7 @@ WHERE match('hello')
 ORDER BY r DESC
 OPTION ranker=expr('1');
 </pre><p>
-Where CUSTOM_RANK() is a function implemented in an UDF. It should declare a 
+Where CUSTOM_RANK() is a function implemented in an UDF. It should declare a
 SPH_UDF_FACTORS structure (defined in <code class="filename">sphinxudf.h</code>), initialize this structure,
 unpack the factors into it before usage, and deinitialize it afterwards, as follows:
 </p><pre class="programlisting">
@@ -3712,7 +3713,7 @@ is able to import standard C header, and emit standard dynamic libraries with
 properly exported functions. Of course, the path of least resistance is to write
 in either C++ or plain C. We provide an example UDF library written in plain C
 and implementing several functions (demonstrating a few different techniques)
-along with our source code, see 
+along with our source code, see
 <a class="ulink" href="https://github.com/sphinxsearch/sphinx/blob/master/src/udfexample.c" target="_top">src/udfexample.c</a>.
 That example includes
 <a class="ulink" href="https://github.com/sphinxsearch/sphinx/blob/master/src/sphinxudf.h" target="_top">src/sphinxudf.h</a>
@@ -4610,8 +4611,8 @@ is useful when you want to check your index before actually using it.
 <code class="filename">wordbreaker</code> is one of the helper tools within
 the Sphinx package, introduced in version 2.1.1-beta. It is used to
 split compound words, as usual in URLs, into its component words.
-For example, this tool can split "lordoftherings" into its four 
-component words, or "http://manofsteel.warnerbros.com" into "man 
+For example, this tool can split "lordoftherings" into its four
+component words, or "http://manofsteel.warnerbros.com" into "man
 of steel warner bros". This helps searching, without requiring
 prefixes or infixes: searching for "sphinx" wouldn't match "sphinxsearch"
 but if you break the compound word and index the separate components,
@@ -4627,15 +4628,15 @@ the splitting functionality.
 </p><p>Wordbreaker
 Wordbreaker needs a dictionary to recognize individual substrings within a string. To
 differentiate between different guesses, it uses the relative frequency of each
-word in the dictionary: higher frequency means higher split probability. You can 
+word in the dictionary: higher frequency means higher split probability. You can
 generate such a file using the <code class="filename">indexer</code> tool, as in
 </p><pre class="programlisting">
-indexer --buildstops dict.txt 100000 --buildfreqs myindex -c /path/to/sphinx.conf   
+indexer --buildstops dict.txt 100000 --buildfreqs myindex -c /path/to/sphinx.conf
 </pre><p>
 which will write the 100,000 most frequent words, along with their counts, from
 myindex into dict.txt. The output file is a text file, so you can edit it by hand,
 if need be, to add or remove words.
-</p><p>See 
+</p><p>See
 <a class="ulink" href="http://sphinxsearch.com/blog/2013/01/29/a-new-tool-in-the-trunk-wordbreaker/" target="_top">
 http://sphinxsearch.com/blog/2013/01/29/a-new-tool-in-the-trunk-wordbreaker/</a>
 for more on this tool.
@@ -4892,7 +4893,7 @@ lets you control a number of per-query options. The syntax is:
 OPTION &lt;optionname&gt;=&lt;value&gt; [ , ... ]
 </pre><p>
 Supported options and respectively allowed values are:
-</p><div class="itemizedlist"><ul class="itemizedlist" type="circle"><li class="listitem"><p>'agent_query_timeout' - integer (max time in milliseconds to wait for remote queries to complete, 
+</p><div class="itemizedlist"><ul class="itemizedlist" type="circle"><li class="listitem"><p>'agent_query_timeout' - integer (max time in milliseconds to wait for remote queries to complete,
 see <a class="link" href="#conf-agent-query-timeout" title="12.2.35.&nbsp;agent_query_timeout">agent_query_timeout</a> under Index configuration options for details)</p></li>
 <li class="listitem"><p>'boolean_simplify' - 0 or 1, enables simplifying the query to speed it up</p></li>
 <li class="listitem"><p>'comment' - string, user comment that gets copied to a query log file</p></li>
@@ -5088,7 +5089,7 @@ automatically execute this statement.
 SHOW META [ LIKE pattern ]
 </pre><p><span class="bold"><strong>SHOW META</strong></span> shows additional meta-information about the latest
 query such as query time and keyword statistics. IO and CPU counters will only be available if searchd was started with --iostats and --cpustats switches respectively.
-Additional predicted_time, dist_predicted_time, [{local|dist}]_fetched_[{docs|hits|skips}] counters will only be available if searchd was configured with  
+Additional predicted_time, dist_predicted_time, [{local|dist}]_fetched_[{docs|hits|skips}] counters will only be available if searchd was configured with
 <a class="link" href="#conf-predicted-time-costs" title="12.4.44.&nbsp;predicted_time_costs">predicted time costs</a> and query  had  predicted_time in OPTION clause.
 </p><pre class="programlisting">
 mysql&gt; SELECT * FROM test1 WHERE MATCH('test|one|two');
@@ -5770,7 +5771,7 @@ added in 2.2.2-beta.
 Implementation details. As of 2.2.1-beta, the querying of an index is
 impossible (because of a write lock) while adding a column. This may change
 in the future. The newly created attribute values are set to 0. ALTER will
-not work for distributed indexes and indexes without any attributes. 
+not work for distributed indexes and indexes without any attributes.
 DROP COLUMN will fail if an index has only one attribute.
 </p><pre class="programlisting">
 ALTER RTINDEX index RECONFIGURE
@@ -9936,7 +9937,7 @@ control character mapping.
 # default are English and Russian letters
 charset_table = 0..9, A..Z-&gt;a..z, _, a..z, \
     U+410..U+42F-&gt;U+430..U+44F, U+430..U+44F, U+401-&gt;U+451, U+451
-	
+
 # english charset defined with alias
 charset_table = 0..9, english, _
 </pre></div>
@@ -12168,15 +12169,15 @@ The last defined in distributed (network) indexes, or also may be overrided per-
 </p></div>
 <div class="sect2" title="12.4.50.&nbsp;agent_retry_count"><div class="titlepage"><div><div><h3 class="title"><a name="conf-agent-retry-count"></a>12.4.50.&nbsp;agent_retry_count</h3></div></div></div>
 <p>
-Integer, specifies how many times sphinx will try to connect and query remote agents in distributed index before reporting 
-fatal query error. Default is 0 (i.e. no retries). This value may be also specified on per-query basis using 
+Integer, specifies how many times sphinx will try to connect and query remote agents in distributed index before reporting
+fatal query error. Default is 0 (i.e. no retries). This value may be also specified on per-query basis using
 'OPTION retry_count=XXX' clause. If per-query option exists, it will override the one specified in config.
 </p></div>
 <div class="sect2" title="12.4.51.&nbsp;agent_retry_delay"><div class="titlepage"><div><div><h3 class="title"><a name="conf-agent-retry-delay"></a>12.4.51.&nbsp;agent_retry_delay</h3></div></div></div>
 <p>
 Integer, in milliseconds. Specifies the delay sphinx rest before retrying to query a remote agent in case it fails.
-The value has sense only if non-zero <a class="link" href="#conf-agent-retry-count" title="12.4.50.&nbsp;agent_retry_count">agent_retry_count</a> 
-or non-zero per-query OPTION retry_count specified. Default is 500. This value may be also specified 
+The value has sense only if non-zero <a class="link" href="#conf-agent-retry-count" title="12.4.50.&nbsp;agent_retry_count">agent_retry_count</a>
+or non-zero per-query OPTION retry_count specified. Default is 500. This value may be also specified
 on per-query basis using 'OPTION retry_delay=XXX' clause. If per-query option exists, it will override the one specified in config.
 </p></div>
 <div class="sect2" title="12.4.52.&nbsp;qcache_max_bytes"><div class="titlepage"><div><div><h3 class="title"><a name="conf-qcache-max-bytes"></a>12.4.52.&nbsp;qcache_max_bytes</h3></div></div></div>
