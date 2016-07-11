@@ -2,6 +2,7 @@
 # $Id$
 #
 
+from __future__ import print_function
 from sphinxapi import *
 import sys
 
@@ -15,12 +16,12 @@ cl = SphinxClient()
 res = cl.BuildExcerpts(docs, index, words, opts)
 
 if not res:
-	print 'ERROR:', cl.GetLastError()
+	print('ERROR:', cl.GetLastError())
 else:
 	n = 0
 	for entry in res:
 		n += 1
-		print 'n=%d, res=%s' % (n, entry)
+		print('n=%d, res=%s' % (n, entry))
 
 #
 # $Id$
