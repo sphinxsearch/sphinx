@@ -114,6 +114,12 @@
 	#pragma message("Automatically linking with libpq.lib")
 #endif
 
+#if ( USE_WINDOWS && USE_FIREBIRD )
+	#pragma comment(linker, "/defaultlib:fbclient_ms.lib")
+	#pragma message("Automatically linking with fbclient.lib")
+#endif
+
+
 #if ( USE_WINDOWS && USE_LIBSTEMMER )
 	#pragma comment(linker, "/defaultlib:libstemmer_c.lib")
 	#pragma message("Automatically linking with libstemmer_c.lib")
@@ -28751,6 +28757,430 @@ DWORD CSphSource_PgSQL::SqlColumnLength ( int )
 }
 
 #endif // USE_PGSQL
+
+
+
+
+#if USE_FIREBIRD
+
+CSphSourceParams_FBSQL::CSphSourceParams_FBSQL() :
+	CSphSourceParams_SQL()
+{
+}
+
+CSphSource_FBSQL::CSphSource_FBSQL(const char * sName) :
+	CSphSource_SQL(sName),
+	m_database(NULL),
+	m_transaction(NULL),
+	m_statement(NULL),
+	m_record(NULL),
+	m_recsize(0),
+	m_selectable(false),
+	m_blob(NULL),
+	m_blobsize(0)
+{
+	memset(m_status, 0, sizeof(m_status));
+	m_error[0] = 0;
+
+	const short DEF_SQLVARS = 4;
+	m_xsqlda = (XSQLDA *) new char[XSQLDA_LENGTH(DEF_SQLVARS)];
+	m_xsqlda->version = 1;
+	m_xsqlda->sqln = DEF_SQLVARS;
+}
+
+CSphSource_FBSQL::~CSphSource_FBSQL()
+{
+	delete[](char *) m_xsqlda;
+	delete[] m_record;
+	delete[] m_blob;
+}
+
+bool CSphSource_FBSQL::Setup(const CSphSourceParams_FBSQL & pParams)
+{
+	if (!CSphSource_SQL::Setup(pParams))
+		return false;
+
+	m_sCharset = pParams.m_sCharset;
+	m_sRole = pParams.m_sRole;
+
+	return true;
+}
+
+void CSphSource_FBSQL::SqlDismissResult()
+{
+	if (!m_statement)
+		return;
+
+	if (m_selectable) {
+		isc_dsql_free_statement(m_status, &m_statement, DSQL_close);
+	}
+}
+
+bool CSphSource_FBSQL::SqlQuery(const char * sQuery)
+{
+	if (!m_statement) {
+		if (isc_dsql_allocate_statement(m_status, &m_database, &m_statement))
+			return false;
+	}
+
+	if (isc_dsql_prepare(m_status, &m_transaction, &m_statement, 0, sQuery,
+		SQL_DIALECT_CURRENT, NULL))
+	{
+		return false;
+	}
+
+	m_selectable = false;
+
+	// get statement type
+	const char stmt_info[] = { isc_info_sql_stmt_type };
+	char info_buff[16];
+	if (isc_dsql_sql_info(m_status, &m_statement, sizeof(stmt_info), stmt_info,
+		sizeof(info_buff), info_buff))
+	{
+		return false;
+	}
+	if (info_buff[0] != stmt_info[0])
+		return false;
+
+	{
+		const int len = isc_vax_integer(&info_buff[1], 2);
+		const int stmt_type = isc_vax_integer(&info_buff[3], (short)len);
+
+		m_selectable = (stmt_type == isc_info_sql_stmt_select ||
+			stmt_type == isc_info_sql_stmt_select_for_upd);
+	}
+
+
+	if (m_selectable)
+	{
+		if (isc_dsql_describe(m_status, &m_statement, SQLDA_VERSION1, m_xsqlda))
+			return false;
+
+		if (m_xsqlda->sqld > m_xsqlda->sqln)
+		{
+			const short len = m_xsqlda->sqld;
+			delete[](char*) m_xsqlda;
+
+			m_xsqlda = (XSQLDA*) new char[XSQLDA_LENGTH(len)];
+			m_xsqlda->sqln = len;
+			m_xsqlda->version = 1;
+
+			if (isc_dsql_describe(m_status, &m_statement, SQLDA_VERSION1, m_xsqlda))
+				return false;
+		}
+
+		const size_t recsize = parseSQLDA(m_xsqlda, NULL);
+		if (recsize > m_recsize)
+		{
+			delete[] m_record;
+
+			m_recsize = recsize;
+			m_record = new char[m_recsize];
+		}
+		parseSQLDA(m_xsqlda, m_record);
+	}
+	else {
+		m_xsqlda->sqld = 0;
+	}
+
+	if (isc_dsql_execute(m_status, &m_transaction, &m_statement, SQLDA_VERSION1, NULL))
+		return false;
+
+	return true;
+}
+
+bool CSphSource_FBSQL::SqlIsError()
+{
+	return (m_status[1] != 0);
+}
+
+const char * CSphSource_FBSQL::SqlError()
+{
+	char * p = m_error, *const end = m_error + sizeof(m_error);
+	const ISC_STATUS * s = m_status;
+	while (fb_interpret(p, end - p, &s))
+	{
+		p += strlen(p);
+		if (p < end - 1)
+			*p++ = '\n';
+		*p = 0;
+	}
+
+	return m_error;
+}
+
+bool CSphSource_FBSQL::SqlConnect()
+{
+	char dpb[256];
+	char *p = dpb;
+
+	*p++ = isc_dpb_version1;
+	p = putSphStringInDPB(p, isc_dpb_user_name, m_tParams.m_sUser);
+	p = putSphStringInDPB(p, isc_dpb_password, m_tParams.m_sPass);
+	p = putSphStringInDPB(p, isc_dpb_sql_role_name, m_sRole);
+	p = putSphStringInDPB(p, isc_dpb_lc_ctype, m_sCharset);
+
+	if (isc_attach_database(m_status, 0, m_tParams.m_sDB.cstr(), &m_database,
+		(short)(p - dpb), dpb))
+	{
+		return false;
+	}
+
+	//char tpb[] = {isc_tpb_version3, isc_tpb_read, isc_tpb_read_committed, 
+	//	isc_tpb_rec_version, isc_tpb_wait};
+
+	char tpb[] = { isc_tpb_version3, isc_tpb_write, isc_tpb_concurrency, isc_tpb_wait };
+
+	if (isc_start_transaction(m_status, &m_transaction, 1, &m_database,
+		sizeof(tpb), tpb))
+	{
+		ISC_STATUS_ARRAY temp = { 0 };
+		isc_detach_database(temp, &m_database);
+		return false;
+	}
+
+	return true;
+}
+
+void CSphSource_FBSQL::SqlDisconnect()
+{
+	if (m_transaction) {
+		if (isc_commit_transaction(m_status, &m_transaction))
+		{
+			ISC_STATUS_ARRAY temp = { 0 };
+			isc_rollback_transaction(temp, &m_transaction);
+		}
+	}
+
+	if (m_statement)
+		isc_dsql_free_statement(m_status, &m_statement, DSQL_drop);
+
+	if (m_database)
+		isc_detach_database(m_status, &m_database);
+}
+
+int CSphSource_FBSQL::SqlNumFields()
+{
+	if (!m_xsqlda)
+		return 0;
+
+	return m_xsqlda->sqld;
+}
+
+bool CSphSource_FBSQL::SqlFetchRow()
+{
+	if (!m_statement)
+		return false;
+
+	if (isc_dsql_fetch(m_status, &m_statement, SQLDA_VERSION1, m_xsqlda) == 100)
+		return false;
+
+	if (m_status[1])
+		return false;
+
+	// make returned strings NULL-terminated
+	XSQLVAR *var = m_xsqlda->sqlvar;
+	for (int i = 0; i < m_xsqlda->sqld; var++, i++)
+	{
+		if (*var->sqlind == 0 && (var->sqltype & (~1)) != SQL_BLOB)
+		{
+			short len = *(short *)var->sqldata;
+			var->sqldata[len + sizeof(short)] = 0;
+		}
+	}
+
+	return true;
+}
+
+const char * CSphSource_FBSQL::SqlColumn(int iIndex)
+{
+	if (!m_xsqlda)
+		return 0;
+
+	XSQLVAR &var = m_xsqlda->sqlvar[iIndex];
+	if (*var.sqlind != 0)
+		return NULL;
+
+	if ((var.sqltype & (~1)) != SQL_BLOB)
+		return var.sqldata + sizeof(short);
+
+
+	// blob to string
+	ISC_QUAD * blob_id = (ISC_QUAD *)var.sqldata;
+
+	// empty (NULL) blob
+	if (!blob_id->gds_quad_high && !blob_id->gds_quad_low)
+		return NULL;
+
+	isc_blob_handle blob = { 0 };
+	if (isc_open_blob(m_status, &m_database, &m_transaction, &blob, blob_id))
+		return NULL;
+
+	const char info[] = { isc_info_blob_total_length };
+	char resp[16];
+	if (isc_blob_info(m_status, &blob, sizeof(info), info, sizeof(resp), resp))
+		return NULL;
+
+	if (info[0] != resp[0])
+		return NULL;
+
+	int len = isc_vax_integer(&resp[1], 2);
+	len = isc_vax_integer(&resp[3], (short)len);
+
+	if (len + 4 > m_blobsize)
+	{
+		delete[] m_blob;
+
+		m_blobsize = len + 4;
+		m_blob = new char[m_blobsize];
+	}
+
+	char *p = m_blob;
+	while (true)
+	{
+		const unsigned short MAX_SEGMENT = 64 * 1024 - 3;
+		unsigned short reads = 0;
+
+		const ISC_STATUS ret = isc_get_segment(m_status, &blob, &reads,
+			(unsigned short)Min(len, MAX_SEGMENT), p);
+
+		if (ret == 0 || ret == isc_segment)
+		{
+			p += reads;
+			len -= reads;
+		}
+		else
+		{
+			if (ret != isc_segstr_eof)
+				p = NULL;
+
+			break;
+		}
+	}
+	isc_close_blob(m_status, &blob);
+
+	if (!p)
+		return NULL;
+
+	// make string NULL-terminated for multi-byte encodings too
+	const char * end = p + 4;
+	while (p < end && p < m_blob + m_blobsize)
+		*p++ = 0;
+
+	return m_blob;
+}
+
+DWORD CSphSource_FBSQL::SqlColumnLength(int)
+{
+	return 0;
+}
+
+const char * CSphSource_FBSQL::SqlFieldName(int iIndex)
+{
+	if (!m_xsqlda)
+		return 0;
+
+	return m_xsqlda->sqlvar[iIndex].aliasname;
+}
+
+char * CSphSource_FBSQL::putSphStringInDPB(char * dpb, char clump, CSphString &str)
+{
+	if (str.IsEmpty())
+		return dpb;
+
+	*dpb++ = clump;
+
+	const size_t len = strlen(str.cstr());
+	*dpb++ = (char)len;
+
+	memcpy(dpb, str.cstr(), len);
+
+	return dpb + len;
+}
+
+size_t CSphSource_FBSQL::parseSQLDA(XSQLDA * xsqlda, char * buff)
+{
+	// on the first pass (buff == NULL) convert all SQL_xxx into
+	// SQL_VARYING and make room for NULL-terminated string
+
+	size_t offset = 0;
+	int i = 0;
+	XSQLVAR* var = xsqlda->sqlvar;
+	for (; i < xsqlda->sqld; var++, i++)
+	{
+		// round up to sizeof(short)
+		offset = (offset + 1) & ~(1);
+
+		short length = var->sqllen;
+		const int type = var->sqltype & (~1);
+		switch (type)
+		{
+		case SQL_TEXT:
+		case SQL_VARYING:
+		if (!buff)
+			length += sizeof(short) + 1;
+		break;
+
+		case SQL_SHORT:
+		case SQL_LONG:
+		case SQL_INT64:
+		case SQL_FLOAT:
+		case SQL_DOUBLE:
+		length = 26;
+		break;
+
+		case SQL_TIMESTAMP:
+		case SQL_TYPE_TIME:
+		case SQL_TYPE_DATE:
+		length = 34;
+		break;
+
+		case SQL_BLOB:
+		{
+			// round up to sizeof(ISC_QUAD)
+			const int quad_size = sizeof(ISC_QUAD) - 1;
+			offset = (offset + quad_size) & ~(quad_size);
+		}
+		break;
+
+		default:
+		break;
+		}
+
+		if (type != SQL_BLOB)
+		{
+			var->sqltype = SQL_VARYING | 1;
+			var->sqllen = length;
+		}
+		else
+		{
+			var->sqltype = SQL_BLOB | 1;
+		}
+		if (buff) {
+			var->sqldata = &buff[offset];
+		}
+		offset += length;
+	}
+
+	// round up to sizeof(short)
+	offset = (offset + 1) & ~(1);
+
+	// room for null-indicators (short's)
+	if (buff) {
+		for (i = 0, var = xsqlda->sqlvar; i < xsqlda->sqld; var++, i++)
+		{
+			var->sqlind = (short*)(&buff[offset]);
+			offset += sizeof(short);
+		}
+	}
+	else {
+		offset += sizeof(short) * xsqlda->sqld;
+	}
+
+	return offset;
+}
+
+#endif // USE_FIREBIRD
 
 /////////////////////////////////////////////////////////////////////////////
 // XMLPIPE (v2)

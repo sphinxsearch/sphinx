@@ -512,6 +512,10 @@ static KeyDesc_t g_dKeysSource[] =
 	{ "csvpipe_attr_json",		KEY_LIST, NULL },
 	{ "csvpipe_field_string",	KEY_LIST, NULL },
 	{ "csvpipe_delimiter",		0, NULL },
+#if USE_FIREBIRD
+	{ "sql_charset",			0, NULL },
+	{ "sql_role",				0, NULL },
+#endif
 	{ NULL,						0, NULL }
 };
 

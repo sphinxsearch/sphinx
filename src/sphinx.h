@@ -21,6 +21,7 @@
 #ifdef _WIN32
 	#define USE_MYSQL		1	/// whether to compile MySQL support
 	#define USE_PGSQL		0	/// whether to compile PgSQL support
+	#define USE_FIREBIRD		0	/// whether to compile Firebird support
 	#define USE_ODBC		1	/// whether to compile ODBC support
 	#define USE_LIBEXPAT	1	/// whether to compile libexpat support
 	#define USE_LIBICONV	1	/// whether to compile iconv support
