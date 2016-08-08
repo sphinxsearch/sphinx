@@ -6370,8 +6370,8 @@ It returns the suggested keywords, Levenshtein  distance between the suggested a
 Several options are supported for customization:
 <itemizedlist>
 <listitem><para><option>limit<option> - returned N top matches, default is 5</para></listitem>
-<listitem><para><option>max_edits<option> -  keep only dictionary words which Levenstein distance is less or equal, default is 4</para></listitem>
-<listitem><para><option>result_stats<option> - provide Levenstein distance and document count of the found words, default is 1 (enabled)</para></listitem>
+<listitem><para><option>max_edits<option> -  keep only dictionary words which Levenshtein distance is less or equal, default is 4</para></listitem>
+<listitem><para><option>result_stats<option> - provide Levenshtein distance and document count of the found words, default is 1 (enabled)</para></listitem>
 <listitem><para><option>delta_len<option> - keep only dictionary words whose length difference is less, default is 3 </para></listitem>
 <listitem><para><option>max_matches<option> - number of matches to keep, default is 25 </para></listitem>
 <listitem><para><option>reject<option> - limit of rejected matches, default is 4 </para></listitem>
