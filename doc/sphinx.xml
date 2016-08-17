@@ -6374,7 +6374,8 @@ Several options are supported for customization:
 <listitem><para><option>result_stats<option> - provide Levenshtein distance and document count of the found words, default is 1 (enabled)</para></listitem>
 <listitem><para><option>delta_len<option> - keep only dictionary words whose length difference is less, default is 3 </para></listitem>
 <listitem><para><option>max_matches<option> - number of matches to keep, default is 25 </para></listitem>
-<listitem><para><option>reject<option> - limit of rejected matches, default is 4 </para></listitem>
+<listitem><para><option>reject<option> - defaults to 4; rejected words are matches that are not better than those already in the match queue. They are put in a rejected queue that gets reset in case one actually can go in the match queue.
+This parameter defines the size of the rejected queue (as reject*max(max_matched,limit)). If the rejected queue is filled, the engine stops looking for potential matches. </para></listitem>
 <listitem><para><option>result_line<option> - alternate mode to display the data by returning all suggests, distances and docs each per one row, default is 0 </para></listitem>
 </itemizedlist>
 <programlisting>
