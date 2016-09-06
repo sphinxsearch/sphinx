@@ -3380,8 +3380,7 @@ SELECT REMAP(id%10, salary, (0), (0.0)) FROM employes;
 <term id="expr-func-rand">rand()</term>
 <listitem>
 <para>
-RAND(seed) function
-was added in 2.3.2-beta. Returns a random float between 0..1.Optional, an integer seed value can be specified.
+RAND(seed) function was added in 2.3.2-beta. Returns a random float between 0..1. Optional, an integer seed value can be specified.
 </para>
 </listitem>
 </varlistentry>
