@@ -34,13 +34,37 @@
 #include "../mysql_priv.h"
 #endif
 
+#if !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID>=50709
+#include "item_timefunc.h"
+#define sphinx_append push_back
+#define sphinx_array std::vector
+#define sphinx_elements size
+#if defined(_WIN32)
+#define __WIN__ _WIN32
+#define pthread_mutex_init(A,B)  (InitializeCriticalSection(A),0)
+#define pthread_mutex_lock(A)	 (EnterCriticalSection(A),0)
+#define pthread_mutex_unlock(A)  (LeaveCriticalSection(A), 0)
+#define pthread_mutex_destroy(A) (DeleteCriticalSection(A), 0)
+#define in_addr_t uint32
+#include <winsock2.h>
+#endif
+#else
+#define sphinx_append append
+#define sphinx_array Dynamic_array
+#define sphinx_elements elements
+#endif
+
 #include <mysys_err.h>
 #include <my_sys.h>
 #include <mysql.h> // include client for INSERT table (sort of redoing federated..)
 
 #ifndef __WIN__
 	// UNIX-specific
-	#include <my_net.h>
+	#if  !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID>=50709
+		#include <arpa/inet.h>
+	#else
+		#include <my_net.h>
+	#endif
 	#include <netdb.h>
 	#include <sys/un.h>
 
@@ -285,6 +309,12 @@ inline void SPH_DEBUG ( const char *, ... ) {}
 
 #define SafeDelete(_arg)		{ if ( _arg ) delete ( _arg );		(_arg) = NULL; }
 #define SafeDeleteArray(_arg)	{ if ( _arg ) delete [] ( _arg );	(_arg) = NULL; }
+
+#if  !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID>=50709
+#ifdef __WIN__
+typedef native_mutex_t pthread_mutex_t;
+#endif
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -602,10 +632,10 @@ private:
 		};
 		char *						m_sName; ///< points to query buffer
 		int							m_iType;
-		Dynamic_array<ulonglong>	m_dIds;
-		Dynamic_array<Value_t>		m_dValues;
+		sphinx_array<ulonglong>	m_dIds;
+		sphinx_array<Value_t>		m_dValues;
 	};
-	Dynamic_array<Override_t *> m_dOverrides;
+	sphinx_array<Override_t *> m_dOverrides;
 
 public:
 	char			m_sParseError[256];
@@ -634,10 +664,10 @@ protected:
 	void			SendString ( const char * v )	{ int iLen = strlen(v); SendDword(iLen); SendBytes ( v, iLen ); }
 	void			SendFloat ( float v )			{ SendDword ( sphF2DW(v) ); }
 };
-
+#ifdef HAVE_EXPLICIT_TEMPLATE_INSTANTIATION
 template int CSphSEQuery::ParseArray<uint32> ( uint32 **, const char * );
 template int CSphSEQuery::ParseArray<longlong> ( longlong **, const char * );
-
+#endif
 //////////////////////////////////////////////////////////////////////////////
 
 #if MYSQL_VERSION_ID>50100
@@ -733,13 +763,21 @@ static int sphinx_init_func ( void * p )
 	{
 		sphinx_init = 1;
 		void ( pthread_mutex_init ( &sphinx_mutex, MY_MUTEX_INIT_FAST ) );
+		#if  !defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50709
+		sphinx_hash_init ( &sphinx_open_tables, system_charset_info, 32, 0, 0,
+			sphinx_get_key, 0, 0, 0 );
+		#else
 		sphinx_hash_init ( &sphinx_open_tables, system_charset_info, 32, 0, 0,
 			sphinx_get_key, 0, 0 );
-
+		#endif
 		#if MYSQL_VERSION_ID > 50100
 		handlerton * hton = (handlerton*) p;
 		hton->state = SHOW_OPTION_YES;
+		#if  !defined(MARIADB_BASE_VERSION)
 		hton->db_type = DB_TYPE_FIRST_DYNAMIC;
+		#else
+		hton->db_type = DB_TYPE_AUTOASSIGN;
+		#endif
 		hton->create = sphinx_create_handler;
 		hton->close_connection = sphinx_close_connection;
 		hton->show_status = sphinx_show_status;
@@ -855,10 +893,15 @@ bool sphinx_show_status ( THD * thd )
 		SPH_RET(TRUE);
 	}
 	CSphTLS * pTls = (CSphTLS*) thd->ha_data[sphinx_hton.slot];
-
+	#ifndef MARIADB_BASE_VERSION
 	field_list.push_back ( new Item_empty_string ( "Type", 10 ) );
 	field_list.push_back ( new Item_empty_string ( "Name", FN_REFLEN ) );
 	field_list.push_back ( new Item_empty_string ( "Status", 10 ) );
+	#else
+	field_list.push_back ( new Item_empty_string ( thd, "Type", 10 ) );
+	field_list.push_back ( new Item_empty_string ( thd, "Name", FN_REFLEN ) );
+	field_list.push_back ( new Item_empty_string ( thd, "Status", 10 ) );
+	#endif
 	if ( protocol->send_fields ( &field_list, Protocol::SEND_NUM_ROWS | Protocol::SEND_EOF ) )
 		SPH_RET(TRUE);
 
@@ -1321,7 +1364,7 @@ CSphSEQuery::~CSphSEQuery ()
 	SafeDeleteArray ( m_sQueryBuffer );
 	SafeDeleteArray ( m_pWeights );
 	SafeDeleteArray ( m_pBuf );
-	for ( int i=0; i<m_dOverrides.elements(); i++ )
+	for ( int i=0; i<m_dOverrides.sphinx_elements(); i++ )
 		SafeDelete ( m_dOverrides.at(i) );
 	SPH_VOID_RET();
 }
@@ -1411,6 +1454,15 @@ static bool myismagic ( char c )
 {
 	return c=='@';
 }
+
+static bool myisjson ( char c )
+{
+	return
+		c=='.' ||
+		c=='[' ||
+		c==']';
+}
+
 
 
 bool CSphSEQuery::ParseField ( char * sField )
@@ -1623,7 +1675,7 @@ bool CSphSEQuery::ParseField ( char * sField )
 				break;
 
 			tFilter.m_sAttrName = sValue;
-			while ( (*sValue) && ( myisattr(*sValue) || myismagic(*sValue) ) )
+			while ( (*sValue) && ( myisattr(*sValue) || myismagic(*sValue) ) || myisjson(*sValue)  )
 				sValue++;
 			if ( !*sValue )
 				break;
@@ -1789,7 +1841,7 @@ bool CSphSEQuery::ParseField ( char * sField )
 				pOverride = new CSphSEQuery::Override_t;
 				pOverride->m_sName = chop(sName);
 				pOverride->m_iType = iType;
-				m_dOverrides.append ( pOverride );
+				m_dOverrides.sphinx_append ( pOverride );
 			}
 
 			ulonglong uId = strtoull ( sId, NULL, 10 );
@@ -1801,8 +1853,8 @@ bool CSphSEQuery::ParseField ( char * sField )
 			else
 				tValue.m_uValue = (uint32)strtoul ( sValue, NULL, 10 );
 
-			pOverride->m_dIds.append ( uId );
-			pOverride->m_dValues.append ( tValue );
+			pOverride->m_dIds.sphinx_append ( uId );
+			pOverride->m_dValues.sphinx_append ( tValue );
 		}
 
 		if ( !pOverride )
@@ -1906,11 +1958,11 @@ int CSphSEQuery::BuildRequest ( char ** ppBuffer )
 		iReqSize += 8 + strlen(m_sFieldWeight[i] );
 	// overrides
 	iReqSize += 4;
-	for ( int i=0; i<m_dOverrides.elements(); i++ )
+	for ( int i=0; i<m_dOverrides.sphinx_elements(); i++ )
 	{
 		CSphSEQuery::Override_t * pOverride = m_dOverrides.at(i);
 		const uint32 uSize = pOverride->m_iType==SPH_ATTR_BIGINT ? 16 : 12; // id64 + value
-		iReqSize += strlen ( pOverride->m_sName ) + 12 + uSize*pOverride->m_dIds.elements();
+		iReqSize += strlen ( pOverride->m_sName ) + 12 + uSize*pOverride->m_dIds.sphinx_elements();
 	}
 	// select
 	iReqSize += 4;
@@ -2012,14 +2064,14 @@ int CSphSEQuery::BuildRequest ( char ** ppBuffer )
 	SendString ( m_sComment );
 
 	// overrides
-	SendInt ( m_dOverrides.elements() );
-	for ( int i=0; i<m_dOverrides.elements(); i++ )
+	SendInt ( m_dOverrides.sphinx_elements() );
+	for ( int i=0; i<m_dOverrides.sphinx_elements(); i++ )
 	{
 		CSphSEQuery::Override_t * pOverride = m_dOverrides.at(i);
 		SendString ( pOverride->m_sName );
 		SendDword ( pOverride->m_iType );
-		SendInt ( pOverride->m_dIds.elements() );
-		for ( int j=0; j<pOverride->m_dIds.elements(); j++ )
+		SendInt ( pOverride->m_dIds.sphinx_elements() );
+		for ( int j=0; j<pOverride->m_dIds.sphinx_elements(); j++ )
 		{
 			SendUint64 ( pOverride->m_dIds.at(j) );
 			if ( pOverride->m_iType==SPH_ATTR_FLOAT )
@@ -2045,9 +2097,9 @@ int CSphSEQuery::BuildRequest ( char ** ppBuffer )
 //////////////////////////////////////////////////////////////////////////////
 // SPHINX HANDLER
 //////////////////////////////////////////////////////////////////////////////
-
+#ifndef MARIADB_BASE_VERSION
 static const char * ha_sphinx_exts[] = { NullS };
-
+#endif
 
 #if MYSQL_VERSION_ID<50100
 ha_sphinx::ha_sphinx ( TABLE_ARG * table )
@@ -2073,8 +2125,10 @@ ha_sphinx::ha_sphinx ( handlerton * hton, TABLE_ARG * table )
 	, m_dUnboundFields ( NULL )
 {
 	SPH_ENTER_METHOD();
+	#if MYSQL_VERSION_ID < 50709
 	if ( current_thd )
 		current_thd->variables.engine_condition_pushdown = true;
+	#endif
 	SPH_VOID_RET();
 }
 
@@ -2082,11 +2136,24 @@ ha_sphinx::ha_sphinx ( handlerton * hton, TABLE_ARG * table )
 // If frm_error() is called then we will use this to to find out what file extentions
 // exist for the storage engine. This is also used by the default rename_table and
 // delete_table method in handler.cc.
+#ifndef MARIADB_BASE_VERSION
 const char ** ha_sphinx::bas_ext() const
 {
 	return ha_sphinx_exts;
 }
-
+#else
+ha_sphinx::~ha_sphinx()
+{
+  SafeDeleteArray ( m_dAttrs );
+  SafeDeleteArray ( m_dUnboundFields );
+  if ( m_dFields )
+  {
+    for (uint32 i=0; i< m_iFields; i++ )
+      SafeDeleteArray ( m_dFields[i] );
+    delete [] m_dFields;
+  }
+}
+#endif
 
 // Used for opening tables. The name will be the name of the file.
 // A table is opened when it needs to be opened. For instance
@@ -2349,11 +2416,19 @@ int ha_sphinx::write_row ( byte * )
 			sQuery.append ( "''" );
 
 		} else
-		{
+		{       
+			#if  MYSQL_VERSION_ID>=100000
+				THD *thd= ha_thd();
+			#endif
 			if ( (*ppField)->type()==MYSQL_TYPE_TIMESTAMP )
 			{
-				Item_field * pWrap = new Item_field ( *ppField ); // autofreed by query arena, I assume
-				Item_func_unix_timestamp * pConv = new Item_func_unix_timestamp ( pWrap );
+				#if  MYSQL_VERSION_ID>=100000
+					Item_field * pWrap = new (thd->mem_root) Item_field(thd, *ppField); // autofreed by query arena, I assume
+                		        Item_func_unix_timestamp * pConv = new (thd->mem_root) Item_func_unix_timestamp(thd, pWrap);
+				#else
+					Item_field * pWrap = new Item_field ( *ppField ); // autofreed by query arena, I assume
+					Item_func_unix_timestamp * pConv = new Item_func_unix_timestamp ( pWrap );
+				#endif
 				pConv->quick_fix_field();
 				unsigned int uTs = (unsigned int) pConv->val_int();
 
@@ -2390,7 +2465,10 @@ int ha_sphinx::write_row ( byte * )
 
 	unsigned int uTimeout = 1;
 	mysql_options ( pConn, MYSQL_OPT_CONNECT_TIMEOUT, (const char*)&uTimeout );
-
+	#ifdef MARIADB_BASE_VERSION
+        my_bool my_true= 1;
+        mysql_options(pConn, MYSQL_OPT_USE_THREAD_SPECIFIC_MEMORY, (char*) &my_true);
+	#endif
 	if ( !mysql_real_connect ( pConn, m_pShare->m_sHost, "root", "", "", m_pShare->m_iPort, m_pShare->m_sSocket, 0 ) )
 		SPH_RET ( HandleMysqlError ( pConn, ER_CONNECT_TO_FOREIGN_DATA_SOURCE ) );
 
@@ -2449,6 +2527,10 @@ int ha_sphinx::delete_row ( const byte * )
 
 	unsigned int uTimeout = 1;
 	mysql_options ( pConn, MYSQL_OPT_CONNECT_TIMEOUT, (const char*)&uTimeout );
+	#ifdef MARIADB_BASE_VERSION
+        my_bool my_true= 1;
+        mysql_options(pConn, MYSQL_OPT_USE_THREAD_SPECIFIC_MEMORY, (char*) &my_true);
+	#endif
 
 	if ( !mysql_real_connect ( pConn, m_pShare->m_sHost, "root", "", "", m_pShare->m_iPort, m_pShare->m_sSocket, 0 ) )
 		SPH_RET ( HandleMysqlError ( pConn, ER_CONNECT_TO_FOREIGN_DATA_SOURCE ) );
@@ -2756,11 +2838,19 @@ const Item * ha_sphinx::cond_push ( const Item *cond )
 				break;
 
 			// copy the query, and let know that we intercepted this condition
-			Item_string * pString = (Item_string *) args[1];
-			pTable->m_bQuery = true;
+			#if MYSQL_VERSION_ID>=100000
+                        String *pString= args[1]->val_str(NULL);
+                        pTable->m_bQuery = true;
+			strncpy ( pTable->m_sQuery, pString->c_ptr(), sizeof(pTable->m_sQuery) );
+			pTable->m_sQuery[sizeof(pTable->m_sQuery)-1] = '\0';
+			pTable->m_pQueryCharset = pString->charset();
+			#else
+	                Item_string * pString = (Item_string *) args[1];
+                        pTable->m_bQuery = true;
 			strncpy ( pTable->m_sQuery, pString->str_value.c_ptr(), sizeof(pTable->m_sQuery) );
 			pTable->m_sQuery[sizeof(pTable->m_sQuery)-1] = '\0';
 			pTable->m_pQueryCharset = pString->str_value.charset();
+			#endif
 
 		} else
 		{
@@ -3540,7 +3630,7 @@ CSphSEStats * sphinx_get_stats ( THD * thd, SHOW_VAR * out )
 #endif
 
 	out->type = SHOW_CHAR;
-	out->value = "";
+	out->value =  "";
 	return 0;
 }
 
@@ -3673,7 +3763,25 @@ struct st_mysql_show_var sphinx_status_vars[] =
 	{0, 0, (enum_mysql_show_type)0}
 };
 
-
+#ifdef MARIADB_BASE_VERSION
+maria_declare_plugin(sphinx)
+{
+	MYSQL_STORAGE_ENGINE_PLUGIN,
+	&sphinx_storage_engine,
+	sphinx_hton_name,
+	"Sphinx developers",
+	sphinx_hton_comment,
+	PLUGIN_LICENSE_GPL,
+	sphinx_init_func, // Plugin Init
+	sphinx_done_func, // Plugin Deinit
+	0x0202, // 2.2
+	sphinx_status_vars,
+	NULL,
+	SPHINXSE_VERSION, // string version
+MariaDB_PLUGIN_MATURITY_GAMMA
+}
+maria_declare_plugin_end;
+#else
 mysql_declare_plugin(sphinx)
 {
 	MYSQL_STORAGE_ENGINE_PLUGIN,
@@ -3690,7 +3798,7 @@ mysql_declare_plugin(sphinx)
 	NULL
 }
 mysql_declare_plugin_end;
-
+#endif
 #endif // >50100
 
 //
