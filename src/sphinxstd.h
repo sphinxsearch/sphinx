@@ -3,8 +3,8 @@
 //
 
 //
-// Copyright (c) 2001-2015, Andrew Aksyonoff
-// Copyright (c) 2008-2015, Sphinx Technologies Inc
+// Copyright (c) 2001-2016, Andrew Aksyonoff
+// Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -48,6 +48,7 @@ typedef int __declspec("SAL_nokernel") __declspec("SAL_nodriver") __prefast_flag
 #include <ctype.h>
 #include <stdarg.h>
 #include <limits.h>
+#include <utility>
 
 // for 64-bit types
 #if HAVE_STDINT_H
@@ -388,9 +389,9 @@ template <typename T, typename U> T Max ( T a, U b )
 	STATIC_ASSERT ( sizeof(U)<=sizeof(T), WIDEST_ARG_FIRST );
 	return a<b ? b : a;
 }
-#define SafeDelete(_x)		{ if (_x) { delete (_x); (_x) = NULL; } }
-#define SafeDeleteArray(_x)	{ if (_x) { delete [] (_x); (_x) = NULL; } }
-#define SafeRelease(_x)		{ if (_x) { (_x)->Release(); (_x) = NULL; } }
+#define SafeDelete(_x)		{ if (_x) { delete (_x); (_x) = nullptr; } }
+#define SafeDeleteArray(_x)	{ if (_x) { delete [] (_x); (_x) = nullptr; } }
+#define SafeRelease(_x)		{ if (_x) { (_x)->Release(); (_x) = nullptr; } }
 
 /// swap
 template < typename T > inline void Swap ( T & v1, T & v2 )
@@ -407,8 +408,8 @@ public:
 								ISphNoncopyable () {}
 
 private:
-								ISphNoncopyable ( const ISphNoncopyable & ) {}
-	const ISphNoncopyable &		operator = ( const ISphNoncopyable & ) { return *this; }
+	ISphNoncopyable ( const ISphNoncopyable & ) = delete;
+	const ISphNoncopyable &		operator = ( const ISphNoncopyable & ) = delete;
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -754,7 +755,7 @@ public:
 	static inline void Copy ( T * pNew, T * pData, int iLength )
 	{
 		for ( int i=0; i<iLength; i++ )
-			pNew[i] = pData[i];
+			pNew[i] = std::move ( pData[i] );
 	}
 
 	static inline int Relimit ( int iLimit, int iNewLimit )
@@ -824,6 +825,14 @@ public:
 		m_pData [ m_iLength++ ] = tValue;
 	}
 
+	void Add ( T&& tValue )
+	{
+		assert ( ( &tValue<m_pData || &tValue>=( m_pData+m_iLength ) ) && "inserting own value (like last()) by ref!" );
+		if ( m_iLength>=m_iLimit )
+			Reserve ( 1+m_iLength );
+		m_pData [ m_iLength++ ] = std::move ( tValue );
+	}
+
 	/// add N more entries, and return a pointer to that buffer
 	T * AddN ( int iCount )
 	{
@@ -854,6 +863,27 @@ public:
 	const T * Begin () const
 	{
 		return m_iLength ? m_pData : NULL;
+	}
+
+	/// make happy C++11 ranged for loops
+	T * begin ()
+	{
+		return Begin ();
+	}
+
+	const T * begin () const
+	{
+		return Begin ();
+	}
+
+	T * end ()
+	{
+		return m_iLength ? m_pData + m_iLength : NULL;
+	}
+
+	const T * end () const
+	{
+		return m_iLength ? m_pData + m_iLength : NULL;
 	}
 
 	/// get last entry
@@ -1043,6 +1073,22 @@ public:
 		return *this;
 	}
 
+	/// move
+	const CSphVector<T> & operator= ( CSphVector<T>&& rhs )
+	{
+		Reset ();
+
+		m_iLength = rhs.m_iLength;
+		m_iLimit = rhs.m_iLimit;
+		m_pData = rhs.m_pData;
+
+		rhs.m_pData = nullptr;
+		rhs.m_iLength = 0;
+		rhs.m_iLimit = 0;
+
+		return *this;
+	}
+
 	/// swap
 	void SwapData ( CSphVector<T, POLICY> & rhs )
 	{
@@ -1216,6 +1262,27 @@ public:
 		SafeDeleteArray ( m_pData );
 	}
 
+	CSphFixedVector ( CSphFixedVector&& rhs )
+		: m_pData ( std::move ( rhs.m_pData ) )
+		, m_iSize ( std::move ( rhs.m_iSize ) )
+	{
+		rhs.m_pData = nullptr;
+		rhs.m_iSize = 0;
+	}
+
+	CSphFixedVector & operator= ( CSphFixedVector&& rhs )
+	{
+		if ( &rhs!=this )
+		{
+			m_pData = std::move ( rhs.m_pData );
+			m_iSize = std::move ( rhs.m_iSize );
+
+			rhs.m_pData = nullptr;
+			rhs.m_iSize = 0;
+		}
+		return *this;
+	}
+
 	T & operator [] ( int iIndex ) const
 	{
 		assert ( iIndex>=0 && iIndex<m_iSize );
@@ -1225,6 +1292,27 @@ public:
 	T * Begin () const
 	{
 		return m_pData;
+	}
+
+	/// make happy C++11 ranged for loops
+	T * begin ()
+	{
+		return Begin ();
+	}
+	
+	const T * begin () const
+	{
+		return Begin ();
+	}
+	
+	T * end ()
+	{
+		return m_iSize ? m_pData + m_iSize : NULL;
+	}
+	
+	const T * end () const
+	{
+		return m_iSize ? m_pData + m_iSize : NULL;
 	}
 
 	T & Last () const
@@ -1320,6 +1408,50 @@ protected:
 		return NULL;
 	}
 
+	HashEntry_t * AddImpl ( const KEY &tKey )
+	{
+		unsigned int uHash = ( (unsigned int) HASHFUNC::Hash ( tKey ) ) % LENGTH;
+
+		// check if this key is already hashed
+		HashEntry_t * pEntry = m_dHash[uHash];
+		HashEntry_t ** ppEntry = &m_dHash[uHash];
+		while ( pEntry )
+		{
+			if ( pEntry->m_tKey==tKey )
+				return nullptr;
+
+			ppEntry = &pEntry->m_pNextByHash;
+			pEntry = pEntry->m_pNextByHash;
+		}
+
+		// it's not; let's add the entry
+		assert ( !pEntry );
+		assert ( !*ppEntry );
+
+		pEntry = new HashEntry_t;
+		pEntry->m_tKey = tKey;
+		pEntry->m_pNextByHash = NULL;
+		pEntry->m_pPrevByOrder = NULL;
+		pEntry->m_pNextByOrder = NULL;
+
+		*ppEntry = pEntry;
+
+		if ( !m_pFirstByOrder )
+			m_pFirstByOrder = pEntry;
+
+		if ( m_pLastByOrder )
+		{
+			assert ( !m_pLastByOrder->m_pNextByOrder );
+			assert ( !pEntry->m_pNextByOrder );
+			m_pLastByOrder->m_pNextByOrder = pEntry;
+			pEntry->m_pPrevByOrder = m_pLastByOrder;
+		}
+		m_pLastByOrder = pEntry;
+
+		m_iLength++;
+		return pEntry;
+	}
+
 public:
 	/// ctor
 	CSphOrderedHash ()
@@ -1362,48 +1494,23 @@ public:
 	/// add new entry
 	/// returns true on success
 	/// returns false if this key is already hashed
+	bool Add ( T&& tValue, const KEY & tKey )
+	{
+		// check if this key is already hashed
+		HashEntry_t * pEntry = AddImpl ( tKey );
+		if ( !pEntry )
+			return false;
+		pEntry->m_tValue = std::move ( tValue );
+		return true;
+	}
+
 	bool Add ( const T & tValue, const KEY & tKey )
 	{
-		unsigned int uHash = ( (unsigned int) HASHFUNC::Hash ( tKey ) ) % LENGTH;
-
 		// check if this key is already hashed
-		HashEntry_t * pEntry = m_dHash [ uHash ];
-		HashEntry_t ** ppEntry = &m_dHash [ uHash ];
-		while ( pEntry )
-		{
-			if ( pEntry->m_tKey==tKey )
-				return false;
-
-			ppEntry = &pEntry->m_pNextByHash;
-			pEntry = pEntry->m_pNextByHash;
-		}
-
-		// it's not; let's add the entry
-		assert ( !pEntry );
-		assert ( !*ppEntry );
-
-		pEntry = new HashEntry_t;
-		pEntry->m_tKey = tKey;
+		HashEntry_t * pEntry = AddImpl ( tKey );
+		if ( !pEntry )
+			return false;
 		pEntry->m_tValue = tValue;
-		pEntry->m_pNextByHash = NULL;
-		pEntry->m_pPrevByOrder = NULL;
-		pEntry->m_pNextByOrder = NULL;
-
-		*ppEntry = pEntry;
-
-		if ( !m_pFirstByOrder )
-			m_pFirstByOrder = pEntry;
-
-		if ( m_pLastByOrder )
-		{
-			assert ( !m_pLastByOrder->m_pNextByOrder );
-			assert ( !pEntry->m_pNextByOrder );
-			m_pLastByOrder->m_pNextByOrder = pEntry;
-			pEntry->m_pPrevByOrder = m_pLastByOrder;
-		}
-		m_pLastByOrder = pEntry;
-
-		m_iLength++;
 		return true;
 	}
 
@@ -1652,11 +1759,11 @@ private:
 	/// which treats strings as 16-bit word sequences needs this in some cases.
 	/// note that this zero-filled gap does NOT include trailing C-string zero,
 	/// and does NOT affect strlen() as well.
-	static const int	SAFETY_GAP	= 4;
+	static const int	SAFETY_GAP = 4;
 
 public:
 	CSphString ()
-		: m_sValue ( NULL )
+		: m_sValue ( nullptr )
 	{
 	}
 
@@ -1667,9 +1774,15 @@ public:
 	// ...
 	// hHash.Exists ( "asdf" ); // implicit CSphString construction and deletion here
 	CSphString ( const CSphString & rhs )
-		: m_sValue ( NULL )
+		: m_sValue ( nullptr )
 	{
 		*this = rhs;
+	}
+
+	CSphString ( CSphString&& rhs )
+		: m_sValue ( std::move ( rhs.m_sValue ) )
+	{
+		rhs.m_sValue = nullptr;
 	}
 
 	~CSphString ()
@@ -1755,6 +1868,27 @@ public:
 
 				strcpy ( m_sValue, rhs.m_sValue ); // NOLINT
 				memset ( m_sValue+iLen, 0, SAFETY_GAP );
+			}
+		}
+		return *this;
+	}
+
+	CSphString & operator = ( CSphString&& rhs )
+	{
+		if ( m_sValue==rhs.m_sValue )
+			return *this;
+		if ( m_sValue!=EMPTY )
+			SafeDeleteArray ( m_sValue );
+
+		if ( rhs.m_sValue )
+		{
+			if ( rhs.m_sValue[0]=='\0' )
+			{
+				m_sValue = EMPTY;
+			} else
+			{
+				m_sValue = std::move ( rhs.m_sValue );
+				rhs.m_sValue = nullptr;
 			}
 		}
 		return *this;
@@ -1899,13 +2033,13 @@ public:
 	{
 		if ( m_sValue==EMPTY )
 		{
-			m_sValue = NULL;
+			m_sValue = nullptr;
 			char * pBuf = new char[1];
 			pBuf[0] = '\0';
 			return pBuf;
 		}
 		char * pBuf = m_sValue;
-		m_sValue = NULL;
+		m_sValue = nullptr;
 		return pBuf;
 	}
 
@@ -1915,7 +2049,7 @@ public:
 		if ( m_sValue!=EMPTY )
 			SafeDeleteArray ( m_sValue );
 		m_sValue = *sValue;
-		*sValue = NULL;
+		*sValue = nullptr;
 	}
 
 	bool operator < ( const CSphString & b ) const
@@ -2281,7 +2415,20 @@ class CSphRefcountedPtr
 public:
 	explicit		CSphRefcountedPtr ()			{ m_pPtr = NULL; }	///< default NULL wrapper construction (for vectors)
 	explicit		CSphRefcountedPtr ( T * pPtr )	{ m_pPtr = pPtr; }	///< construction from raw pointer, takes over ownership!
-					~CSphRefcountedPtr ()			{ if ( m_pPtr ) m_pPtr->Release(); }
+
+	CSphRefcountedPtr ( const CSphRefcountedPtr& rhs )
+	{
+		if ( rhs.m_pPtr )
+			rhs.m_pPtr->AddRef ();
+		m_pPtr = rhs.m_pPtr;
+	}
+
+	CSphRefcountedPtr ( CSphRefcountedPtr&& rhs )
+		: m_pPtr ( std::move ( rhs.m_pPtr ) )
+	{
+		rhs.m_pPtr = nullptr;
+	}
+					~CSphRefcountedPtr ()			{ SafeRelease ( m_pPtr ); }
 
 	T *				Ptr () const					{ return m_pPtr; }
 	T *				operator -> () const			{ return m_pPtr; }
@@ -2291,8 +2438,8 @@ public:
 	/// assignment of a raw pointer, takes over ownership!
 	CSphRefcountedPtr<T> & operator = ( T * pPtr )
 	{
-		if ( m_pPtr && m_pPtr!=pPtr )
-			m_pPtr->Release();
+		if ( m_pPtr!=pPtr )
+			SafeRelease ( m_pPtr );
 		m_pPtr = pPtr;
 		return *this;
 	}
@@ -2302,9 +2449,16 @@ public:
 	{
 		if ( rhs.m_pPtr )
 			rhs.m_pPtr->AddRef();
-		if ( m_pPtr )
-			m_pPtr->Release();
+		SafeRelease ( m_pPtr );
 		m_pPtr = rhs.m_pPtr;
+		return *this;
+	}
+
+	CSphRefcountedPtr<T> & operator= ( CSphRefcountedPtr<T>&& rhs )
+	{
+		SafeRelease( m_pPtr );
+		m_pPtr = std::move ( rhs.m_pPtr );
+		rhs.m_pPtr = nullptr;
 		return *this;
 	}
 
@@ -2314,8 +2468,6 @@ protected:
 
 //////////////////////////////////////////////////////////////////////////
 
-// parent process for forked children
-extern bool g_bHeadProcess;
 void sphWarn ( const char *, ... ) __attribute__ ( ( format ( printf, 1, 2 ) ) );
 void SafeClose ( int & iFD );
 
@@ -2427,6 +2579,12 @@ protected:
 
 //////////////////////////////////////////////////////////////////////////
 
+#if !USE_WINDOWS
+#ifndef MADV_DONTFORK
+#define MADV_DONTFORK MADV_NORMAL
+#endif
+#endif
+
 /// in-memory buffer shared between processes
 template < typename T, bool SHARED=false >
 class CSphLargeBuffer : public CSphBufferTrait < T >
@@ -2472,12 +2630,15 @@ public:
 		if ( pData==MAP_FAILED )
 		{
 			if ( iLength>(int64_t)0x7fffffffUL )
-				sError.SetSprintf ( "mmap() failed: %s (length="INT64_FMT" is over 2GB, impossible on some 32-bit systems)",
+				sError.SetSprintf ( "mmap() failed: %s (length=" INT64_FMT " is over 2GB, impossible on some 32-bit systems)",
 					strerror(errno), iLength );
 			else
-				sError.SetSprintf ( "mmap() failed: %s (length="INT64_FMT")", strerror(errno), iLength );
+				sError.SetSprintf ( "mmap() failed: %s (length=" INT64_FMT ")", strerror(errno), iLength );
 			return false;
 		}
+
+		if ( !SHARED )
+			madvise ( pData, iLength, MADV_DONTFORK );
 
 #if SPH_ALLOCS_PROFILER
 		sphMemStatMMapAdd ( iLength );
@@ -2593,7 +2754,7 @@ public:
 			pData = (T *)::MapViewOfFile ( m_iMap, iAccessMode, 0, 0, 0 );
 			if ( !pData )
 			{
-				sError.SetSprintf ( "failed to map file '%s': (errno %d, length="INT64_FMT")", sFile, ::GetLastError(), (int64_t)tLen.QuadPart );
+				sError.SetSprintf ( "failed to map file '%s': (errno %d, length=" INT64_FMT ")", sFile, ::GetLastError(), (int64_t)tLen.QuadPart );
 				Reset();
 				return false;
 			}
@@ -2624,10 +2785,12 @@ public:
 			pData = (T *)mmap ( NULL, iFileSize, iProt, iFlags, iFD, 0 );
 			if ( pData==MAP_FAILED )
 			{
-				sError.SetSprintf ( "failed to mmap file '%s': %s (length="INT64_FMT")", sFile, strerror(errno), iFileSize );
+				sError.SetSprintf ( "failed to mmap file '%s': %s (length=" INT64_FMT ")", sFile, strerror(errno), iFileSize );
 				Reset();
 				return false;
 			}
+
+			madvise ( pData, iFileSize, MADV_DONTFORK );
 		}
 #endif
 
@@ -2729,32 +2892,99 @@ bool sphIsLtLib();
 
 //////////////////////////////////////////////////////////////////////////
 
+#if defined(__clang__)
+#define THREAD_ANNOTATION_ATTRIBUTE__(x) __attribute__((x))
+#else
+#define THREAD_ANNOTATION_ATTRIBUTE__( x ) // no-op
+#endif
+
+#define CAPABILITY( x ) \
+    THREAD_ANNOTATION_ATTRIBUTE__(capability(x))
+
+#define SCOPED_CAPABILITY \
+    THREAD_ANNOTATION_ATTRIBUTE__(scoped_lockable)
+
+#define GUARDED_BY( x ) \
+    THREAD_ANNOTATION_ATTRIBUTE__(guarded_by(x))
+
+#define PT_GUARDED_BY( x ) \
+    THREAD_ANNOTATION_ATTRIBUTE__(pt_guarded_by(x))
+
+#define ACQUIRED_BEFORE( ... ) \
+    THREAD_ANNOTATION_ATTRIBUTE__(acquired_before(__VA_ARGS__))
+
+#define ACQUIRED_AFTER( ... ) \
+    THREAD_ANNOTATION_ATTRIBUTE__(acquired_after(__VA_ARGS__))
+
+#define REQUIRES( ... ) \
+    THREAD_ANNOTATION_ATTRIBUTE__(requires_capability(__VA_ARGS__))
+
+#define REQUIRES_SHARED( ... ) \
+    THREAD_ANNOTATION_ATTRIBUTE__(requires_shared_capability(__VA_ARGS__))
+
+#define ACQUIRE( ... ) \
+    THREAD_ANNOTATION_ATTRIBUTE__(acquire_capability(__VA_ARGS__))
+
+#define ACQUIRE_SHARED( ... ) \
+    THREAD_ANNOTATION_ATTRIBUTE__(acquire_shared_capability(__VA_ARGS__))
+
+#define RELEASE( ... ) \
+    THREAD_ANNOTATION_ATTRIBUTE__(release_capability(__VA_ARGS__))
+
+#define RELEASE_SHARED( ... ) \
+    THREAD_ANNOTATION_ATTRIBUTE__(release_shared_capability(__VA_ARGS__))
+
+#define TRY_ACQUIRE( ... ) \
+    THREAD_ANNOTATION_ATTRIBUTE__(try_acquire_capability(__VA_ARGS__))
+
+#define TRY_ACQUIRE_SHARED( ... ) \
+    THREAD_ANNOTATION_ATTRIBUTE__(try_acquire_shared_capability(__VA_ARGS__))
+
+#define EXCLUDES( ... ) \
+    THREAD_ANNOTATION_ATTRIBUTE__(locks_excluded(__VA_ARGS__))
+
+#define ASSERT_CAPABILITY( x ) \
+    THREAD_ANNOTATION_ATTRIBUTE__(assert_capability(x))
+
+#define ASSERT_SHARED_CAPABILITY( x ) \
+    THREAD_ANNOTATION_ATTRIBUTE__(assert_shared_capability(x))
+
+#define RETURN_CAPABILITY( x ) \
+    THREAD_ANNOTATION_ATTRIBUTE__(lock_returned(x))
+
+#define NO_THREAD_SAFETY_ANALYSIS \
+    THREAD_ANNOTATION_ATTRIBUTE__(no_thread_safety_analysis)
+
+// Replaced by RELEASE and RELEASE_SHARED
+#define UNLOCK_FUNCTION( ... ) \
+	THREAD_ANNOTATION_ATTRIBUTE__(unlock_function(__VA_ARGS__))
+
 /// mutex implementation
-class CSphMutex
+class CAPABILITY ( "mutex" ) CSphMutex : public ISphNoncopyable
 {
 public:
 	CSphMutex ();
 	~CSphMutex ();
 
-	bool Lock ();
-	bool Unlock ();
-	bool TimedLock ( int iMsec );
+	bool Lock () ACQUIRE();
+	bool Unlock () RELEASE();
+	bool TimedLock ( int iMsec ) TRY_ACQUIRE(false);
 
 protected:
 #if USE_WINDOWS
 	HANDLE m_hMutex;
 #else
-	pthread_mutex_t m_tMutex;
+	pthread_mutex_t * m_pMutex;
 public:
-	inline pthread_mutex_t* GetInternalMutex()
+	inline pthread_mutex_t* GetInternalMutex() RETURN_CAPABILITY(this)
 	{
-		return &m_tMutex;
+		return m_pMutex;
 	}
 #endif
 };
 
 // event implementation
-class CSphAutoEvent
+class CSphAutoEvent : public ISphNoncopyable
 {
 public:
 	CSphAutoEvent () {}
@@ -2777,13 +3007,13 @@ protected:
 };
 
 // semaphore implementation
-class CSphSemaphore
+class CSphSemaphore : public ISphNoncopyable
 {
 public:
 	CSphSemaphore ();
 	~CSphSemaphore();
 
-	bool Init ();
+	bool Init (const char* sName=NULL);
 	bool Done();
 	void Post();
 	bool Wait();
@@ -2794,24 +3024,25 @@ protected:
 	HANDLE	m_hSem;
 #else
 	sem_t *	m_pSem;
+	CSphString m_sName;	// unnamed semaphores are deprecated and removed in some OS
 #endif
 };
 
 
 /// scoped mutex lock
 template < typename T >
-class CSphScopedLock : ISphNoncopyable
+class SCOPED_CAPABILITY CSphScopedLock : public ISphNoncopyable
 {
 public:
 	/// lock on creation
-	explicit CSphScopedLock ( T & tMutex )
+	explicit CSphScopedLock ( T & tMutex ) ACQUIRE( tMutex )
 		: m_tMutexRef ( tMutex )
 	{
 		m_tMutexRef.Lock();
 	}
 
 	/// unlock on going out of scope
-	~CSphScopedLock ()
+	~CSphScopedLock () RELEASE()
 	{
 		m_tMutexRef.Unlock ();
 	}
@@ -2822,18 +3053,22 @@ protected:
 
 
 /// rwlock implementation
-class CSphRwlock : public ISphNoncopyable
+class CAPABILITY ( "mutex" ) CSphRwlock : public ISphNoncopyable
 {
 public:
 	CSphRwlock ();
-	~CSphRwlock () {}
+	~CSphRwlock () {
+#if !USE_WINDOWS
+		SafeDelete ( m_pLock );
+#endif
+	}
 
-	bool Init ();
+	bool Init ( bool bPreferWriter=false );
 	bool Done ();
 
-	bool ReadLock ();
-	bool WriteLock ();
-	bool Unlock ();
+	bool ReadLock () ACQUIRE_SHARED();
+	bool WriteLock () ACQUIRE();
+	bool Unlock () UNLOCK_FUNCTION();
 
 private:
 	bool				m_bInitialized;
@@ -2842,43 +3077,52 @@ private:
 	HANDLE				m_hReadEvent;
 	LONG				m_iReaders;
 #else
-	pthread_rwlock_t	m_tLock;
+	pthread_rwlock_t	* m_pLock;
 #endif
 };
 
 
-/// scoped RW lock
-class CSphScopedRWLock : ISphNoncopyable
+/// scoped shared (read) lock
+class SCOPED_CAPABILITY CSphScopedRLock : ISphNoncopyable
 {
 public:
 	/// lock on creation
-	CSphScopedRWLock ( CSphRwlock & tLock, bool bRead )
+	CSphScopedRLock ( CSphRwlock & tLock ) ACQUIRE_SHARED( tLock )
 		: m_tLock ( tLock )
 	{
-		if ( bRead )
-			m_tLock.ReadLock();
-		else
-			m_tLock.WriteLock();
+		m_tLock.ReadLock();
 	}
 
 	/// unlock on going out of scope
-	~CSphScopedRWLock ()
+	~CSphScopedRLock () RELEASE ()
 	{
-		m_tLock.Unlock ();
+		m_tLock.Unlock();
 	}
 
 protected:
 	CSphRwlock & m_tLock;
 };
 
-#if USE_WINDOWS
-#pragma warning(push,1)
-#pragma warning(disable:4701)
-#endif
+/// scoped shared (write) lock
+class SCOPED_CAPABILITY CSphScopedWLock : ISphNoncopyable
+{
+public:
+	/// lock on creation
+	CSphScopedWLock ( CSphRwlock & tLock ) ACQUIRE_SHARED( tLock )
+		: m_tLock ( tLock )
+	{
+		m_tLock.WriteLock();
+	}
 
-#if USE_WINDOWS
-#pragma warning(pop)
-#endif
+	/// unlock on going out of scope
+	~CSphScopedWLock () RELEASE ()
+	{
+		m_tLock.Unlock();
+	}
+
+protected:
+	CSphRwlock & m_tLock;
+};
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -2908,7 +3152,25 @@ public:
 			SafeDeleteArray ( m_pData );
 	}
 
-	// huh, no copy ctor and operator= ?
+	/// copy ctor
+	CSphBitvec ( const CSphBitvec & rhs )
+	{
+		m_pData = NULL;
+		m_iElements = 0;
+		*this = rhs;
+	}
+
+	/// copy
+	const CSphBitvec & operator = ( const CSphBitvec & rhs )
+	{
+		if ( m_pData!=m_uStatic )
+			SafeDeleteArray ( m_pData );
+
+		Init ( rhs.m_iElements );
+		memcpy ( m_pData, rhs.m_pData, sizeof(m_uStatic[0]) * GetSize() );
+
+		return *this;
+	}
 
 	void Init ( int iElements )
 	{
@@ -3010,58 +3272,184 @@ public:
 #define NO_ATOMIC 1
 #endif
 
-class CSphAtomic : public ISphNoncopyable
+template<typename TLONG>
+class CSphAtomic_T : public ISphNoncopyable
 {
-	volatile mutable long	m_iValue;
+	volatile mutable TLONG	m_iValue;
 #if NO_ATOMIC
 	mutable CSphMutex		m_tLock;
 #endif
 
 public:
-	explicit CSphAtomic ( long iValue=0 );
-	~CSphAtomic ();
+	explicit CSphAtomic_T ( TLONG iValue = 0 )
+		: m_iValue ( iValue )
+	{
+		assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
+	}
+
+	~CSphAtomic_T ()
+	{}
+
+	inline operator TLONG() const
+	{
+		return GetValue ();
+	}
+
+	inline CSphAtomic_T& operator= ( TLONG iArg )
+	{
+		SetValue ( iArg );
+		return *this;
+	}
+
+	inline TLONG operator++ ( int ) // postfix
+	{
+		return Inc ();
+	}
+
+	inline TLONG operator++ ( )
+	{
+		TLONG iPrev = Inc ();
+		return ++iPrev;
+	}
+
+	inline CSphAtomic_T& operator+= ( TLONG iArg )
+	{
+		Add ( iArg );
+		return *this;
+	}
+
+	inline TLONG operator-- ( int ) // postfix
+	{
+		return Dec ();
+	}
+
+	inline TLONG operator-- ()
+	{
+		TLONG iPrev = Dec ();
+		return --iPrev;
+	}
+
+	inline CSphAtomic_T& operator-= ( TLONG iArg )
+	{
+		Sub ( iArg );
+		return *this;
+	}
+
 
 #ifdef HAVE_SYNC_FETCH
-	long GetValue() const
+	TLONG GetValue () const
 	{
+		assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
 		return __sync_fetch_and_add ( &m_iValue, 0 );
-	}
+}
 
 	// return value here is original value, prior to operation took place
-	inline long Inc()
+	inline TLONG Inc ()
 	{
+		assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
 		return __sync_fetch_and_add ( &m_iValue, 1 );
 	}
-	inline long Dec()
+
+	inline TLONG Dec ()
 	{
+		assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
 		return __sync_fetch_and_sub ( &m_iValue, 1 );
 	}
+
+	inline TLONG Add ( TLONG iValue )
+	{
+		assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
+		return __sync_fetch_and_add ( &m_iValue, iValue );
+	}
+
+	inline TLONG Sub ( TLONG iValue )
+	{
+		assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
+		return __sync_fetch_and_sub ( &m_iValue, iValue );
+	}
+
+	void SetValue ( TLONG iValue )
+	{
+		assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
+		for ( ;; )
+		{
+			TLONG iOld = GetValue ();
+			if ( __sync_bool_compare_and_swap ( &m_iValue, iOld, iValue ) )
+				break;
+		}
+	}
+
+	inline TLONG CAS ( TLONG iOldVal, TLONG iNewVal )
+	{
+		assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
+		return __sync_val_compare_and_swap ( &m_iValue, iOldVal, iNewVal );
+	}
+
 #elif USE_WINDOWS
-	long GetValue() const;
-	long Inc();
-	long Dec();
+	TLONG GetValue () const;
+	TLONG Inc ();
+	TLONG Dec ();
+	TLONG Add ( TLONG );
+	TLONG Sub ( TLONG );
+	void SetValue ( TLONG iValue );
+	TLONG CAS ( TLONG, TLONG );
 #endif
 
 #if NO_ATOMIC
-	long GetValue() const
+	TLONG GetValue () const NO_THREAD_SAFETY_ANALYSIS
 	{
 		CSphScopedLock<CSphMutex> tLock ( m_tLock );
 		return m_iValue;
 	}
-	inline long Inc()
+
+	inline TLONG Inc () NO_THREAD_SAFETY_ANALYSIS
 	{
 		CSphScopedLock<CSphMutex> tLock ( m_tLock );
 		return m_iValue++;
 	}
-	inline long Dec()
+
+	inline TLONG Dec () NO_THREAD_SAFETY_ANALYSIS
 	{
 		CSphScopedLock<CSphMutex> tLock ( m_tLock );
 		return m_iValue--;
 	}
+
+	inline TLONG Add ( TLONG iValue ) NO_THREAD_SAFETY_ANALYSIS
+	{
+		CSphScopedLock<CSphMutex> tLock ( m_tLock );
+		TLONG iPrev = m_iValue;
+		m_iValue += iValue;
+		return iPrev;
+	}
+
+	inline TLONG Sub ( TLONG iValue ) NO_THREAD_SAFETY_ANALYSIS
+	{
+		CSphScopedLock<CSphMutex> tLock ( m_tLock );
+		TLONG iPrev = m_iValue;
+		m_iValue -= iValue;
+		return iPrev;
+	}
+
+	void SetValue ( TLONG iValue ) NO_THREAD_SAFETY_ANALYSIS
+	{
+		CSphScopedLock<CSphMutex> tLock ( m_tLock );
+		m_iValue = iValue;
+	}
+
+	inline TLONG CAS ( TLONG iOldVal, TLONG iNewVal )
+	{
+		CSphScopedLock<CSphMutex> tLock ( m_tLock );
+		TLONG iRes = m_iValue;
+		if ( m_iValue==iOldVal )
+			m_iValue = iNewVal;
+		return iRes;
+	}
+
 #endif
-};
+	};
 
-
+typedef CSphAtomic_T<long> CSphAtomic;
+typedef CSphAtomic_T<int64_t> CSphAtomicL;
 
 /// MT-aware refcounted base (might be a mutex protected and slow)
 struct ISphRefcountedMT : public ISphNoncopyable
@@ -3077,26 +3465,25 @@ protected:
 public:
 	void AddRef () const
 	{
-		m_iRefCount.Inc();
+		++m_iRefCount;
 	}
 
 	void Release () const
 	{
-		long uRefs = m_iRefCount.Dec();
-		assert ( uRefs>=1 );
-		if ( uRefs==1 )
+		long uRefs = --m_iRefCount;
+		assert ( uRefs>=0 );
+		if ( uRefs==0 )
 			delete this;
 	}
 
 	int GetRefcount() const
 	{
-		return m_iRefCount.GetValue();
+		return m_iRefCount;
 	}
 
 protected:
 	mutable CSphAtomic	m_iRefCount;
 };
-
 
 struct ISphJob
 {
@@ -3118,7 +3505,7 @@ struct ISphThdPool
 	virtual int GetQueueLength () const = 0;
 };
 
-ISphThdPool * sphThreadPoolCreate ( int iThreads );
+ISphThdPool * sphThreadPoolCreate ( int iThreads, const char* sName=NULL );
 
 int sphCpuThreadsCount ();
 
@@ -3342,6 +3729,263 @@ template<> inline CSphHash<DWORD>::Entry::Entry() : m_Key ( NO_ENTRY ), m_Value 
 template<> inline CSphHash<float>::Entry::Entry() : m_Key ( NO_ENTRY ), m_Value ( 0.0f ) {}
 template<> inline CSphHash<int64_t>::Entry::Entry() : m_Key ( NO_ENTRY ), m_Value ( 0 ) {}
 template<> inline CSphHash<uint64_t>::Entry::Entry() : m_Key ( NO_ENTRY ), m_Value ( 0 ) {}
+
+
+/////////////////////////////////////////////////////////////////////////////
+
+/// generic stateless priority queue
+template < typename T, typename COMP > class CSphQueue
+{
+protected:
+	T *		m_pData;
+	int		m_iUsed;
+	int		m_iSize;
+
+public:
+	/// ctor
+	explicit CSphQueue ( int iSize )
+		: m_pData ( NULL )
+		, m_iUsed ( 0 )
+		, m_iSize ( iSize )
+	{
+		Reset ( iSize );
+	}
+
+	/// dtor
+	~CSphQueue()
+	{
+		SafeDeleteArray ( m_pData );
+	}
+
+	void Reset ( int iSize )
+	{
+		SafeDeleteArray ( m_pData );
+		assert ( iSize>=0 );
+		m_iSize = iSize;
+		m_pData = new T[iSize];
+		assert ( !iSize || m_pData );
+	}
+
+	/// add entry to the queue
+	bool Push ( const T & tEntry )
+	{
+		assert ( m_pData );
+		if ( m_iUsed==m_iSize )
+		{
+			// if it's worse that current min, reject it, else pop off current min
+			if ( COMP::IsLess ( tEntry, m_pData[0] ) )
+				return false;
+			else
+				Pop();
+		}
+
+		// do add
+		m_pData[m_iUsed] = tEntry;
+		int iEntry = m_iUsed++;
+
+		// sift up if needed, so that worst (lesser) ones float to the top
+		while ( iEntry )
+		{
+			int iParent = ( iEntry-1 ) >> 1;
+			if ( !COMP::IsLess ( m_pData[iEntry], m_pData[iParent] ) )
+				break;
+
+			// entry is less than parent, should float to the top
+			Swap ( m_pData[iEntry], m_pData[iParent] );
+			iEntry = iParent;
+		}
+
+		return true;
+	}
+
+	/// remove root (ie. top priority) entry
+	void Pop()
+	{
+		assert ( m_iUsed && m_pData );
+		if ( !( --m_iUsed ) ) // empty queue? just return
+			return;
+
+		// make the last entry my new root
+		m_pData[0] = m_pData[m_iUsed];
+
+		// sift down if needed
+		int iEntry = 0;
+		for ( ;; )
+		{
+			// select child
+			int iChild = ( iEntry<<1 ) + 1;
+			if ( iChild>=m_iUsed )
+				break;
+
+			// select smallest child
+			if ( iChild+1<m_iUsed )
+				if ( COMP::IsLess ( m_pData[iChild+1], m_pData[iChild] ) )
+					iChild++;
+
+			// if smallest child is less than entry, do float it to the top
+			if ( COMP::IsLess ( m_pData[iChild], m_pData[iEntry] ) )
+			{
+				Swap ( m_pData[iChild], m_pData[iEntry] );
+				iEntry = iChild;
+				continue;
+			}
+
+			break;
+		}
+	}
+
+	/// get entries count
+	inline int GetLength () const
+	{
+		return m_iUsed;
+	}
+
+	/// get current root
+	inline const T & Root () const
+	{
+		assert ( m_iUsed && m_pData );
+		return m_pData[0];
+	}
+};
+
+
+// simple circular buffer
+template < typename T >
+class CircularBuffer_T
+{
+public:
+	explicit CircularBuffer_T ( int iInitialSize=256, float fGrowFactor=1.5f )
+		: m_dValues ( iInitialSize )
+		, m_fGrowFactor ( fGrowFactor )
+		, m_iHead ( 0 )
+		, m_iTail ( 0 )
+		, m_iUsed ( 0 )
+	{}
+
+	CircularBuffer_T ( CircularBuffer_T&& rhs )
+		: m_dValues ( std::move ( rhs.m_dValues ) )
+		, m_fGrowFactor ( rhs.m_fGrowFactor )
+		, m_iHead ( rhs.m_iHead )
+		, m_iTail ( rhs.m_iTail )
+		, m_iUsed ( rhs.m_iUsed )
+	{
+		rhs.m_iHead = 0;
+		rhs.m_iTail = 0;
+		rhs.m_iUsed = 0;
+	}
+
+	CircularBuffer_T & operator= ( CircularBuffer_T&& rhs )
+	{
+		if ( &rhs!=this )
+		{
+			m_dValues = std::move ( rhs.m_dValues );
+			m_fGrowFactor = rhs.m_fGrowFactor;
+			m_iHead = rhs.m_iHead;
+			m_iTail = rhs.m_iTail;
+			m_iUsed = rhs.m_iUsed;
+
+			rhs.m_iHead = 0;
+			rhs.m_iTail = 0;
+			rhs.m_iUsed = 0;
+		}
+		return *this;
+	}
+
+
+	void Push ( const T & tValue )
+	{
+		if ( m_iUsed==m_dValues.GetLength() )
+			Resize ( int(m_iUsed*m_fGrowFactor) );
+
+		m_dValues[m_iTail] = tValue;
+		m_iTail = ( m_iTail+1 ) % m_dValues.GetLength();
+		m_iUsed++;
+	}
+
+	T & Push()
+	{
+		if ( m_iUsed==m_dValues.GetLength() )
+			Resize ( int ( m_iUsed*m_fGrowFactor ) );
+
+		int iOldTail = m_iTail;
+		m_iTail = (m_iTail + 1) % m_dValues.GetLength ();
+		m_iUsed++;
+
+		return m_dValues[iOldTail];
+	}
+
+
+	T & Pop()
+	{
+		assert ( !IsEmpty() );
+		int iOldHead = m_iHead;
+		m_iHead = ( m_iHead+1 ) % m_dValues.GetLength();
+		m_iUsed--;
+
+		return m_dValues[iOldHead];
+	}
+
+	const T & Last() const
+	{
+		assert (!IsEmpty());
+		return operator[](GetLength()-1);
+	}
+
+	T & Last()
+	{
+		assert (!IsEmpty());
+		int iIndex = GetLength()-1;
+		return m_dValues[(iIndex+m_iHead) % m_dValues.GetLength()];
+	}
+
+	const T & operator [] ( int iIndex ) const
+	{
+		assert ( iIndex < m_iUsed );
+		return m_dValues[(iIndex+m_iHead) % m_dValues.GetLength()];
+	}
+
+	bool IsEmpty() const
+	{
+		return m_iUsed==0;
+	}
+
+	int GetLength() const
+	{
+		return m_iUsed;
+	}
+
+private:
+	CSphFixedVector<T>	m_dValues;
+	float				m_fGrowFactor;
+	int					m_iHead;
+	int					m_iTail;
+	int					m_iUsed;
+
+	void Resize ( int iNewLength )
+	{
+		CSphFixedVector<T> dNew ( iNewLength );
+		for ( int i = 0; i < GetLength(); i++ )
+			dNew[i] = m_dValues[(i+m_iHead) % m_dValues.GetLength()];
+
+		m_dValues.SwapData(dNew);
+
+		m_iHead = 0;
+		m_iTail = m_iUsed;
+	}
+};
+
+
+//////////////////////////////////////////////////////////////////////////
+class TDigest_i
+{
+public:
+	virtual				~TDigest_i() {}
+
+	virtual void		Add ( double fValue, int64_t iWeight = 1 ) = 0;
+	virtual double		Percentile ( int iPercent ) const = 0;
+};
+
+TDigest_i * sphCreateTDigest();
 
 
 #endif // _sphinxstd_

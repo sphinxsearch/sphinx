@@ -3,8 +3,8 @@
 //
 
 //
-// Copyright (c) 2001-2015, Andrew Aksyonoff
-// Copyright (c) 2008-2015, Sphinx Technologies Inc
+// Copyright (c) 2001-2016, Andrew Aksyonoff
+// Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -467,7 +467,6 @@ public:
 	CSphVector<CalcItem_t>		m_dCalcFilter;			///< items to compute for filtering
 	CSphVector<CalcItem_t>		m_dCalcSort;			///< items to compute for sorting/grouping
 	CSphVector<CalcItem_t>		m_dCalcFinal;			///< items to compute when finalizing result set
-	CSphVector<CalcItem_t>		m_dCalcPostAggregate;	///< items to compute aggregate depended with finalized result set
 
 	const CSphVector<CSphAttrOverride> *	m_pOverrides;		///< overridden attribute values
 	CSphVector<CSphAttrLocator>				m_dOverrideIn;
@@ -480,22 +479,20 @@ public:
 	int64_t									m_iBadRows;
 
 public:
-	CSphQueryContext ( const CSphQuery & q );
+	explicit CSphQueryContext ( const CSphQuery & q );
 	~CSphQueryContext ();
 
 	void						BindWeights ( const CSphQuery * pQuery, const CSphSchema & tSchema, CSphString & sWarning );
-	bool						SetupCalc ( CSphQueryResult * pResult, const ISphSchema & tInSchema, const CSphSchema & tSchema, const DWORD * pMvaPool, bool bArenaProhibit, bool bExtractPostAggr );
+	bool						SetupCalc ( CSphQueryResult * pResult, const ISphSchema & tInSchema, const CSphSchema & tSchema, const DWORD * pMvaPool, bool bArenaProhibit );
 	bool						CreateFilters ( bool bFullscan, const CSphVector<CSphFilterSettings> * pdFilters, const ISphSchema & tSchema, const DWORD * pMvaPool, const BYTE * pStrings, CSphString & sError, CSphString & sWarning, ESphCollation eCollation, bool bArenaProhibit, const KillListVector & dKillList );
 	bool						SetupOverrides ( const CSphQuery * pQuery, CSphQueryResult * pResult, const CSphSchema & tIndexSchema, const ISphSchema & tOutgoingSchema );
 
 	void						CalcFilter ( CSphMatch & tMatch ) const;
 	void						CalcSort ( CSphMatch & tMatch ) const;
 	void						CalcFinal ( CSphMatch & tMatch ) const;
-	void						CalcPostAggregate ( CSphMatch & tMatch ) const;
 
 	void						FreeStrFilter ( CSphMatch & tMatch ) const;
 	void						FreeStrSort ( CSphMatch & tMatch ) const;
-	void						FreeStrFinal ( CSphMatch & tMatch ) const;
 
 	// note that RT index bind pools at segment searching, not at time it setups context
 	void						ExprCommand ( ESphExprCommand eCmd, void * pArg );
@@ -1304,6 +1301,32 @@ inline int sphUTF8Len ( const char * pStr, int iMax )
 	return iRes;
 }
 
+/// quick check for UTF-8
+inline bool sphIsUTF8 ( const char * pStr )
+{
+	while ( *pStr )
+	{
+		if ( *pStr < 0 )
+			return true;
+		pStr++;
+	}
+	return false;
+}
+
+/// convert UTF-8 to codepoints, return string length
+inline int sphUTF8ToWideChar ( const char * pSrc, int * pDst, int iMaxLen )
+{
+	const BYTE * p = (const BYTE*) pSrc;
+	int iLen = 0, iCode;
+	while ( ( iCode = sphUTF8Decode(p) )!=0 && iLen<iMaxLen )
+	{
+		*pDst++ = iCode;
+		iLen++;
+	}
+	*pDst = 0;
+	return iLen;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // MATCHING ENGINE INTERNALS
 //////////////////////////////////////////////////////////////////////////
@@ -1563,6 +1586,7 @@ public:
 
 	virtual SphWordID_t	GetWordID ( const BYTE * pWord, int iLen, bool bFilterStops ) { return m_pDict->GetWordID ( pWord, iLen, bFilterStops ); }
 	virtual SphWordID_t GetWordID ( BYTE * pWord );
+	virtual SphWordID_t	GetWordIDNonStemmed ( BYTE * pWord ) { return m_pDict->GetWordIDNonStemmed ( pWord ); }
 
 	virtual void		Setup ( const CSphDictSettings & ) {}
 	virtual const CSphDictSettings & GetSettings () const { return m_pDict->GetSettings (); }
@@ -1659,21 +1683,6 @@ public:
 	virtual bool					WasTokenMultiformDestination ( bool & bHead, int & iDestCount ) const { return m_pTokenizer->WasTokenMultiformDestination ( bHead, iDestCount ); }
 };
 
-
-struct ISphQueryFilter
-{
-	ISphTokenizer *		m_pTokenizer;
-	CSphDict *					m_pDict;
-	const CSphIndexSettings *	m_pSettings;
-
-	ISphQueryFilter ();
-	virtual ~ISphQueryFilter ();
-
-	void GetKeywords ( CSphVector <CSphKeywordInfo> & dKeywords );
-	virtual void AddKeywordStats ( BYTE * sWord, const BYTE * sTokenized, int iQpos, CSphVector <CSphKeywordInfo> & dKeywords ) = 0;
-};
-
-
 DWORD sphParseMorphAot ( const char * );
 
 struct CSphReconfigureSettings
@@ -1681,6 +1690,7 @@ struct CSphReconfigureSettings
 	CSphTokenizerSettings	m_tTokenizer;
 	CSphDictSettings		m_tDict;
 	CSphIndexSettings		m_tIndex;
+	CSphFieldFilterSettings m_tFieldFilter;
 };
 
 struct CSphReconfigureSetup
@@ -1688,6 +1698,7 @@ struct CSphReconfigureSetup
 	ISphTokenizer *		m_pTokenizer;
 	CSphDict *			m_pDict;
 	CSphIndexSettings	m_tIndex;
+	ISphFieldFilter *	m_pFieldFilter;
 
 	CSphReconfigureSetup ();
 	~CSphReconfigureSetup ();
@@ -1775,6 +1786,8 @@ bool			AddFieldLens ( CSphSchema & tSchema, bool bDynamic, CSphString & sError )
 
 /// Get current thread local index - internal do not use
 ISphRtIndex * sphGetCurrentIndexRT();
+
+void			RebalanceWeights ( const CSphFixedVector<int64_t> & dTimers, WORD * pWeights );
 
 // all indexes should produce same terms for same query
 struct SphWordStatChecker_t
@@ -1922,6 +1935,104 @@ struct ISphSubstringPayload
 };
 
 
+void sphBuildNGrams ( const char * sWord, int iLen, char cDelimiter, CSphVector<char> & dNgrams );
+
+// levenstein distance for words
+int sphLevenshtein ( const char * sWord1, int iLen1, const char * sWord2, int iLen2 );
+
+// levenstein distance for unicode codepoints
+int sphLevenshtein ( const int * sWord1, int iLen1, const int * sWord2, int iLen2 );
+
+struct Slice_t
+{
+	DWORD				m_uOff;
+	DWORD				m_uLen;
+};
+
+struct SuggestWord_t
+{
+	int	m_iNameOff;
+	int m_iLen;
+	int m_iDistance;
+	int m_iDocs;
+	DWORD m_iNameHash;
+};
+
+struct SuggestArgs_t
+{
+	int				m_iLimit;			// limit into result set
+	int				m_iMaxEdits;		// levenstein distance threshold
+	int				m_iDeltaLen;		// filter out words from dictionary these shorter \ longer then reference word
+	int				m_iQueueLen;
+	int				m_iRejectThr;
+	bool			m_bQueryMode;
+
+	bool			m_bResultOneline;
+	bool			m_bResultStats;
+
+	SuggestArgs_t () : m_iLimit ( 5 ), m_iMaxEdits ( 4 ), m_iDeltaLen ( 3 ), m_iQueueLen ( 25 ), m_iRejectThr ( 4 ), m_bQueryMode ( false ), m_bResultOneline ( false ), m_bResultStats ( true )
+	{}
+};
+
+struct SuggestResult_t
+{
+	// result set
+	CSphVector<BYTE>			m_dBuf;
+	CSphVector<SuggestWord_t>	m_dMatched;
+
+	// state
+	CSphVector<char>			m_dTrigrams;
+	// payload
+	void *						m_pWordReader;
+	void *						m_pSegments;
+	bool						m_bMergeWords;
+	// word
+	CSphString		m_sWord;
+	int				m_iLen;
+	int				m_dCodepoints[SPH_MAX_WORD_LEN];
+	int				m_iCodepoints;
+	bool			m_bUtf8;
+	bool			m_bHasExactDict;
+
+	SuggestResult_t () : m_pWordReader ( NULL ), m_pSegments ( NULL ), m_bMergeWords ( false ), m_iLen ( 0 ), m_iCodepoints ( 0 ), m_bUtf8 ( false ), m_bHasExactDict ( false )
+	{
+		m_dBuf.Reserve ( 8096 );
+		m_dMatched.Reserve ( 512 );
+	}
+
+	~SuggestResult_t ()
+	{
+		assert ( !m_pWordReader );
+		assert ( !m_pSegments );
+	}
+
+	bool SetWord ( const char * sWord, const ISphTokenizer * pTok, bool bUseLastWord );
+
+	void Flattern ( int iLimit );
+};
+
+class ISphWordlistSuggest
+{
+public:
+	virtual ~ISphWordlistSuggest () {}
+
+	virtual void SuffixGetChekpoints ( const SuggestResult_t & tRes, const char * sSuffix, int iLen, CSphVector<DWORD> & dCheckpoints ) const = 0;
+
+	virtual void SetCheckpoint ( SuggestResult_t & tRes, DWORD iCP ) const = 0;
+
+	struct DictWord_t
+	{
+		const char *	m_sWord;
+		int				m_iLen;
+		int				m_iDocs;
+	};
+
+	virtual bool ReadNextWord ( SuggestResult_t & tRes, DictWord_t & tWord ) const = 0;
+};
+
+void sphGetSuggest ( const ISphWordlistSuggest * pWordlist, int iInfixCodepointBytes, const SuggestArgs_t & tArgs, SuggestResult_t & tRes );
+
+
 class ISphWordlist
 {
 public:
@@ -1987,6 +2098,31 @@ struct ExpansionContext_t
 };
 
 
+struct GetKeywordsSettings_t
+{
+	bool	m_bStats;
+	bool	m_bFoldLemmas;
+	bool	m_bFoldBlended;
+	bool	m_bFoldWildcards;
+	int		m_iExpansionLimit;
+
+	GetKeywordsSettings_t ();
+};
+
+struct ISphQueryFilter
+{
+	ISphTokenizer *				m_pTokenizer;
+	CSphDict *					m_pDict;
+	const CSphIndexSettings *	m_pSettings;
+	GetKeywordsSettings_t		m_tFoldSettings;
+
+	ISphQueryFilter ();
+	virtual ~ISphQueryFilter ();
+
+	void GetKeywords ( CSphVector <CSphKeywordInfo> & dKeywords, const ExpansionContext_t & tCtx );
+	virtual void AddKeywordStats ( BYTE * sWord, const BYTE * sTokenized, int iQpos, CSphVector <CSphKeywordInfo> & dKeywords ) = 0;
+};
+
 XQNode_t * sphExpandXQNode ( XQNode_t * pNode, ExpansionContext_t & tCtx );
 XQNode_t * sphQueryExpandKeywords ( XQNode_t * pNode, const CSphIndexSettings & tSettings );
 inline int sphGetExpansionMagic ( int iDocs, int iHits )
@@ -1997,6 +2133,8 @@ inline bool sphIsExpandedPayload ( int iDocs, int iHits )
 {
 	return ( iHits<=256 || iDocs<32 ); // magic threshold; mb make this configurable?
 }
+bool sphHasExpandableWildcards ( const char * sWord );
+bool sphExpandGetWords ( const char * sWord, const ExpansionContext_t & tCtx, ISphWordlist::Args_t & tWordlist );
 
 
 template<typename T>
@@ -2101,7 +2239,7 @@ public:
 
 
 ISphInfixBuilder * sphCreateInfixBuilder ( int iCodepointBytes, CSphString * pError );
-bool sphLookupInfixCheckpoints ( const char * sInfix, int iBytes, const BYTE * pInfixes, const CSphVector<InfixBlock_t> & dInfixBlocks, int iInfixCodepointBytes, CSphVector<int> & dCheckpoints );
+bool sphLookupInfixCheckpoints ( const char * sInfix, int iBytes, const BYTE * pInfixes, const CSphVector<InfixBlock_t> & dInfixBlocks, int iInfixCodepointBytes, CSphVector<DWORD> & dCheckpoints );
 // calculate length, upto iInfixCodepointBytes chars from infix start
 int sphGetInfixLength ( const char * sInfix, int iBytes, int iInfixCodepointBytes );
 
@@ -2260,7 +2398,11 @@ public:
 			// legacy query mode should handle exact form modifier and star wildcard
 			m_pQueryTokenizer = pIndex->GetTokenizer()->Clone ( SPH_CLONE_INDEX );
 			if ( pIndex->IsStarDict() )
+			{
 				m_pQueryTokenizer->AddPlainChar ( '*' );
+				m_pQueryTokenizer->AddPlainChar ( '?' );
+				m_pQueryTokenizer->AddPlainChar ( '%' );
+			}
 			if ( pIndex->GetSettings().m_bIndexExactWords )
 				m_pQueryTokenizer->AddPlainChar ( '=' );
 		}
@@ -2341,6 +2483,10 @@ struct StoredToken_t
 void FillStoredTokenInfo ( StoredToken_t & tToken, const BYTE * sToken, ISphTokenizer * pTokenizer );
 CSphSource * sphCreateSourceTSVpipe ( const CSphConfigSection * pSource, FILE * pPipe, const char * sSourceName, bool bProxy );
 CSphSource * sphCreateSourceCSVpipe ( const CSphConfigSection * pSource, FILE * pPipe, const char * sSourceName, bool bProxy );
+
+uint64_t sphCalcLocatorHash ( const CSphAttrLocator & tLoc, uint64_t uPrevHash );
+uint64_t sphCalcExprDepHash ( const char * szTag, ISphExpr * pExpr, const ISphSchema & tSorterSchema, uint64_t uPrevHash, bool & bDisable );
+uint64_t sphCalcExprDepHash ( ISphExpr * pExpr, const ISphSchema & tSorterSchema, uint64_t uPrevHash, bool & bDisable );
 
 inline void FlipEndianess ( DWORD* pData )
 {

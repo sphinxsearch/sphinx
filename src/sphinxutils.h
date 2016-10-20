@@ -3,8 +3,8 @@
 //
 
 //
-// Copyright (c) 2001-2015, Andrew Aksyonoff
-// Copyright (c) 2008-2015, Sphinx Technologies Inc
+// Copyright (c) 2001-2016, Andrew Aksyonoff
+// Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -46,7 +46,8 @@ inline bool sphIsModifier ( int iSymbol )
 
 
 /// all wildcards
-inline bool sphIsWild ( char c )
+template < typename T >
+inline bool sphIsWild ( T c )
 {
 	return c=='*' || c=='?' || c=='%';
 }
@@ -59,7 +60,7 @@ void sphSplit ( CSphVector<CSphString> & dOut, const char * sIn );
 void sphSplit ( CSphVector<CSphString> & dOut, const char * sIn, const char * sBounds );
 
 /// string wildcard matching (case-sensitive, supports * and ? patterns)
-bool sphWildcardMatch ( const char * sSstring, const char * sPattern );
+bool sphWildcardMatch ( const char * sSstring, const char * sPattern, const int * pPattern = NULL );
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -168,6 +169,8 @@ bool			sphFixupIndexSettings ( CSphIndex * pIndex, const CSphConfigSection & hIn
 
 bool			sphInitCharsetAliasTable ( CSphString & sError );
 
+const char * sphBigramName ( ESphBigram eType );
+
 enum ESphLogLevel
 {
 	SPH_LOG_FATAL	= 0,
@@ -192,17 +195,19 @@ void sphSetLogger ( SphLogger_fn fnLog );
 
 /// how do we properly exit from the crash handler?
 #if !USE_WINDOWS
+	#define CRASH_EXIT_CORE { signal ( sig, SIG_DFL ); kill ( getpid(), sig ); }
 	#ifndef NDEBUG
 		// UNIX debug build, die and dump core
-		#define CRASH_EXIT { signal ( sig, SIG_DFL ); kill ( getpid(), sig ); }
+		#define CRASH_EXIT CRASH_EXIT_CORE
 	#else
 		// UNIX release build, just die
 		#define CRASH_EXIT { exit ( 2 ); }
 	#endif
 #else
+	#define CRASH_EXIT_CORE return EXCEPTION_CONTINUE_SEARCH
 	#ifndef NDEBUG
 		// Windows debug build, show prompt to attach debugger
-		#define CRASH_EXIT return EXCEPTION_CONTINUE_SEARCH
+		#define CRASH_EXIT CRASH_EXIT_CORE
 	#else
 		// Windows release build, just die
 		#define CRASH_EXIT return EXCEPTION_EXECUTE_HANDLER
@@ -249,23 +254,13 @@ class CSphDynamicLibrary : public ISphNoncopyable
 	void *		m_pLibrary; // internal handle
 
 public:
-	CSphDynamicLibrary()
-		: m_bReady ( false )
-		, m_pLibrary ( NULL )
-		, m_sError ( "" )
-		{}
-	virtual ~CSphDynamicLibrary()
-	{}
+	CSphDynamicLibrary ( const char* sPath );
 
-	bool		Init ( const char* sPath, bool bGlobal=true );
-	bool		LoadSymbol ( const char* sName, void** ppFunc );
+	// We are suppose, that library is loaded once when necessary, and will alive whole lifetime of utility.
+	// So, no need to explicitly desctruct it, this is intended leak.
+	~CSphDynamicLibrary () = default;
+
 	bool		LoadSymbols ( const char** sNames, void*** pppFuncs, int iNum );
-
-public:
-	CSphString	m_sError;
-
-private:
-	void		FillError ( const char* sMessage=NULL );
 };
 
 #endif // _sphinxutils_

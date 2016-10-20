@@ -3,8 +3,8 @@
 //
 
 //
-// Copyright (c) 2001-2015, Andrew Aksyonoff
-// Copyright (c) 2008-2015, Sphinx Technologies Inc
+// Copyright (c) 2001-2016, Andrew Aksyonoff
+// Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -310,7 +310,10 @@ bool SnippetsDocIndex_c::MatchStar ( const Keyword_t & tTok, const BYTE * sWord 
 {
 	assert ( tTok.m_bStar );
 	const BYTE * sKeyword = m_dStarBuffer.Begin() + tTok.m_iWord;
-	return sphWildcardMatch ( (const char*)sWord, (const char*)sKeyword );
+	const char * sWildcard = (const char*) sKeyword;
+	int dWildcard [ SPH_MAX_WORD_LEN + 1 ];
+	int * pWildcard = ( sphIsUTF8 ( sWildcard ) && sphUTF8ToWideChar ( sWildcard, dWildcard, SPH_MAX_WORD_LEN ) ) ? dWildcard : NULL;
+	return sphWildcardMatch ( (const char*)sWord, (const char*)sKeyword, pWildcard );
 }
 
 
@@ -377,9 +380,18 @@ void SnippetsDocIndex_c::AddHits ( SphWordID_t iWordID, const BYTE * sWord, int 
 	}
 }
 
-static bool HasStars ( const XQKeyword_t & w )
+static bool HasWildcards ( const char * sWord )
 {
-	return w.m_sWord.Begins("*") || w.m_sWord.Ends("*");
+	if ( !sWord )
+		return false;
+
+	for ( ; *sWord; sWord++ )
+	{
+		if ( sphIsWild ( *sWord ) )
+			return true;
+	}
+
+	return false;
 }
 
 
@@ -428,7 +440,7 @@ void SnippetsDocIndex_c::ParseQuery ( const char * sQuery, ISphTokenizer * pToke
 	if ( !m_bQueryMode )
 	{
 		// parse bag-of-words query
-		int iQueryLen = strlen ( sQuery ); // FIXME!!! get length as argument
+		int iQueryLen = sQuery ? strlen ( sQuery ) : 0; // FIXME!!! get length as argument
 		pTokenizer->SetBuffer ( (BYTE *)sQuery, iQueryLen );
 
 		BYTE * sWord = NULL;
@@ -438,7 +450,7 @@ void SnippetsDocIndex_c::ParseQuery ( const char * sQuery, ISphTokenizer * pToke
 			SphWordID_t uWordID = pDict->GetWordID ( sWord );
 			if ( uWordID )
 			{
-				if ( sWord[0]=='*' || sWord [ strlen ( (const char*)sWord )-1 ]=='*' )
+				if ( HasWildcards ( (const char *)sWord ) )
 					AddWordStar ( (const char *)sWord, pTokenizer->GetLastTokenLen(), iQPos );
 				else
 					AddWord ( uWordID, pTokenizer->GetLastTokenLen(), iQPos );
@@ -529,7 +541,7 @@ void SnippetsDocIndex_c::ParseQuery ( const char * sQuery, ISphTokenizer * pToke
 
 			ARRAY_FOREACH ( j, pChild->m_dWords )
 			{
-				if ( HasStars ( pChild->m_dWords[j] ) )
+				if ( HasWildcards ( pChild->m_dWords[j].m_sWord.cstr() ) )
 					continue;
 
 				const BYTE * sWord = (const BYTE *)pChild->m_dWords[j].m_sWord.cstr();
@@ -601,7 +613,7 @@ int SnippetsDocIndex_c::ExtractWords ( XQNode_t * pNode, ISphTokenizer * pTokeni
 		const XQKeyword_t & tWord = pNode->m_dWords[i];
 
 		int iLenCP = sphUTF8Len ( tWord.m_sWord.cstr() );
-		if ( HasStars ( tWord ) )
+		if ( HasWildcards ( tWord.m_sWord.cstr() ) )
 		{
 			AddWordStar ( tWord.m_sWord.cstr(), iLenCP, iQpos );
 			iQpos++;
@@ -1259,7 +1271,7 @@ public:
 	const CSphVector<int> * GetHitlist ( const XQKeyword_t & tWord ) const
 	{
 		int iWord = -1;
-		if ( HasStars ( tWord ) )
+		if ( HasWildcards ( tWord.m_sWord.cstr() ) )
 			iWord = m_tContainer.FindStarred ( tWord.m_sWord.cstr() );
 		else
 		{
@@ -2985,7 +2997,6 @@ static void TokenizeDocument ( T & tFunctor, const CSphHTMLStripper * pStripper,
 	const char * pStartPtr = pTokenizer->GetBufferPtr ();
 	const char * pLastTokenEnd = pStartPtr;
 	const char * pBufferEnd = pTokenizer->GetBufferEnd();
-	assert ( pStartPtr && pLastTokenEnd );
 
 	BYTE sNonStemmed [ 3*SPH_MAX_WORD_LEN+4];
 
@@ -3222,7 +3233,10 @@ static void TokenizeDocument ( T & tFunctor, const CSphHTMLStripper * pStripper,
 		}
 
 		pLastTokenEnd = pTokenizer->GetTokenEnd ();
-		int iWordLen = pLastTokenEnd - pTokenStart;
+
+		// might differ when sbsc got replaced by utf codepoint
+		int iTokenLen = pLastTokenEnd - pTokenStart;
+		int iWordLen = strlen ( ( const char *)sWord );
 
 		bool bPopExactMulti = false;
 		if ( tFunctor.m_bIndexExactWords )
@@ -3251,7 +3265,7 @@ static void TokenizeDocument ( T & tFunctor, const CSphHTMLStripper * pStripper,
 
 		tTok.m_uPosition = ( iWord || tTok.m_bStopWord ) ? uPosition : 0;
 		tTok.m_iStart = pTokenStart - pStartPtr;
-		tTok.m_iLen = iWordLen;
+		tTok.m_iLen = iTokenLen;
 		tTok.m_bWord = !!iWord;
 
 		// match & emit
@@ -3841,7 +3855,7 @@ void sphBuildExcerpt ( ExcerptQuery_t & tOptions, const CSphIndex * pIndex, cons
 		pStripper = NULL;
 
 	// FIXME!!! check on real data (~100 Mb) as stripper changes len
-	int iDataLen = strlen ( pData );
+	int iDataLen = pData ? strlen ( pData ) : 0;
 
 	DoHighlighting ( tOptions, pIndex->GetSettings(), tExtQuery, eExtQuerySPZ, pData, iDataLen, pDict, pDocTokenizer, pStripper,
 		sWarning, sError, pQueryTokenizer, tOptions.m_dRes );

@@ -3,8 +3,8 @@
 //
 
 //
-// Copyright (c) 2001-2015, Andrew Aksyonoff
-// Copyright (c) 2008-2015, Sphinx Technologies Inc
+// Copyright (c) 2001-2016, Andrew Aksyonoff
+// Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -1153,7 +1153,7 @@ public:
 	virtual void				GetStatus ( CSphIndexStatus* pRes ) const { if ( pRes ) { pRes->m_iDiskUse = 0; pRes->m_iRamUse = 0;} }
 	virtual bool				MultiQuery ( const CSphQuery * , CSphQueryResult * , int , ISphMatchSorter ** , const CSphMultiQueryArgs & ) const { return false; }
 	virtual bool				MultiQueryEx ( int , const CSphQuery * , CSphQueryResult ** , ISphMatchSorter ** , const CSphMultiQueryArgs & ) const { return false; }
-	virtual bool				GetKeywords ( CSphVector <CSphKeywordInfo> & , const char * , bool , CSphString * ) const { return false; }
+	virtual bool				GetKeywords ( CSphVector <CSphKeywordInfo> & , const char * , const GetKeywordsSettings_t & , CSphString * ) const { return false; }
 	virtual bool				FillKeywords ( CSphVector <CSphKeywordInfo> & dKeywords ) const;
 	virtual int					UpdateAttributes ( const CSphAttrUpdate & , int , CSphString &, CSphString & ) { return -1; }
 	virtual bool				SaveAttributes ( CSphString & ) const { return false; }
@@ -1588,6 +1588,15 @@ void TestMisc ()
 		int iUnp = sphUnpackStr ( pUnp, &pUnp );
 		assert ( iUnp==dValues[i] );
 	}
+
+	printf ( "ok\n" );
+
+	printf ( "testing string split... " );
+	CSphVector<CSphString> dStr;
+	sphSplit ( dStr, "test:me\0off\0", ":" );
+	assert ( dStr.GetLength()==2 );
+	assert ( dStr[0]=="test" );
+	assert ( dStr[1]=="me" );
 
 	printf ( "ok\n" );
 }
@@ -2947,6 +2956,85 @@ void TestSpanSearch()
 
 //////////////////////////////////////////////////////////////////////////
 
+static void TestRebalance_fn ( DWORD * pData, int iLen, int iStride, int iWeights )
+{
+	assert ( ( iLen%iStride )==0 );
+	iLen /= iStride;
+	CSphFixedVector<int64_t> dTimers ( iWeights );
+	CSphFixedVector<WORD> dWeights ( iWeights );
+	for ( int i=0; i<iLen; i++ )
+	{
+		for ( int j=0; j<iWeights; j++ )
+		{
+			dWeights[j] = (WORD)pData[ i * iStride + j ];
+			dTimers[j] = pData[ i * iStride + iWeights + j ];
+		}
+
+		RebalanceWeights ( dTimers, dWeights.Begin() );
+
+		for ( int j=0; j<iWeights; j++ )
+		{
+			//printf ( "%s%d%s", j>0 ? ", " : "", dWeights[j], j+1==iWeights ? "\n" : "" );
+			assert ( dWeights[j]==pData [ i * iStride + iWeights * 2 + j ] );
+		}
+	}
+}
+
+void TestRebalance()
+{
+	printf ( "testing rebalance... " );
+
+	/* reference captured on live box, ie how it was
+	//					old weights,	timers,				new weights
+	DWORD dData[] = {	32395, 33139,	228828, 186751,		29082, 36452,
+						29082, 36452,	218537, 207608,		28255, 37279,
+						28255, 37279,	194305, 214800,		29877, 35657,
+						29877, 35657,	190062, 207614,		31318, 34216,
+						31318, 34216,	201162, 221708,		32910, 32624,
+						32910, 32624,	193441, 247379,		36917, 28617,
+						36917, 28617,	194910, 223202,		39080, 26454,
+						39080, 26454,	228274, 361018,		45892, 19642,
+						45892, 19642,	223009, 275050,		48651, 16883,
+						48651, 16883,	205340, 279008,		52202, 13332,
+						52202, 13332,	213189, 201466,		51592, 13942,
+						51592, 13942,	210235, 197584,		50899, 14635,
+						48921, 16613,	207860, 318349,		53641, 11893,
+						53641, 11893,	204124, 487120,		59963, 5571,
+						59963, 5571,	202851, 412733,		62140, 3394,
+	}; */
+	//					old weights,	timers,				new weights
+	DWORD dData1[] = {	32395, 33139,	228828, 186751,		29449, 36085,
+						29082, 36452,	218537, 207608,		31927, 33607,
+						28255, 37279,	194305, 214800,		34409, 31125,
+						29877, 35657,	190062, 207614,		34213, 31321,
+						31318, 34216,	201162, 221708,		34359, 31175,
+						32910, 32624,	193441, 247379,		36776, 28758,
+						36917, 28617,	194910, 223202,		34984, 30550,
+						39080, 26454,	228274, 361018,		40148, 25386,
+						45892, 19642,	223009, 275050,		36191, 29343,
+						48651, 16883,	205340, 279008,		37751, 27783,
+						52202, 13332,	213189, 201466,		31841, 33693,
+						51592, 13942,	210235, 197584,		31751, 33783,
+						48921, 16613,	207860, 318349,		39647, 25887,
+						53641, 11893,	204124, 487120,		46182, 19352,
+						59963, 5571,	202851, 412733,		43939, 21595,
+	};
+	TestRebalance_fn ( dData1, sizeof(dData1) / sizeof(dData1[0]), 6, 2 );
+
+	DWORD dData2[] ={ 0, 1,				0, 18469,			6553, 58981 };
+	TestRebalance_fn ( dData2, sizeof(dData2) / sizeof(dData2[0]), 6, 2 );
+
+	DWORD dData3[] ={ 0, 1, 2, 3,		0, 0, 0, 18469,		2184, 2184, 2184, 58981 };
+	TestRebalance_fn ( dData3, sizeof ( dData3 ) / sizeof ( dData3[0] ), 12, 4 );
+
+	DWORD dData4[] ={ 0, 1, 2,			7100, 0, 18469,		42603, 6553, 16377 };
+	TestRebalance_fn ( dData4, sizeof ( dData4 ) / sizeof ( dData4[0] ), 9, 3 );
+
+	printf ( "ok\n" );
+}
+
+//////////////////////////////////////////////////////////////////////////
+
 static const char * CORPUS = "corpus.txt";
 const int POOLSIZE = 80*1048576;
 const int GAP = 4;
@@ -3744,6 +3832,48 @@ void TestSource ()
 		"8,cool,so far,\"Sup\n extra, duper,\",tmp,tmp,tmp,11\n",
 		"cool", "so far", "Sup\n extra, duper,", "tmp", "tmp", "tmp",
 
+		"9,//\\\\match//\\\\,//\\\\double//\\\\,//\\\\escape//\\\\,tmp,tmp,tmp,11\n",
+		"//\\match//\\", "//\\double//\\", "//\\escape//\\", "tmp", "tmp", "tmp",
+
+		"10,ma\\\"tch,me,ten\\\"der,tmp,tmp,tmp,11\n",
+		"ma\"tch", "me", "ten\"der", "tmp", "tmp", "tmp",
+
+		"11,"
+		"test fest \\\" best"
+		",tmp,tmp,tmp,tmp,tmp,11\n",
+		"test fest \" best",
+		"tmp", "tmp", "tmp", "tmp", "tmp",
+
+		"12,"
+		"\"test fest \\\" be\"st\""
+		",tmp,tmp,tmp,tmp,tmp,11\n",
+		"test fest \\ be\"st\"",
+		"tmp", "tmp", "tmp", "tmp", "tmp",
+
+		"13,"
+		"\"test fest, be\"st of, the\""
+		",tmp,tmp,tmp,tmp,11\n",
+		"test fest, best of", " the\"",
+		"tmp", "tmp", "tmp", "tmp",
+
+		"14,"
+		"\"test fest, best of, th\"e"
+		",tmp,tmp,tmp,tmp,tmp,11\n",
+		"test fest, best of, the",
+		"tmp", "tmp", "tmp", "tmp", "tmp",
+
+		"15,"
+		"\"test fest\\, best of th\"e"
+		",tmp,tmp,tmp,tmp,tmp,11\n",
+		"test fest\\, best of the",
+		"tmp", "tmp", "tmp", "tmp", "tmp",
+
+		"16,"
+		"test \"fest\\, best of th\"e"
+		",tmp,tmp,tmp,tmp,11\n",
+		"test \"fest", " best of th\"e",
+		"tmp", "tmp", "tmp", "tmp",
+
 		NULL };
 
 	// write csv file
@@ -3944,6 +4074,115 @@ void TestMutex()
 	printf ( "- timedlock thread done\n" );
 }
 
+static int ProxyLevenshtein ( const char * sA, const char * sB )
+{
+	int iLenA = strlen ( sA );
+	int iLenB = strlen ( sB );
+	return sphLevenshtein ( sA, iLenA, sB, iLenB );
+}
+
+void TestLevenshtein()
+{
+	printf ( "testing levenshtein... " );
+
+	assert ( ProxyLevenshtein ( "a", "b" )==1 );
+	assert ( ProxyLevenshtein ( "ab", "ac" )==1 );
+	assert ( ProxyLevenshtein ( "ac", "bc" )==1 );
+	assert ( ProxyLevenshtein ( "abc", "axc" )==1 );
+	assert ( ProxyLevenshtein ( "kitten", "sitting" )==3 );
+	assert ( ProxyLevenshtein ( "xabxcdxxefxgx", "1ab2cd34ef5g6" )==6 );
+	assert ( ProxyLevenshtein ( "cat", "cow" )==2 );
+	assert ( ProxyLevenshtein ( "xabxcdxxefxgx", "abcdefg" )==6 );
+	assert ( ProxyLevenshtein ( "javawasneat", "scalaisgreat" )==7 );
+	assert ( ProxyLevenshtein ( "example", "samples" )==3 );
+	assert ( ProxyLevenshtein ( "sturgeon", "urgently" )==6 );
+	assert ( ProxyLevenshtein ( "levenshtein", "frankenstein" )==6 );
+	assert ( ProxyLevenshtein ( "distance", "difference" )==5 );
+	assert ( ProxyLevenshtein ( "abc", "xyz" )==3 );
+	assert ( ProxyLevenshtein ( "abc", "a" )==2 );
+	assert ( ProxyLevenshtein ( "a", "abc" )==2 );
+	assert ( ProxyLevenshtein ( "abc", "c" )==2 );
+	assert ( ProxyLevenshtein ( "c", "abc" )==2 );
+	assert ( ProxyLevenshtein ( "cake", "drake" )==2 );
+	assert ( ProxyLevenshtein ( "drake", "cake" )==2 );
+	assert ( ProxyLevenshtein ( "saturday", "sunday" )==3 );
+	assert ( ProxyLevenshtein ( "sunday", "saturday" )==3 );
+	assert ( ProxyLevenshtein ( "book", "back" )==2 );
+	assert ( ProxyLevenshtein ( "dog", "fog" )==1 );
+	assert ( ProxyLevenshtein ( "foq", "fog" )==1 );
+	assert ( ProxyLevenshtein ( "fvg", "fog" )==1 );
+	assert ( ProxyLevenshtein ( "encyclopedia", "encyclopediaz" )==1 );
+	assert ( ProxyLevenshtein ( "encyclopediz", "encyclopediaz" )==1 );
+	assert ( ProxyLevenshtein ( "chukumwong", "ckwong" )==4 );
+	assert ( ProxyLevenshtein ( "ckwong", "chukumwong" )==4 );
+
+	assert ( ProxyLevenshtein ( "folden", "older" )==2 );
+	assert ( ProxyLevenshtein ( "folden", "melden" )==2 );
+	assert ( ProxyLevenshtein ( "folden", "scolded" )==3 );
+	assert ( ProxyLevenshtein ( "goldin", "holding" )==2 );
+	assert ( ProxyLevenshtein ( "goldin", "soldier" )==3 );
+	assert ( ProxyLevenshtein ( "helden", "hielden" )==1 );
+	assert ( ProxyLevenshtein ( "helden", "sheldon" )==2 );
+	assert ( ProxyLevenshtein ( "helena", "helens" )==1 );
+	assert ( ProxyLevenshtein ( "helena", "helllena" )==2 );
+	assert ( ProxyLevenshtein ( "helga", "belgrave" )==4 );
+	assert ( ProxyLevenshtein ( "helga", "anhel" )==4 );
+
+	printf ( "ok\n" );
+}
+
+
+void TestTDigest()
+{
+	printf ( "testing t-digest... " );
+
+	{
+		sphSrand ( 0 );
+
+		// simple
+		CSphScopedPtr<TDigest_i> pDigest ( sphCreateTDigest() );
+
+		for ( int i=1; i<=100; i++ )
+			pDigest->Add ( i, 1 );
+
+		Verify ( fabs ( (double)pDigest->Percentile(50)-51 )<=1.0 );
+		Verify ( fabs ( (double)pDigest->Percentile(95)-96 )<=1.0 );
+		Verify ( fabs ( (double)pDigest->Percentile(99)-100 )<=1.0 );
+	}
+
+	{
+		sphSrand ( 0 );
+
+		// dupes
+		CSphScopedPtr<TDigest_i> pDigest ( sphCreateTDigest() );
+
+		for ( int j=0; j<3; j++ )
+			for ( int i=0; i<10000; i++ )
+				pDigest->Add ( i/100 + 1, 1 );
+
+		Verify ( fabs ( (double)pDigest->Percentile(50)-51 )<=1.0 );
+		Verify ( fabs ( (double)pDigest->Percentile(95)-96 )<=1.0 );
+		Verify ( fabs ( (double)pDigest->Percentile(99)-100 )<=1.0 );
+	}
+
+	{
+		sphSrand ( 0 );
+
+		// compression
+		CSphScopedPtr<TDigest_i> pDigest ( sphCreateTDigest() );
+
+		for ( int i=0; i<10000; i++ )
+			pDigest->Add ( i + 1, 1 );
+
+		Verify ( fabs ( (double)pDigest->Percentile(50)-5001 )<=1.5 );
+		Verify ( fabs ( (double)pDigest->Percentile(95)-9501 )<=1.5 );
+		Verify ( fabs ( (double)pDigest->Percentile(99)-9901 )<=1.5 );
+	}
+
+	printf ( "ok\n" );
+}
+
+
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -3999,6 +4238,9 @@ int main ()
 	TestArabicStemmer();
 	TestSource ();
 	TestRankerFactors ();
+	TestRebalance();
+	TestLevenshtein();
+	TestTDigest();
 #endif
 
 	unlink ( g_sTmpfile );

@@ -3,8 +3,8 @@
 //
 
 //
-// Copyright (c) 2001-2015, Andrew Aksyonoff
-// Copyright (c) 2008-2015, Sphinx Technologies Inc
+// Copyright (c) 2001-2016, Andrew Aksyonoff
+// Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -360,7 +360,13 @@ void test_status ( sphinx_client * client )
 	k = 0;
 	for ( i=0; i<num_rows; i++ )
 	{
-		if ( !g_smoke || ( strstr ( status[k], "time" )==NULL && strstr ( status[k], "wall" )==NULL && strstr ( status[k], "wait" )==NULL ) )
+		if ( !g_smoke || 
+		( strstr ( status[k], "time" )==NULL 
+		&& strstr ( status[k], "wall" )==NULL 
+		&& strstr ( status[k], "wait" )==NULL 
+		&& strstr ( status[k], "connect_avg" )==NULL 
+		&& strstr ( status[k], "connect_max")==NULL 
+		&& strstr ( status[k], "connect_count")==NULL ) )
 		{
 			for ( j=0; j<num_cols; j++, k++ )
 				printf ( ( j==0 ) ? "%s:" : " %s", status[k] );

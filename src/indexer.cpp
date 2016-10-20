@@ -3,8 +3,8 @@
 //
 
 //
-// Copyright (c) 2001-2015, Andrew Aksyonoff
-// Copyright (c) 2008-2015, Sphinx Technologies Inc
+// Copyright (c) 2001-2016, Andrew Aksyonoff
+// Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -44,6 +44,8 @@ static bool			g_bQuiet		= false;
 static bool			g_bProgress		= true;
 static bool			g_bPrintQueries	= false;
 static bool			g_bKeepAttrs	= false;
+static CSphString	g_sKeepAttrsPath;
+static CSphVector<CSphString> g_dKeepAttrs;
 
 static const char *	g_sBuildStops	= NULL;
 static int				g_iTopStops		= 100;
@@ -733,7 +735,7 @@ CSphSource * SpawnSourceMSSQL ( const CSphConfigSection & hSource, const char * 
 	LOC_GETB ( tParams.m_bWinAuth, "mssql_winauth" );
 	LOC_GETS ( tParams.m_sColBuffers, "sql_column_buffers" );
 	LOC_GETS ( tParams.m_sOdbcDSN, "odbc_dsn" ); // a shortcut, may be used instead of other specific combination
-	
+
 	CSphSource_MSSQL * pSrc = CreateSourceWithProxy<CSphSource_MSSQL> ( sSourceName, bProxy );
 	if ( !pSrc->Setup ( tParams ) )
 		SafeDelete ( pSrc );
@@ -990,7 +992,7 @@ bool DoIndex ( const CSphConfigSection & hIndex, const char * sIndexName,
 	CSphFieldFilterSettings tFilterSettings;
 	if ( sphConfFieldFilter ( hIndex, tFilterSettings, sError ) )
 		pFieldFilter = sphCreateRegexpFilter ( tFilterSettings, sError );
-	
+
 	if ( !sphSpawnRLPFilter ( pFieldFilter, tSettings, tTokSettings, sIndexName, sError ) )
 	{
 		SafeDelete ( pFieldFilter );
@@ -1209,7 +1211,12 @@ bool DoIndex ( const CSphConfigSection & hIndex, const char * sIndexName,
 		pIndex->SetTokenizer ( pTokenizer );
 		pIndex->SetDictionary ( pDict );
 		if ( g_bKeepAttrs )
-			pIndex->SetKeepAttrs ( hIndex["path"].strval() );
+		{
+			if ( g_sKeepAttrsPath.IsEmpty() )
+				pIndex->SetKeepAttrs ( hIndex["path"].strval(), g_dKeepAttrs );
+			else
+				pIndex->SetKeepAttrs ( g_sKeepAttrsPath, g_dKeepAttrs );
+		}
 		pIndex->Setup ( tSettings );
 
 		bOK = pIndex->Build ( dSources, g_iMemLimit, g_iWriteBuffer )!=0;
@@ -1245,7 +1252,7 @@ bool DoIndex ( const CSphConfigSection & hIndex, const char * sIndexName,
 			iTotalBytes += tSource.m_iTotalBytes;
 		}
 
-		fprintf ( stdout, "total "INT64_FMT" docs, "INT64_FMT" bytes\n", iTotalDocs, iTotalBytes );
+		fprintf ( stdout, "total " INT64_FMT " docs, " INT64_FMT " bytes\n", iTotalDocs, iTotalBytes );
 
 		fprintf ( stdout, "total %d.%03d sec, %d bytes/sec, %d.%02d docs/sec\n",
 			(int)(tmTime/1000000), (int)(tmTime%1000000)/1000, // sec
@@ -1461,7 +1468,7 @@ void SetSignalHandlers ()
 
 bool SendRotate ( const CSphConfig & hConf, bool bForce )
 {
-	if ( !( g_bRotate && ( g_bRotateEach || bForce ) ) || !g_bSendHUP )
+	if ( !( g_bRotate && ( g_bRotateEach || bForce ) ) )
 		return false;
 
 	int iPID = -1;
@@ -1664,8 +1671,20 @@ int main ( int argc, char ** argv )
 		{
 			g_bPrintQueries = true;
 
-		} else if ( strcasecmp ( argv[i], "--keep-attrs" )==0 )
+		} else if ( strcasecmp ( argv[i], "--keep-attrs" )>=0 )
 		{
+			CSphString sArg ( argv[i] );
+			if ( sArg.Begins ( "--keep-attrs=" ) )
+			{
+				int iKeyLen = sizeof ( "--keep-attrs=" )-1;
+				g_sKeepAttrsPath = sArg.cstr() + iKeyLen;
+			}
+			if ( sArg.Begins ( "--keep-attrs-names=" ) )
+			{
+				int iKeyLen = sizeof ( "--keep-attrs-names=" )-1;
+				sphSplit ( g_dKeepAttrs, sArg.cstr() + iKeyLen, "," );
+			}
+
 			g_bKeepAttrs = true;
 
 		} else
@@ -1850,7 +1869,8 @@ int main ( int argc, char ** argv )
 	CSphIOStats tIO;
 	tIO.Start();
 
-	bool bIndexedOk = false; // if any of the indexes are ok
+	int iIndexed = 0;
+	int iFailed = 0;
 	if ( bMerge )
 	{
 		if ( dIndexes.GetLength()!=2 )
@@ -1862,9 +1882,13 @@ int main ( int argc, char ** argv )
 		if ( !hConf["index"](dIndexes[1]) )
 			sphDie ( "no merge source index '%s'", dIndexes[1] );
 
-		bIndexedOk = DoMerge (
+		bool bLastOk = DoMerge (
 			hConf["index"][dIndexes[0]], dIndexes[0],
 			hConf["index"][dIndexes[1]], dIndexes[1], dMergeDstFilters, g_bRotate, bMergeKillLists );
+		if ( bLastOk )
+			iIndexed++;
+		else
+			iFailed++;
 	} else if ( bIndexAll )
 	{
 		uint64_t tmRotated = sphMicroTimer();
@@ -1872,9 +1896,10 @@ int main ( int argc, char ** argv )
 		while ( hConf["index"].IterateNext() )
 		{
 			bool bLastOk = DoIndex ( hConf["index"].IterateGet (), hConf["index"].IterateGetKey().cstr(), hConf["source"], bVerbose, fpDumpRows );
-			bIndexedOk |= bLastOk;
-			if ( bLastOk && ( sphMicroTimer() - tmRotated > ROTATE_MIN_INTERVAL ) && SendRotate ( hConf, false ) )
+			if ( bLastOk && ( sphMicroTimer() - tmRotated > ROTATE_MIN_INTERVAL ) && g_bSendHUP && SendRotate ( hConf, false ) )
 				tmRotated = sphMicroTimer();
+			if ( bLastOk )
+				iIndexed++;
 		}
 	} else
 	{
@@ -1886,9 +1911,12 @@ int main ( int argc, char ** argv )
 			else
 			{
 				bool bLastOk = DoIndex ( hConf["index"][dIndexes[j]], dIndexes[j], hConf["source"], bVerbose, fpDumpRows );
-				bIndexedOk |= bLastOk;
-				if ( bLastOk && ( sphMicroTimer() - tmRotated > ROTATE_MIN_INTERVAL ) && SendRotate ( hConf, false ) )
+				if ( bLastOk && ( sphMicroTimer() - tmRotated > ROTATE_MIN_INTERVAL ) && g_bSendHUP && SendRotate ( hConf, false ) )
 					tmRotated = sphMicroTimer();
+				if ( bLastOk )
+					iIndexed++;
+				else
+					iFailed++;
 			}
 		}
 	}
@@ -1908,9 +1936,15 @@ int main ( int argc, char ** argv )
 	// rotating searchd indices
 	////////////////////////////
 
+	// documentation stated
+	// 0, everything went ok
+	// 1, there was a problem while indexing (and if --rotate was specified, it was skipped)
+	// 2, indexing went ok, but --rotate attempt failed
+
+	bool bIndexedOk = ( iIndexed>0 && iFailed==0 ); // if all indexes are ok
 	int iExitCode = bIndexedOk ? 0 : 1;
 
-	if ( bIndexedOk && g_bRotate )
+	if ( bIndexedOk && g_bRotate && g_bSendHUP )
 	{
 		if ( !SendRotate ( hConf, true ) )
 		{

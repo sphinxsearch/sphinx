@@ -3,8 +3,8 @@
 //
 
 //
-// Copyright (c) 2001-2015, Andrew Aksyonoff
-// Copyright (c) 2008-2015, Sphinx Technologies Inc
+// Copyright (c) 2001-2016, Andrew Aksyonoff
+// Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -126,6 +126,9 @@ public:
 
 	/// check for const type
 	virtual bool IsConst () const { return false; }
+
+	/// get expression hash (for query cache)
+	virtual uint64_t GetHash ( const ISphSchema & tSorterSchema, uint64_t uPrevHash, bool & bDisable ) = 0;
 };
 
 /// string expression traits
@@ -196,6 +199,12 @@ struct Expr_MapArg_c : public ISphExpr
 		assert ( 0 && "one just does not simply evaluate a const hash" );
 		return 0.0f;
 	}
+
+	virtual uint64_t GetHash ( const ISphSchema &, uint64_t, bool & )
+	{
+		assert ( 0 && "calling GetHash from a const hash" );
+		return 0;
+	}
 };
 
 
@@ -229,6 +238,8 @@ class CSphQueryProfile;
 ISphExpr * sphExprParse ( const char * sExpr, const ISphSchema & tSchema, ESphAttr * pAttrType, bool * pUsesWeight,
 	CSphString & sError, CSphQueryProfile * pProfiler, ESphCollation eCollation=SPH_COLLATION_DEFAULT, ISphExprHook * pHook=NULL,
 	bool * pZonespanlist=NULL, DWORD * pPackedFactorsFlags=NULL, ESphEvalStage * pEvalStage=NULL );
+
+ISphExpr * sphJsonFieldConv ( ISphExpr * pExpr );
 
 //////////////////////////////////////////////////////////////////////////
 

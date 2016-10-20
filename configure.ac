@@ -36,17 +36,17 @@ AC_ARG_WITH([assert],
 
 AC_MSG_CHECKING([whether to compile debug version])
 if test x$ac_cv_use_debug != xno; then
-	SPHINX_CFLAGS="-fno-rtti -Wall -g -D_FILE_OFFSET_BITS=64"
 	SPHINX_INJECT_FLAGS="-D_FILE_OFFSET_BITS=64"
+	SPHINX_CFLAGS="$SPHINX_INJECT_FLAGS -Wall -g"
 	AC_MSG_RESULT([yes])
 else
 	if test x$ac_cv_use_assert != xno; then
-		SPHINX_CFLAGS="-fno-rtti -Wall -g -D_FILE_OFFSET_BITS=64 -O2"
 		SPHINX_INJECT_FLAGS="-D_FILE_OFFSET_BITS=64"
+		SPHINX_CFLAGS="$SPHINX_INJECT_FLAGS -Wall -g -O2"
 		AC_MSG_RESULT([asserts only])
 	else
-		SPHINX_CFLAGS="-fno-rtti -Wall -g -D_FILE_OFFSET_BITS=64 -O3 -DNDEBUG"
 		SPHINX_INJECT_FLAGS="-D_FILE_OFFSET_BITS=64 -DNDEBUG"
+		SPHINX_CFLAGS="$SPHINX_INJECT_FLAGS -DNDEBUG -Wall -g -O3"
 		AC_MSG_RESULT([no])
 	fi
 fi
@@ -62,9 +62,9 @@ fi
 dnl set flags for C++ compiler if there are no user overrides
 dnl inject required defines if there are
 if test x$ac_env_CXXFLAGS_set != xset; then
-	CXXFLAGS=$SPHINX_CFLAGS
+	CXXFLAGS="$SPHINX_CFLAGS -fno-rtti -std=c++11"
 else
-	CXXFLAGS="$CXXFLAGS $SPHINX_INJECT_FLAGS"
+	CXXFLAGS="$CXXFLAGS $SPHINX_INJECT_FLAGS -fno-rtti -std=c++11"
 fi
 
 AC_PROG_CC
@@ -92,7 +92,7 @@ SPHINX_CONFIGURE_PART([checking for header files])
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([fcntl.h limits.h netdb.h netinet/in.h stdlib.h string.h sys/file.h sys/socket.h sys/time.h unistd.h pthread.h execinfo.h sys/epoll.h])
+AC_CHECK_HEADERS([fcntl.h limits.h netdb.h netinet/in.h stdlib.h string.h sys/file.h sys/socket.h sys/time.h unistd.h pthread.h execinfo.h sys/epoll.h sys/eventfd.h])
 AC_CHECK_HEADER(expat.h,[have_expat_h=yes],[have_expat_h=no])
 AC_CHECK_HEADER(iconv.h,[have_iconv_h=yes],[have_iconv_h=no])
 AC_CHECK_HEADER(zlib.h,[have_zlib_h=yes],[have_zlib_h=no])
@@ -138,6 +138,16 @@ if test "x$ac_cv_func_epoll" = "xyes" && test "x$ac_cv_header_sys_epoll_h" = "xy
 	AC_DEFINE(HAVE_EPOLL, 1,
 		[Define if your system supports the epoll system calls])
 	AC_LIBOBJ(epoll)
+fi
+
+if test "z$ac_cv_func_eventfd" != "zno" && test "z$ac_cv_func_eventfd" != "zyes" ; then
+	AC_CHECK_FUNCS(eventfd, [ac_cv_func_eventfd=yes], )
+fi
+
+if test "x$ac_cv_func_eventfd" = "xyes" && test "x$ac_cv_header_sys_eventfd_h" = "xyes" ; then
+	AC_DEFINE(HAVE_EVENTFD, 1,
+		[Define if your system supports the eventfd system calls])
+	AC_LIBOBJ(eventfd)
 fi
 
 # most systems require the program be linked with librt library to use

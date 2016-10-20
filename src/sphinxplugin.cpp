@@ -3,8 +3,8 @@
 //
 
 //
-// Copyright (c) 2001-2015, Andrew Aksyonoff
-// Copyright (c) 2008-2015, Sphinx Technologies Inc
+// Copyright (c) 2001-2016, Andrew Aksyonoff
+// Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -238,48 +238,53 @@ static bool PluginLoadSymbols ( void * pDesc, const SymbolDesc_t * pSymbol, void
 }
 
 #if !USE_WINDOWS
+#ifndef offsetof
+
 #define offsetof(T, M) \
 	(reinterpret_cast<char*>(&(((T*)1000)->M)) - reinterpret_cast<char*>(1000))
+
+#endif
 #endif
 
 static SymbolDesc_t g_dSymbolsUDF[] =
 {
-	{ offsetof(PluginUDF_c, m_fnInit),		"init",		false },
-	{ offsetof(PluginUDF_c, m_fnFunc),		"",			true },
-	{ offsetof(PluginUDF_c, m_fnDeinit),	"deinit",	false },
+	{ static_cast<int>( offsetof(PluginUDF_c, m_fnInit)),		"init",		false },
+	{ static_cast<int>( offsetof(PluginUDF_c, m_fnFunc)),		"",			true },
+	{ static_cast<int>( offsetof(PluginUDF_c, m_fnDeinit)),	"deinit",	false },
 	{ -1, 0, 0 }
 };
 
 
 static SymbolDesc_t g_dSymbolsRanker[] =
 {
-	{ offsetof(PluginRanker_c, m_fnInit),		"init",		false },
-	{ offsetof(PluginRanker_c, m_fnUpdate),		"update",	false },
-	{ offsetof(PluginRanker_c, m_fnFinalize),	"finalize",	true },
-	{ offsetof(PluginRanker_c, m_fnDeinit),		"deinit",	false },
+	{ static_cast<int>( offsetof(PluginRanker_c, m_fnInit)),		"init",		false },
+	{ static_cast<int>( offsetof(PluginRanker_c, m_fnUpdate)),		"update",	false },
+	{ static_cast<int>( offsetof(PluginRanker_c, m_fnFinalize)),	"finalize",	true },
+	{ static_cast<int>( offsetof(PluginRanker_c, m_fnDeinit)),		"deinit",	false },
 	{ -1, 0, 0 }
 };
 
 
 static SymbolDesc_t g_dSymbolsTokenFilter[] =
 {
-	{ offsetof(PluginTokenFilter_c, m_fnInit),			"init",				false },
-	{ offsetof(PluginTokenFilter_c, m_fnBeginDocument),	"begin_document",	false },
-	{ offsetof(PluginTokenFilter_c, m_fnBeginField),	"begin_field",		false },
-	{ offsetof(PluginTokenFilter_c, m_fnPushToken),		"push_token",		true },
-	{ offsetof(PluginTokenFilter_c, m_fnGetExtraToken),	"get_extra_token",	false },
-	{ offsetof(PluginTokenFilter_c, m_fnEndField),		"end_field",		false },
-	{ offsetof(PluginTokenFilter_c, m_fnDeinit),		"deinit",			false },
+	{ static_cast<int>( offsetof(PluginTokenFilter_c, m_fnInit)),			"init",				false },
+	{ static_cast<int>( offsetof(PluginTokenFilter_c, m_fnBeginDocument)),	"begin_document",	false },
+	{ static_cast<int>( offsetof(PluginTokenFilter_c, m_fnBeginField)),	"begin_field",		false },
+	{ static_cast<int>( offsetof(PluginTokenFilter_c, m_fnPushToken)),		"push_token",		true },
+	{ static_cast<int>( offsetof(PluginTokenFilter_c, m_fnGetExtraToken)),	"get_extra_token",	false },
+	{ static_cast<int>( offsetof(PluginTokenFilter_c, m_fnEndField)),		"end_field",		false },
+	{ static_cast<int>( offsetof(PluginTokenFilter_c, m_fnDeinit)),		"deinit",			false },
 	{ -1, 0, 0 }
 };
 
 
 static SymbolDesc_t g_dSymbolsQueryTokenFilter[] =
 {
-	{ offsetof(PluginQueryTokenFilter_c, m_fnInit),			"init",			false },
-	{ offsetof(PluginQueryTokenFilter_c, m_fnPreMorph),		"pre_morph",	false },
-	{ offsetof(PluginQueryTokenFilter_c, m_fnPostMorph),	"post_morph",	false },
-	{ offsetof(PluginQueryTokenFilter_c, m_fnDeinit),		"deinit",		false },
+	{ static_cast<int>( offsetof(PluginQueryTokenFilter_c, m_fnInit)),			"init",			false },
+	{ static_cast<int>( offsetof(PluginQueryTokenFilter_c, m_fnPreMorph)),		"pre_morph",	false },
+	{ static_cast<int>( offsetof(PluginQueryTokenFilter_c, m_fnPostMorph)),	"post_morph",	false },
+	{ static_cast<int>( offsetof(PluginQueryTokenFilter_c, m_fnPushToken)),	"push_token",	false },
+	{ static_cast<int>( offsetof(PluginQueryTokenFilter_c, m_fnDeinit)),		"deinit",		false },
 	{ -1, 0, 0 }
 };
 
@@ -580,6 +585,8 @@ bool sphPluginReload ( const char * sName, CSphString & sError )
 		Verify ( g_hPlugins.Add ( dNewPlugins[i], dKeys[i] ) );
 	assert ( pNewLib->m_iHashedPlugins==0 );
 	pNewLib->m_iHashedPlugins = dNewPlugins.GetLength();
+
+	sphLogDebug ( "reloaded %d plugins", dNewPlugins.GetLength() );
 
 	return true;
 #endif // HAVE_DLOPEN

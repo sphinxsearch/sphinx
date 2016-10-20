@@ -3,8 +3,8 @@
 //
 
 //
-// Copyright (c) 2001-2015, Andrew Aksyonoff
-// Copyright (c) 2008-2015, Sphinx Technologies Inc
+// Copyright (c) 2001-2016, Andrew Aksyonoff
+// Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -97,7 +97,7 @@ void sphSplit ( CSphVector<CSphString> & dOut, const char * sIn )
 		while ( sphIsAlpha(*p) )
 			p++;
 		if ( sNext!=p )
-			dOut.Add().SetBinary ( sNext, p-sNext );
+			dOut.Add().SetBinary ( sNext, int (p-sNext) );
 	}
 }
 
@@ -116,19 +116,22 @@ void sphSplit ( CSphVector<CSphString> & dOut, const char * sIn, const char * sB
 			p++;
 
 		// add the token, skip the char
-		dOut.Add().SetBinary ( sNext, p-sNext );
+		dOut.Add().SetBinary ( sNext, int (p-sNext) );
+		if ( *p=='\0' )
+			break;
+
 		p++;
 	}
 }
 
-
-static bool sphWildcardMatchRec ( const char * sString, const char * sPattern )
+template < typename T1, typename T2 >
+static bool sphWildcardMatchRec ( const T1 * sString, const T2 * sPattern )
 {
 	if ( !sString || !sPattern )
 		return false;
 
-	const char * s = sString;
-	const char * p = sPattern;
+	const T1 * s = sString;
+	const T2 * p = sPattern;
 	while ( *s )
 	{
 		switch ( *p )
@@ -178,9 +181,7 @@ static bool sphWildcardMatchRec ( const char * sString, const char * sPattern )
 
 			// could not decide yet
 			// so just recurse both options
-			if ( sphWildcardMatchRec ( s, p ) )
-				return true;
-			if ( sphWildcardMatchRec ( s+1, p ) )
+			if ( sphWildcardMatchRec ( s, p ) || sphWildcardMatchRec ( s+1, p ) )
 				return true;
 			return false;
 
@@ -229,13 +230,13 @@ static bool sphWildcardMatchRec ( const char * sString, const char * sPattern )
 		|| ( p[0]=='%' && p[1]=='\0' );
 }
 
-
-static bool sphWildcardMatchDP ( const char * sString, const char * sPattern )
+template < typename T1, typename T2 >
+static bool sphWildcardMatchDP ( const T1 * sString, const T2 * sPattern )
 {
 	assert ( sString && sPattern && *sString && *sPattern );
 
-	const char * s = sString;
-	const char * p = sPattern;
+	const T1 * s = sString;
+	const T2 * p = sPattern;
 	bool bEsc = false;
 	int iEsc = 0;
 
@@ -259,7 +260,7 @@ static bool sphWildcardMatchDP ( const char * sString, const char * sPattern )
 		}
 
 		s = sString;
-		int iPattern = p - sPattern + 1 - iEsc;
+		int iPattern = int (p - sPattern) + 1 - iEsc;
 		int iPrev = ( iPattern + 1 ) % iBufCount;
 		int iCur = iPattern % iBufCount;
 
@@ -275,7 +276,7 @@ static bool sphWildcardMatchDP ( const char * sString, const char * sPattern )
 
 		while ( *s )
 		{
-			int j = s - sString + 1;
+			int j = int (s - sString) + 1;
 			if ( !bEsc && *p=='*' )
 			{
 				dTmp[iCur][j] = dTmp[iPrev][j-1] || dTmp[iCur][j-1] || dTmp[iPrev][j];
@@ -299,25 +300,51 @@ static bool sphWildcardMatchDP ( const char * sString, const char * sPattern )
 }
 
 
-bool sphWildcardMatch ( const char * sString, const char * sPattern )
+template < typename T1, typename T2 >
+bool sphWildcardMatchSpec ( const T1 * sString, const T2 * sPattern )
 {
-	if ( !sString || !sPattern || !*sString || !*sPattern )
-		return false;
-
+	int iLen = 0;
 	int iStars = 0;
-	const char * p = sPattern;
+	const T2 * p = sPattern;
 	while ( *p )
 	{
 		iStars += ( *p=='*' );
+		iLen++;
 		p++;
 	}
 
-	if ( iStars>10 || ( iStars>5 && strlen ( sString )>17 ) )
+	if ( iStars>10 || ( iStars>5 && iLen>17 ) )
 		return sphWildcardMatchDP ( sString, sPattern );
 	else
 		return sphWildcardMatchRec ( sString, sPattern );
 }
 
+
+bool sphWildcardMatch ( const char * sString, const char * sPattern, const int * pPattern )
+{
+	if ( !sString || !sPattern || !*sString || !*sPattern )
+		return false;
+
+	// there are basically 4 codepaths, because both string and pattern may or may not contain utf-8 chars
+	// pPattern and pString are pointers to unpacked utf-8, pPattern can be precalculated (default is NULL)
+
+	int dString [ SPH_MAX_WORD_LEN + 1 ];
+	const int * pString = ( sphIsUTF8 ( sString ) && sphUTF8ToWideChar ( sString, dString, SPH_MAX_WORD_LEN ) ) ? dString : NULL;
+
+	if ( !pString && !pPattern )
+		return sphWildcardMatchSpec ( sString, sPattern ); // ascii vs ascii
+
+	if ( pString && !pPattern )
+		return sphWildcardMatchSpec ( pString, sPattern ); // utf-8 vs ascii
+
+	if ( !pString && pPattern )
+		return sphWildcardMatchSpec ( sString, pPattern ); // ascii vs utf-8
+
+	if ( pString && pPattern )
+		return sphWildcardMatchSpec ( pString, pPattern ); // utf-8 vs utf-8
+
+	return false;
+}
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -331,7 +358,7 @@ int64_t CSphConfigSection::GetSize64 ( const char * sKey, int64_t iDefault ) con
 	strncpy ( sMemLimit, pEntry->cstr(), sizeof(sMemLimit) );
 	sMemLimit [ sizeof(sMemLimit)-1 ] = '\0';
 
-	int iLen = strlen ( sMemLimit );
+	size_t iLen = strlen ( sMemLimit );
 	if ( !iLen )
 		return iDefault;
 
@@ -369,7 +396,7 @@ int CSphConfigSection::GetSize ( const char * sKey, int iDefault ) const
 	if ( iSize>INT_MAX )
 	{
 		iSize = INT_MAX;
-		sphWarning ( "'%s = "INT64_FMT"' clamped to %d(INT_MAX)", sKey, iSize, INT_MAX );
+		sphWarning ( "'%s = " INT64_FMT "' clamped to %d(INT_MAX)", sKey, iSize, INT_MAX );
 	}
 	return (int)iSize;
 }
@@ -653,6 +680,7 @@ static KeyDesc_t g_dKeysSearchd[] =
 	{ "qcache_max_bytes",		0, NULL },
 	{ "qcache_thresh_msec",		0, NULL },
 	{ "sphinxql_timeout",		0, NULL },
+	{ "hostname_lookup",		0, NULL },
 	{ NULL,						0, NULL }
 };
 
@@ -668,6 +696,7 @@ static KeyDesc_t g_dKeysCommon[] =
 	{ "rlp_max_batch_size",		0, NULL },
 	{ "rlp_max_batch_docs",		0, NULL },
 	{ "plugin_dir",				0, NULL },
+	{ "progressive_merge",		0, NULL },
 	{ NULL,						0, NULL }
 };
 
@@ -880,7 +909,7 @@ bool TryToExec ( char * pBuffer, const char * szFilename, CSphVector<char> & dRe
 		dResult.Resize ( iTotalRead + BUFFER_SIZE );
 		for ( ;; )
 		{
-			iBytesRead = read ( iRead, (void*)&(dResult [iTotalRead]), BUFFER_SIZE );
+			iBytesRead = (int) read ( iRead, (void*)&(dResult [iTotalRead]), BUFFER_SIZE );
 			if ( iBytesRead==-1 && errno==EINTR ) // we can get SIGCHLD just before eof
 				continue;
 			break;
@@ -1025,7 +1054,7 @@ bool CSphConfigParser::Parse ( const char * sFileName, const char * pBuffer )
 				break; // FIXME! check for read error
 
 			m_iLine++;
-			int iLen = strlen(sBuf);
+			size_t iLen = strlen(sBuf);
 			if ( iLen<=0 )
 				LOC_ERROR ( "internal error; fgets() returned empty string" );
 
@@ -1222,7 +1251,7 @@ bool CSphConfigParser::Parse ( const char * sFileName, const char * pBuffer )
 			sCtx = sBuf;
 
 		char sStepback [ L_STEPBACK+1 ];
-		memcpy ( sStepback, sCtx, iCtx );
+		memcpy ( sStepback, sCtx, size_t ( iCtx ) );
 		sStepback[iCtx] = '\0';
 
 		fprintf ( stdout, "ERROR: %s in %s line %d col %d.\n", m_sError, m_sFileName.cstr(), m_iLine, iCol );
@@ -1318,7 +1347,7 @@ void sphConfDictionary ( const CSphConfigSection & hIndex, CSphDictSettings & tS
 				if ( !szPathName )
 					continue;
 
-				int iLen = strlen ( szPathName );
+				size_t iLen = strlen ( szPathName );
 				if ( !iLen || szPathName[iLen-1]=='/' )
 					continue;
 
@@ -1365,6 +1394,25 @@ bool sphConfFieldFilter ( const CSphConfigSection & hIndex, CSphFieldFilterSetti
 	return false;
 }
 #endif
+
+const char * sphBigramName ( ESphBigram eType )
+{
+	switch ( eType )
+	{
+		case SPH_BIGRAM_ALL:
+			return "all";
+
+		case SPH_BIGRAM_FIRSTFREQ:
+			return "first_freq";
+
+		case SPH_BIGRAM_BOTHFREQ:
+			return "both_freq";
+
+		case SPH_BIGRAM_NONE:
+		default:
+			return "none";
+	}
+}
 
 bool sphConfIndex ( const CSphConfigSection & hIndex, CSphIndexSettings & tSettings, CSphString & sError )
 {
@@ -1878,8 +1926,8 @@ static int sphVSprintf ( char * pOutput, const char * sFmt, va_list ap )
 {
 	enum eStates { SNORMAL, SPERCENT, SHAVEFILL, SINWIDTH, SINPREC };
 	eStates state = SNORMAL;
-	int iPrec = 0;
-	int iWidth = 0;
+	size_t iPrec = 0;
+	size_t iWidth = 0;
 	char cFill = ' ';
 	const char * pBegin = pOutput;
 	bool bHeadingSpace = true;
@@ -1951,7 +1999,7 @@ static int sphVSprintf ( char * pOutput, const char * sFmt, va_list ap )
 				const char * pValue = va_arg ( ap, const char * );
 				if ( !pValue )
 					pValue = "(null)";
-				int iValue = strlen ( pValue );
+				size_t iValue = strlen ( pValue );
 
 				if ( iWidth && bHeadingSpace )
 					while ( iValue < iWidth-- )
@@ -2006,7 +2054,7 @@ static int sphVSprintf ( char * pOutput, const char * sFmt, va_list ap )
 
 	// final zero to EOL
 	*pOutput++ = '\n';
-	return pOutput - pBegin;
+	return int ( pOutput - pBegin );
 }
 
 
@@ -2027,7 +2075,7 @@ void sphSafeInfo ( int iFD, const char * sFmt, ... )
 	va_start ( ap, sFmt );
 	int iLen = sphVSprintf ( g_sSafeInfoBuf, sFmt, ap ); // FIXME! make this vsnprintf
 	va_end ( ap );
-	sphWrite ( iFD, g_sSafeInfoBuf, iLen );
+	sphWrite ( iFD, g_sSafeInfoBuf, size_t (iLen) );
 }
 
 
@@ -2075,9 +2123,9 @@ const char * DoBacktrace ( int iDepth, int iSkip )
 	return g_pBacktrace; ///< sorry, no backtraces on Windows...
 }
 #else
-const char * DoBacktrace ( int iDepth, int iSkip )
+const char * DoBacktrace ( int, int )
 {
-	return NULL; ///< sorry, no backtraces on Windows...
+	return nullptr; ///< sorry, no backtraces...
 }
 #endif
 
@@ -2092,11 +2140,11 @@ void sphBacktrace ( int iFD, bool bSafe )
 #endif
 
 #ifdef CONFIGURE_FLAGS
-	sphSafeInfo ( iFD, "Configured with flags: "CONFIGURE_FLAGS );
+	sphSafeInfo ( iFD, "Configured with flags: " CONFIGURE_FLAGS );
 #endif
 
 #ifdef OS_UNAME
-	sphSafeInfo ( iFD, "Host OS is "OS_UNAME );
+	sphSafeInfo ( iFD, "Host OS is " OS_UNAME );
 #endif
 
 	bool bOk = true;
@@ -2239,7 +2287,7 @@ void sphBacktrace ( int iFD, bool bSafe )
 			const char * s = g_pArgv[i];
 			while ( *s )
 				s++;
-			int iLen = s-g_pArgv[i];
+			size_t iLen = s-g_pArgv[i];
 			sphWrite ( iFD, g_pArgv[i], iLen );
 			sphWrite ( iFD, " ", 1 );
 			int iWas = iColumn % 80;
@@ -2381,8 +2429,10 @@ void sphConfigureCommon ( const CSphConfig & hConf )
 	g_sLemmatizerBase = hCommon.GetStr ( "lemmatizer_base" );
 	sphConfigureRLP ( hCommon );
 
+	g_bProgressiveMerge = ( hCommon.GetInt ( "progressive_merge", 1 )!=0 );
+
 	bool bJsonStrict = false;
-	bool bJsonAutoconvNumbers = false;
+	bool bJsonAutoconvNumbers;
 	bool bJsonKeynamesToLowercase = false;
 
 	if ( hCommon("on_json_attr_error") )
@@ -2469,47 +2519,15 @@ const char * sphGetRankerName ( ESphRankMode eRanker )
 
 #if HAVE_DLOPEN
 
-void CSphDynamicLibrary::FillError ( const char * sMessage )
+CSphDynamicLibrary::CSphDynamicLibrary ( const char * sPath )
+	: m_bReady ( false )
+	, m_pLibrary ( nullptr )
 {
-	const char* sDlerror = dlerror();
-	if ( sMessage )
-		m_sError.SetSprintf ( "%s: %s", sMessage, sDlerror ? sDlerror : "(null)" );
+	m_pLibrary = dlopen ( sPath, RTLD_NOW | RTLD_GLOBAL );
+	if ( !m_pLibrary )
+		sphLogDebug ( "dlopen(%s) failed", sPath );
 	else
-		m_sError.SetSprintf ( "%s", sDlerror ? sDlerror : "(null)" );
-}
-
-bool CSphDynamicLibrary::Init ( const char * sPath, bool bGlobal )
-{
-	if ( m_pLibrary )
-		return true;
-	int iFlags = bGlobal?(RTLD_NOW | RTLD_GLOBAL):(RTLD_LAZY|RTLD_LOCAL);
-	m_pLibrary = dlopen ( sPath, iFlags );
-	if ( !m_pLibrary )
-	{
-		FillError ( "dlopen() failed" );
-		return false;
-	}
-	sphLogDebug ( "dlopen(%s)=%p", sPath, m_pLibrary );
-	m_bReady = true;
-	return m_bReady;
-}
-
-bool CSphDynamicLibrary::LoadSymbol ( const char* sName, void** ppFunc )
-{
-	if ( !m_pLibrary )
-		return false;
-
-	if ( !m_bReady )
-		return false;
-
-	void * pResult = dlsym ( m_pLibrary, sName );
-	if ( !pResult )
-	{
-		FillError ( "Symbol not found" );
-		return false;
-	}
-	*ppFunc = pResult;
-	return true;
+		sphLogDebug ( "dlopen(%s)=%p", sPath, m_pLibrary );
 }
 
 bool CSphDynamicLibrary::LoadSymbols ( const char** sNames, void*** pppFuncs, int iNum )
@@ -2517,15 +2535,15 @@ bool CSphDynamicLibrary::LoadSymbols ( const char** sNames, void*** pppFuncs, in
 	if ( !m_pLibrary )
 		return false;
 
-	if ( !m_bReady )
-		return false;
+	if ( m_bReady )
+		return true;
 
 	for ( int i=0; i<iNum; ++i )
 	{
 		void* pResult = dlsym ( m_pLibrary, sNames[i] );
 		if ( !pResult )
 		{
-			FillError ( "Symbol not found" );
+			sphLogDebug ( "Symbol %s not found", sNames[i] );
 			return false;
 		}
 		// yes, it is void*** - triple pointer.
@@ -2536,18 +2554,67 @@ bool CSphDynamicLibrary::LoadSymbols ( const char** sNames, void*** pppFuncs, in
 		// one more level of indirection. void*** actually is void**[]
 		*pppFuncs[i] = pResult;
 	}
-
+	m_bReady = true;
 	return true;
 };
 
 #else
 
-void CSphDynamicLibrary::FillError ( const char * e ) { m_sError = e; }
-bool CSphDynamicLibrary::Init ( const char *, bool ) { return false; }
-bool CSphDynamicLibrary::LoadSymbol ( const char *, void ** ) { return false; }
+CSphDynamicLibrary::CSphDynamicLibrary ( const char * ) {};
 bool CSphDynamicLibrary::LoadSymbols ( const char **, void ***, int ) { return false; }
 
 #endif
+
+
+void RebalanceWeights ( const CSphFixedVector<int64_t> & dTimers, WORD * pWeights )
+{
+	assert ( dTimers.GetLength () );
+	float fSum = 0.0;
+	int iCounters = 0;
+
+	// weights are proportional to frequencies (inverse to timers)
+	CSphFixedVector<float> dFrequencies ( dTimers.GetLength() );
+	ARRAY_FOREACH ( i, dTimers )
+	if ( dTimers[i]>0 )
+	{
+		dFrequencies[i] = (float)1000/dTimers[i];
+		fSum += dFrequencies[i];
+		++iCounters;
+	}
+
+	// no statistics, all timers bad, keep previous weights
+	if ( fSum<=0 )
+		return;
+
+	// in case of mirror without response still set small probability to it
+	const float fEmptiesPercent = 0.1f;
+	int iEmpties = dTimers.GetLength() - iCounters;
+
+	// balance weights
+	int64_t iCheck = 0;
+	ARRAY_FOREACH ( i, dFrequencies )
+	{
+		// mirror weight is inverse of timer \ query time
+		float fWeight = dFrequencies[i] / fSum;
+
+		// subtract coef-empty percent to get sum eq to 1.0
+		if ( iEmpties )
+			fWeight = fWeight - fWeight * fEmptiesPercent;
+
+		// mirror without response
+		if ( !dTimers[i] )
+			fWeight = fEmptiesPercent / iEmpties;
+		else if ( iCounters==1 ) // case when only one mirror has valid counter
+			fWeight = 1.0f - fEmptiesPercent;
+
+		int iWeight = int ( fWeight * 65535.0f );
+		assert ( iWeight>=0 && iWeight<=65535 );
+		pWeights[i] = (WORD)iWeight;
+		iCheck += pWeights[i];
+	}
+	assert ( iCheck<=65535 );
+}
+
 
 //
 // $Id$

@@ -3,8 +3,8 @@
 //
 
 //
-// Copyright (c) 2001-2015, Andrew Aksyonoff
-// Copyright (c) 2008-2015, Sphinx Technologies Inc
+// Copyright (c) 2001-2016, Andrew Aksyonoff
+// Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -81,8 +81,8 @@ struct QcacheStatus_t
 };
 
 
-void					QcacheAdd ( const CSphQuery & q, QcacheEntry_c * pResult );
-QcacheEntry_c *			QcacheFind ( int64_t iIndexId, const CSphQuery & q );
+void					QcacheAdd ( const CSphQuery & q, QcacheEntry_c * pResult, const ISphSchema & tSorterSchema );
+QcacheEntry_c *			QcacheFind ( int64_t iIndexId, const CSphQuery & q, const ISphSchema & tSorterSchema );
 ISphRanker *			QcacheRanker ( QcacheEntry_c * pEntry, const ISphQwordSetup & tSetup );
 const QcacheStatus_t &	QcacheGetStatus();
 void					QcacheSetup ( int64_t iMaxBytes, int iThreshMsec, int iTtlSec );

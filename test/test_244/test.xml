@@ -27,6 +27,12 @@ index test
 	source				= test
 	path				= <data_path/>/test
 }
+
+index dist
+{
+	type = distributed
+	agent = <my_address/>:test
+}
 </config>
 
 <db_create>
@@ -74,6 +80,26 @@ CREATE TABLE test_table
 <sphinxql>select * from test where tags>=6</sphinxql>
 <sphinxql>select * from test where any(tags)>=6</sphinxql>
 <sphinxql>select * from test where all(tags)>=6</sphinxql>
+
+<sphinxql>select * from dist where any(tags)!=3</sphinxql>
+<sphinxql>select * from dist where all(tags)!=3</sphinxql>
+<sphinxql>select * from dist where all(tags) in (3,4,40)</sphinxql>
+<sphinxql>select * from dist where all(tags) not in (3,4,40)</sphinxql>
+<sphinxql>select * from test where all(tags)>6</sphinxql>
 </sphqueries>
+
+<queries>
+<query index="test" filter_value="1" filter="tags"></query>
+<query index="test" filter_value="4" filter="tags"></query>
+<query index="test" filter_value="15" filter="tags"></query>
+<query index="test" filter_value="3" filter="tags" filter_exclude="1"></query>
+<query index="test" filter_range="3 4" filter="tags"></query>
+<query index="test" filter_range="3 4" filter="tags" filter_exclude="1"></query>
+<query index="test" filter_range="2 10" filter="tags"></query>
+<query index="test" filter_range="2 10" filter="tags" filter_exclude="1"></query>
+<query index="test" filter_range="4 100" filter="tags"></query>
+<query index="test" filter_range="7 100" filter="tags"></query>
+<query index="test" filter_range="6 100" filter="tags"></query>
+</queries>
 
 </test>

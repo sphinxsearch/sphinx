@@ -268,7 +268,7 @@ source json_up1
 {
 	type			= mysql
 	<sql_settings/>
-	sql_query		= SELECT 1, 'test me' t, '{"R158S": 901, "rom": 202}' j
+	sql_query		= SELECT 1, 'test me' t, '{"R158S": 901, "rom": 202, "t1":"A", "t2":"AB", T1:"C"}' j
 	sql_attr_json	= j
 }
 index json_up1
@@ -280,7 +280,7 @@ source json_up2
 {
 	type			= mysql
 	<sql_settings/>
-	sql_query		= SELECT 100, 'test me' t, '{"R158S": 100, "rom": 303}' j
+	sql_query		= SELECT 100, 'test me' t, '{"R158S": 100, "rom": 303, "t1":"B", "t2":"BC", T1:"D"}' j
 	sql_attr_json	= j
 }
 
@@ -685,6 +685,7 @@ Two'</sphinxql>
 <sphinxql>insert into rt (id, data) values (8, '{"f": 6.022e+3}')</sphinxql>
 <sphinxql>insert into rt (id, data) values (9, '{"f": 1.4738223E-1}')</sphinxql>
 <sphinxql>select * from rt where id&gt;=4 and id&lt;=9</sphinxql>
+<!-- group by json blob -->
 <sphinxql>select * from json_inplace_rt group by j</sphinxql>
 <sphinxql>select * from json_inplace_rt group by title, j</sphinxql>
 <!-- search in arrays -->
@@ -749,7 +750,9 @@ Two'</sphinxql>
 	(5, '["a","b"]'),
 	(6, '["a"]'),
 	(7, '[]'),
-	(8, '')
+	(8, ''),
+	(9, '{"a":"b"}'),
+	(10, '{}')
 </sphinxql>
 <sphinxql>select count(*) p, groupby() q from json_toplevel group by j order by p desc</sphinxql>
 <!-- inserting/replacing in a JSONs index with an invalid HTML (quoting) -->
@@ -785,5 +788,33 @@ Two'</sphinxql>
 <!-- crash (OOB) on groupby while remapping fields if there is a NULL attribute -->
 <sphinxql>insert into json_remap(id,j1,j2) values (1, '[1]','[1]'), (2, '','[2]')</sphinxql>
 <sphinxql>select groupby() from json_remap group by j2</sphinxql>
+<!-- group by 1-character string, case-sensitive group by, same for distributed indexes -->
+<sphinxql>select count(*), groupby() from json_up1, json_up2 group by j.t1</sphinxql>
+<sphinxql>select count(*), groupby() from json_up1, json_up2 group by j.T1</sphinxql>
+<sphinxql>select count(*), groupby() from dist_up group by j.t1</sphinxql>
+<sphinxql>select count(*), groupby() from dist_up group by j.T1</sphinxql>
+<!-- json field type autoconversion in expressions, types should match -->
+<sphinxql>select integer(j.rom)=202 as p from json_up1</sphinxql>
+<sphinxql>select j.rom=202 as p from json_up1</sphinxql>
+<sphinxql>select j.rom='202' as p from json_up1</sphinxql>
+<!-- is null vs non-json fields, json-dependent columns vs order by -->
+<sphinxql>select id as v, double(v) as dv, v is null, v is not null from dist_up</sphinxql>
+<sphinxql>select j.rom as v, double(v) as dv, v is null, v is not null from dist_up</sphinxql>
+<sphinxql>select j.rom as v, double(v) as dv, v is null, v is not null from dist_up order by dv asc</sphinxql>
+<!-- inplace update for several 64-bit values -->
+<sphinxql>update json_inplace set j.f[0]=345345345354, j.f[1]=777 where id=1</sphinxql>
+<sphinxql>select j.f[0], j.f[1] from json_inplace where id=1</sphinxql>
+<sphinxql>update json_inplace_rt set j.f[0]=345345345354, j.f[1]=777 where id=1</sphinxql>
+<sphinxql>select j.f[0], j.f[1] from json_inplace_rt where id=1</sphinxql>
+<!-- type autoconversion for 64-bit values -->
+<sphinxql>select j.f, indexof(x>345345345353 for x in j.f) as p from json_inplace where p=0</sphinxql>
+<!-- group by aliased field -->
+<sphinxql>select id, count(*), groupby(), j.a as p from arrays where id=123 group by p</sphinxql>
+<!-- true/false/null filtered as integers -->
+<sphinxql>select j from objects where id=9 and j[0]=0 and j[1]=1 and j[2]=0</sphinxql>
+<sphinxql>select j from objects where id=9 and j[0]!=1 and j[1]&gt;0 and j[2]&lt;1</sphinxql>
+<!-- type conversion in where clause -->
+<sphinxql>select j from objects where id=9 and integer(j[0])=0 and integer(j[1])=1 and integer(j[2])=0</sphinxql>
+<sphinxql>select j from objects where id=9 and integer(j[0])!=1 and double(j[1])&gt;0 and bigint(j[2])&lt;1</sphinxql>
 </sphqueries>
 </test>

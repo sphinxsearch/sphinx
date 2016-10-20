@@ -3,8 +3,8 @@
 //
 
 //
-// Copyright (c) 2001-2015, Andrew Aksyonoff
-// Copyright (c) 2008-2015, Sphinx Technologies Inc
+// Copyright (c) 2001-2016, Andrew Aksyonoff
+// Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -16,6 +16,8 @@
 #include "sphinx.h"
 #include "sphinxint.h"
 #include "sphinxutils.h"
+
+#include <math.h>
 
 #if !USE_WINDOWS
 #include <sys/time.h> // for gettimeofday
@@ -83,7 +85,7 @@ struct CSphMemHeader
 	CSphMemHeader *	m_pPrev;
 };
 
-static CSphStaticMutex	g_tAllocsMutex;
+static CSphMutex		g_tAllocsMutex;
 
 static int				g_iCurAllocs	= 0;
 static int				g_iAllocsId		= 0;
@@ -100,7 +102,7 @@ void * sphDebugNew ( size_t iSize, const char * sFile, int iLine, bool bArray )
 {
 	BYTE * pBlock = (BYTE*) ::malloc ( iSize+sizeof(CSphMemHeader)+sizeof(DWORD) );
 	if ( !pBlock )
-		sphDie ( "out of memory (unable to allocate "UINT64_FMT" bytes)", (uint64_t)iSize ); // FIXME! this may fail with malloc error too
+		sphDie ( "out of memory (unable to allocate " UINT64_FMT " bytes)", (uint64_t)iSize ); // FIXME! this may fail with malloc error too
 
 	*(DWORD*)( pBlock+iSize+sizeof(CSphMemHeader) ) = MEMORY_MAGIC_END;
 	g_tAllocsMutex.Lock();
@@ -278,7 +280,7 @@ void sphAllocsDump ( int iFile, int iSinceID )
 
 void sphAllocsStats ()
 {
-	fprintf ( stdout, "--- total-allocs=%d, peak-allocs=%d, peak-bytes="INT64_FMT"\n",
+	fprintf ( stdout, "--- total-allocs=%d, peak-allocs=%d, peak-bytes=" INT64_FMT "\n",
 		g_iTotalAllocs, g_iPeakAllocs, g_iPeakBytes );
 }
 
@@ -339,7 +341,7 @@ void operator delete [] ( void * pPtr )
 
 #undef new
 
-static CSphStaticMutex	g_tAllocsMutex;
+static CSphMutex		g_tAllocsMutex;
 static int				g_iAllocsId		= 0;
 static int				g_iCurAllocs	= 0;
 static int64_t			g_iCurBytes		= 0;
@@ -427,7 +429,7 @@ void sphDebugDelete ( void * pPtr )
 void sphAllocsStats ()
 {
 	g_tAllocsMutex.Lock ();
-	fprintf ( stdout, "--- total-allocs=%d, peak-allocs=%d, peak-bytes="INT64_FMT"\n",
+	fprintf ( stdout, "--- total-allocs=%d, peak-allocs=%d, peak-bytes=" INT64_FMT "\n",
 		g_iTotalAllocs, g_iPeakAllocs, g_iPeakBytes );
 	g_tAllocsMutex.Unlock ();
 }
@@ -630,7 +632,7 @@ void * operator new ( size_t iSize )
 {
 	void * pResult = ::malloc ( iSize );
 	if ( !pResult )
-		sphDieRestart ( "out of memory (unable to allocate "UINT64_FMT" bytes)", (uint64_t)iSize ); // FIXME! this may fail with malloc error too
+		sphDieRestart ( "out of memory (unable to allocate " UINT64_FMT " bytes)", (uint64_t)iSize ); // FIXME! this may fail with malloc error too
 	return pResult;
 }
 
@@ -639,26 +641,17 @@ void * operator new [] ( size_t iSize )
 {
 	void * pResult = ::malloc ( iSize );
 	if ( !pResult )
-		sphDieRestart ( "out of memory (unable to allocate "UINT64_FMT" bytes)", (uint64_t)iSize ); // FIXME! this may fail with malloc error too
+		sphDieRestart ( "out of memory (unable to allocate " UINT64_FMT " bytes)", (uint64_t)iSize ); // FIXME! this may fail with malloc error too
 	return pResult;
 }
 
-#if USE_RE2
 void operator delete ( void * pPtr ) throw ()
-#else
-void operator delete ( void * pPtr )
-#endif
 {
 	if ( pPtr )
 		::free ( pPtr );
 }
 
-
-#if USE_RE2
 void operator delete [] ( void * pPtr ) throw ()
-#else
-void operator delete [] ( void * pPtr )
-#endif
 {
 	if ( pPtr )
 		::free ( pPtr );
@@ -1177,7 +1170,7 @@ CSphSemaphore::~CSphSemaphore ()
 	assert ( !m_bInitialized );
 }
 
-bool CSphSemaphore::Init()
+bool CSphSemaphore::Init ( const char * )
 {
 	assert ( !m_bInitialized );
 	m_hSem = CreateSemaphore ( NULL, 0, INT_MAX, NULL );
@@ -1211,23 +1204,29 @@ bool CSphSemaphore::Wait()
 
 // UNIX mutex implementation
 
-CSphMutex::CSphMutex() {
-	if ( pthread_mutex_init ( &m_tMutex, NULL ) )
+CSphMutex::CSphMutex()
+{
+	m_pMutex = new pthread_mutex_t;
+	if ( pthread_mutex_init ( m_pMutex, NULL ) )
 		sphDie ( "pthread_mutex_init() failed %s", strerror ( errno ) );
 }
 
-CSphMutex::~CSphMutex() {
-	if ( pthread_mutex_destroy ( &m_tMutex ) )
+CSphMutex::~CSphMutex()
+{
+	if ( pthread_mutex_destroy ( m_pMutex ) )
 		sphDie ( "pthread_mutex_destroy() failed %s", strerror ( errno ) );
+	SafeDelete ( m_pMutex );
 }
 
 bool CSphMutex::Lock ()
 {
-	return ( pthread_mutex_lock ( &m_tMutex )==0 );
+	return ( pthread_mutex_lock ( m_pMutex )==0 );
 }
 
 bool CSphMutex::TimedLock ( int iMsec )
 {
+// pthread_mutex_timedlock is not available on Mac Os. Fallback to lock without a timer.
+#if defined (HAVE_PTHREAD_MUTEX_TIMEDLOCK)
 	struct timespec ts;
 	clock_gettime ( CLOCK_REALTIME, &ts );
 
@@ -1235,13 +1234,30 @@ bool CSphMutex::TimedLock ( int iMsec )
 	ts.tv_sec += ( ns / 1000000000 ) + ( iMsec / 1000 );
 	ts.tv_nsec = ( ns % 1000000000 );
 
-	int iRes = pthread_mutex_timedlock ( &m_tMutex, &ts );
+	int iRes = pthread_mutex_timedlock ( m_pMutex, &ts );
 	return iRes==0;
+
+#else
+	int iRes = EBUSY;
+	int64_t tmTill = sphMicroTimer () + iMsec;
+	do
+	{
+		iRes = pthread_mutex_trylock ( m_pMutex );
+		if ( iRes!=EBUSY )
+			break;
+		sphSleepMsec ( 1 );
+	} while ( sphMicroTimer ()<tmTill );
+	if ( iRes==EBUSY )
+		iRes = pthread_mutex_trylock ( m_pMutex );
+
+	return iRes!=EBUSY;
+
+#endif
 }
 
 bool CSphMutex::Unlock ()
 {
-	return ( pthread_mutex_unlock ( &m_tMutex )==0 );
+	return ( pthread_mutex_unlock ( m_pMutex )==0 );
 }
 
 bool CSphAutoEvent::Init ( CSphMutex * pMutex )
@@ -1296,16 +1312,16 @@ CSphSemaphore::CSphSemaphore ()
 CSphSemaphore::~CSphSemaphore ()
 {
 	assert ( !m_bInitialized );
-	SafeDelete ( m_pSem );
+	sem_close ( m_pSem );
 }
 
 
-bool CSphSemaphore::Init ()
+bool CSphSemaphore::Init ( const char * sName )
 {
 	assert ( !m_bInitialized );
-	m_pSem = new sem_t;
-	int iRes = sem_init ( m_pSem, 0, 0 );
-	m_bInitialized = ( iRes==0 );
+	m_pSem = sem_open ( sName, O_CREAT, 0, 0 );
+	m_sName = sName;
+	m_bInitialized = ( m_pSem!=SEM_FAILED );
 	return m_bInitialized;
 }
 
@@ -1315,8 +1331,8 @@ bool CSphSemaphore::Done ()
 		return true;
 
 	m_bInitialized = false;
-	int iRes = sem_destroy ( m_pSem );
-	SafeDelete ( m_pSem );
+	int iRes = sem_close ( m_pSem );
+	sem_unlink ( m_sName.cstr() );
 	return ( iRes==0 );
 }
 
@@ -1351,7 +1367,7 @@ CSphRwlock::CSphRwlock ()
 {}
 
 
-bool CSphRwlock::Init ()
+bool CSphRwlock::Init ( bool )
 {
 	assert ( !m_bInitialized );
 	assert ( !m_hWriteMutex && !m_hReadEvent && !m_iReaders );
@@ -1467,44 +1483,79 @@ bool CSphRwlock::Unlock ()
 
 CSphRwlock::CSphRwlock ()
 	: m_bInitialized ( false )
-{}
+{
+	m_pLock = new pthread_rwlock_t;
+}
 
-bool CSphRwlock::Init ()
+bool CSphRwlock::Init ( bool bPreferWriter )
 {
 	assert ( !m_bInitialized );
+	assert ( m_pLock );
 
-	m_bInitialized = ( pthread_rwlock_init ( &m_tLock, NULL )==0 );
+	pthread_rwlockattr_t tAttr;
+	pthread_rwlockattr_t * pAttr = NULL;
+
+// Mac OS X knows nothing about PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP
+#ifndef __APPLE__
+	while ( bPreferWriter )
+	{
+		bool bOk = ( pthread_rwlockattr_init ( &tAttr )==0 );
+		assert ( bOk );
+		if ( !bOk )
+			break;
+
+		bOk = ( pthread_rwlockattr_setkind_np ( &tAttr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP )==0 );
+		assert ( bOk );
+		if ( !bOk )
+		{
+			pthread_rwlockattr_destroy ( &tAttr );
+			break;
+		}
+
+		pAttr = &tAttr;
+		break;
+	}
+#endif
+	m_bInitialized = ( pthread_rwlock_init ( m_pLock, pAttr )==0 );
+
+	if ( pAttr )
+		pthread_rwlockattr_destroy ( &tAttr );
+
 	return m_bInitialized;
 }
 
 bool CSphRwlock::Done ()
 {
+	assert ( m_pLock );
 	if ( !m_bInitialized )
 		return true;
 
-	m_bInitialized = !( pthread_rwlock_destroy ( &m_tLock )==0 );
+	m_bInitialized = !( pthread_rwlock_destroy ( m_pLock )==0 );
 	return !m_bInitialized;
 }
 
 bool CSphRwlock::ReadLock ()
 {
 	assert ( m_bInitialized );
+	assert ( m_pLock );
 
-	return pthread_rwlock_rdlock ( &m_tLock )==0;
+	return pthread_rwlock_rdlock ( m_pLock )==0;
 }
 
 bool CSphRwlock::WriteLock ()
 {
 	assert ( m_bInitialized );
+	assert ( m_pLock );
 
-	return pthread_rwlock_wrlock ( &m_tLock )==0;
+	return pthread_rwlock_wrlock ( m_pLock )==0;
 }
 
 bool CSphRwlock::Unlock ()
 {
 	assert ( m_bInitialized );
+	assert ( m_pLock );
 
-	return pthread_rwlock_unlock ( &m_tLock )==0;
+	return pthread_rwlock_unlock ( m_pLock )==0;
 }
 
 #endif
@@ -1657,36 +1708,91 @@ DWORD sphCRC32 ( const void * s, int iLen, DWORD uPrevCRC )
 	return ~crc;
 }
 
-
-CSphAtomic::CSphAtomic ( long iValue )
-	: m_iValue ( iValue )
-{
-#if NO_ATOMIC
-	m_tLock.Init();
-#endif
-}
-
-CSphAtomic::~CSphAtomic ()
-{
-#if NO_ATOMIC
-	m_tLock.Done();
-#endif
-}
-
-
 #if USE_WINDOWS
-long CSphAtomic::GetValue () const
+template<> long CSphAtomic_T<long>::GetValue () const
 {
+	assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
 	return InterlockedExchangeAdd ( &m_iValue, 0 );
 }
-long CSphAtomic::Inc()
+
+template<> int64_t CSphAtomic_T<int64_t>::GetValue () const
 {
+	assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
+	return InterlockedExchangeAdd64 ( &m_iValue, 0 );
+}
+
+template<> long CSphAtomic_T<long>::Inc ()
+{
+	assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
 	return InterlockedIncrement ( &m_iValue )-1;
 }
-long CSphAtomic::Dec()
+
+template<> int64_t CSphAtomic_T<int64_t>::Inc ()
 {
+	assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
+	return InterlockedIncrement64 ( &m_iValue )-1;
+}
+
+template<> long CSphAtomic_T<long>::Dec ()
+{
+	assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
 	return InterlockedDecrement ( &m_iValue )+1;
 }
+
+template<> int64_t CSphAtomic_T<int64_t>::Dec ()
+{
+	assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
+	return InterlockedDecrement64 ( &m_iValue )+1;
+}
+
+template<> long CSphAtomic_T<long>::Add ( long iValue )
+{
+	assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
+	return InterlockedExchangeAdd ( &m_iValue, iValue );
+}
+
+template<> int64_t CSphAtomic_T<int64_t>::Add ( int64_t iValue )
+{
+	assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
+	return InterlockedExchangeAdd64 ( &m_iValue, iValue );
+}
+
+template<> long CSphAtomic_T<long>::Sub ( long iValue )
+{
+	assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
+	return InterlockedExchangeAdd ( &m_iValue, -iValue );
+}
+
+template<> int64_t CSphAtomic_T<int64_t>::Sub ( int64_t iValue )
+{
+	assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
+	return InterlockedExchangeAdd64 ( &m_iValue, -iValue );
+}
+
+template<> void CSphAtomic_T<long>::SetValue ( long iValue )
+{
+	assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
+	InterlockedExchange ( &m_iValue, iValue );
+}
+
+template<> void CSphAtomic_T<int64_t>::SetValue ( int64_t iValue )
+{
+	assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
+	InterlockedExchange64 ( &m_iValue, iValue );
+}
+
+template<> long CSphAtomic_T<long>::CAS ( long iOldVal, long iNewVal )
+{
+	assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
+	return InterlockedCompareExchange ( &m_iValue, iNewVal, iOldVal );
+}
+
+template<> int64_t CSphAtomic_T<int64_t>::CAS ( int64_t iOldVal, int64_t iNewVal )
+{
+	assert ( ( ( (size_t) &m_iValue )%( sizeof ( &m_iValue ) ) )==0 && "unaligned atomic!" );
+	return InterlockedCompareExchange64 ( &m_iValue, iNewVal, iOldVal );
+}
+
 #endif
 
 // fast check if we are built with right endianess settings
@@ -1758,14 +1864,14 @@ class CSphThdPool : public ISphThdPool
 	int								m_iStatQueuedJobs;
 
 public:
-	explicit CSphThdPool ( int iThreads )
+	explicit CSphThdPool ( int iThreads, const char* sName )
 		: m_dWorkers ( 0 )
 		, m_pHead ( NULL )
 		, m_pTail ( NULL )
 		, m_bShutdown ( false )
 		, m_iStatQueuedJobs ( 0 )
 	{
-		Verify ( m_tWorkSem.Init () );
+		Verify ( m_tWorkSem.Init ( sName ) );
 
 		iThreads = Max ( iThreads, 1 );
 		m_dWorkers.Reset ( iThreads );
@@ -1907,9 +2013,9 @@ private:
 };
 
 
-ISphThdPool * sphThreadPoolCreate ( int iThreads )
+ISphThdPool * sphThreadPoolCreate ( int iThreads, const char * sName )
 {
-	return new CSphThdPool ( iThreads );
+	return new CSphThdPool ( iThreads, sName );
 }
 
 int sphCpuThreadsCount ()
@@ -1921,6 +2027,193 @@ int sphCpuThreadsCount ()
 #else
 	return sysconf ( _SC_NPROCESSORS_ONLN );
 #endif
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+
+#if USE_WINDOWS
+#pragma warning(push,1)
+#pragma warning(disable:4530)
+#endif
+
+#include <map>
+
+#if USE_WINDOWS
+#pragma warning(pop)
+#endif
+
+class TDigest_c : public TDigest_i
+{
+public:
+	TDigest_c ()
+	{
+		Reset();
+	}
+
+	virtual void Add ( double fValue, int64_t iWeight = 1 )
+	{
+		if ( m_dMap.empty() )
+		{
+			m_dMap.insert ( std::pair<double, int64_t> ( fValue, iWeight ) );
+			m_iCount = iWeight;
+			return;
+		}
+
+		auto tStart = m_dMap.lower_bound(fValue);
+		if ( tStart==m_dMap.end() )
+			tStart = m_dMap.begin();
+		else
+		{
+			while ( tStart!=m_dMap.begin() && tStart->first==fValue )
+				tStart--;
+		}
+
+		double fMinDist = DBL_MAX;
+		auto tLastNeighbor = m_dMap.end();
+		for ( auto i=tStart; i!=m_dMap.end(); ++i )
+		{
+			double fDist = fabs ( i->first - fValue );
+			if ( fDist < fMinDist )
+			{
+				tStart = i;
+				fMinDist = fDist;
+			} else if ( fDist > fMinDist )
+			{
+				// we've passed the nearest nearest neighbor
+				tLastNeighbor = i;
+				break;
+			}
+		}
+
+		auto tClosest = m_dMap.end();
+		int64_t iSum = 0;
+		for ( auto i=m_dMap.begin(); i!=tStart; ++i )
+			iSum += i->second;
+
+		int64_t iN = 0;
+		const double COMPRESSION = 200.0;
+		for ( auto i=tStart; i!=tLastNeighbor; ++i )
+		{
+			double fQuantile = m_iCount==1 ? 0.5 : (iSum + (i->second - 1) / 2.0) / (m_iCount - 1);
+			double fThresh = 4.0 * m_iCount * fQuantile * (1 - fQuantile) / COMPRESSION;
+
+			if ( i->second+iWeight<=fThresh )
+			{
+				iN++;
+				if ( ( double ( sphRand() ) / UINT_MAX )<1.0/iN )
+					tClosest = i;
+			}
+
+			iSum += i->second;
+		}
+
+		if ( tClosest==m_dMap.end() )
+			m_dMap.insert ( std::pair<double, int64_t> ( fValue, iWeight ) );
+		else
+		{
+			double fNewMean = WeightedAvg ( tClosest->first, tClosest->second, fValue, iWeight );
+			int64_t iNewCount = tClosest->second+iWeight;
+			m_dMap.erase ( tClosest );
+			m_dMap.insert ( std::pair<double, int64_t> ( fNewMean, iNewCount ) );
+		}
+
+		m_iCount += iWeight;
+
+		const DWORD K=20;
+		if ( m_dMap.size() > K * COMPRESSION )
+			Compress();
+	}
+
+
+	virtual double Percentile ( int iPercent ) const
+	{
+		assert ( iPercent>=0 && iPercent<=100 );
+
+		if ( m_dMap.empty() )
+			return 0.0;
+
+		int64_t iTotalCount = 0;
+		double fPercent = double ( iPercent ) / 100.0;
+		fPercent *= m_iCount;
+
+		auto iMapFirst = m_dMap.begin();
+		auto iMapLast = m_dMap.end();
+		--iMapLast;
+
+		for ( auto i = iMapFirst; i!=m_dMap.end(); ++i )
+		{
+			if ( fPercent < iTotalCount + i->second )
+			{
+				if ( i==iMapFirst || i==iMapLast )
+					return i->first;
+				else
+				{
+					// get mean from previous iterator; get mean from next iterator; calc delta
+					auto iPrev = i;
+					auto iNext = i;
+					iPrev--;
+					iNext++;
+
+					double fDelta = ( iNext->first - iPrev->first ) / 2.0;
+					return i->first + ((fPercent - iTotalCount) / i->second - 0.5) * fDelta;
+				}
+			}
+
+			iTotalCount += i->second;
+		}
+
+		return iMapLast->first;
+	}
+
+private:
+	typedef std::multimap<double, int64_t> BalancedTree_c;
+	BalancedTree_c		m_dMap;
+	int64_t				m_iCount;
+
+	double WeightedAvg ( double fX1, int64_t iW1, double fX2, int64_t iW2 )
+	{
+		return ( fX1*iW1 + fX2*iW2 ) / ( iW1 + iW2 );
+	}
+
+	void Reset()
+	{
+		m_dMap.clear();
+		m_iCount = 0;
+	}
+
+	void Compress()
+	{
+		struct Centroid_t
+		{
+			double	m_fMean;
+			int64_t	m_iCount;
+		};
+
+		CSphTightVector<Centroid_t> dValues;
+		dValues.Reserve ( m_dMap.size() );
+		for ( auto i : m_dMap )
+		{
+			Centroid_t & tCentroid = dValues.Add();
+			tCentroid.m_fMean = i.first;
+			tCentroid.m_iCount = i.second;
+		}
+
+		Reset();
+
+		while ( dValues.GetLength() )
+		{
+			int iValue = sphRand() % dValues.GetLength();
+			Add ( dValues[iValue].m_fMean, dValues[iValue].m_iCount );
+			dValues.RemoveFast(iValue);
+		}
+	}
+};
+
+
+TDigest_i * sphCreateTDigest()
+{
+	return new TDigest_c;
 }
 
 

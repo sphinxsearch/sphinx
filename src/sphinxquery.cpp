@@ -3,8 +3,8 @@
 //
 
 //
-// Copyright (c) 2001-2015, Andrew Aksyonoff
-// Copyright (c) 2008-2015, Sphinx Technologies Inc
+// Copyright (c) 2001-2016, Andrew Aksyonoff
+// Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -23,7 +23,11 @@
 // EXTENDED PARSER RELOADED
 //////////////////////////////////////////////////////////////////////////
 class XQParser_t;
-#include "yysphinxquery.h"
+#ifdef CMAKE_GENERATED_GRAMMAR
+	#include "bissphinxquery.h"
+#else
+	#include "yysphinxquery.h"
+#endif
 
 // #define XQDEBUG 1
 // #define XQ_DUMP_TRANSFORMED_TREE 1
@@ -55,7 +59,7 @@ public:
 	int				ParseZone ( const char * pZone );
 
 	bool			IsSpecial ( char c );
-	bool			GetNumber ( const char * p );
+	bool			GetNumber ( const char * p, const char * sRestart );
 	int				GetToken ( YYSTYPE * lvalp );
 
 	void			HandleModifiers ( XQKeyword_t & tKeyword );
@@ -109,8 +113,7 @@ public:
 
 	BYTE *					m_sQuery;
 	int						m_iQueryLen;
-	const char *			m_pLastTokenStart;
-	const char *			m_pLastTokenEnd;
+	const char *			m_pErrorAt;
 
 	const CSphSchema *		m_pSchema;
 	ISphTokenizer *			m_pTokenizer;
@@ -161,7 +164,7 @@ int yylex ( YYSTYPE * lvalp, XQParser_t * pParser )
 void yyerror ( XQParser_t * pParser, const char * sMessage )
 {
 	if ( pParser->m_pParsed->m_sParseError.IsEmpty() )
-		pParser->m_pParsed->m_sParseError.SetSprintf ( "%s near '%s'", sMessage, pParser->m_pLastTokenStart );
+		pParser->m_pParsed->m_sParseError.SetSprintf ( "%s near '%s'", sMessage, pParser->m_pErrorAt );
 }
 
 #if USE_WINDOWS
@@ -169,7 +172,12 @@ void yyerror ( XQParser_t * pParser, const char * sMessage )
 #pragma warning(disable:4702) // unreachable code
 #endif
 
-#include "yysphinxquery.c"
+#ifdef CMAKE_GENERATED_GRAMMAR
+	#include "bissphinxquery.c"
+#else
+	#include "yysphinxquery.c"
+#endif
+
 
 #if USE_WINDOWS
 #pragma warning(pop)
@@ -392,8 +400,7 @@ static int GetNodeChildIndex ( const XQNode_t * pParent, const XQNode_t * pNode 
 
 XQParser_t::XQParser_t ()
 	: m_pParsed ( NULL )
-	, m_pLastTokenStart ( NULL )
-	, m_pLastTokenEnd ( NULL )
+	, m_pErrorAt ( NULL )
 	, m_pRoot ( NULL )
 	, m_bStopOnInvalid ( true )
 	, m_bWasBlended ( false )
@@ -727,7 +734,7 @@ int XQParser_t::ParseZone ( const char * pZone )
 }
 
 
-bool XQParser_t::GetNumber ( const char * p )
+bool XQParser_t::GetNumber ( const char * p, const char * sRestart )
 {
 	int iDots = 0;
 	const char * sToken = p;
@@ -759,10 +766,10 @@ bool XQParser_t::GetNumber ( const char * p )
 		if ( bTok && m_pTokenizer->TokenIsBlended() && !( bQuorum || bQuorumPercent ) ) // number with blended should be tokenized as usual
 		{
 			m_pTokenizer->SkipBlended();
-			m_pTokenizer->SetBufferPtr ( m_pLastTokenStart );
+			m_pTokenizer->SetBufferPtr ( sRestart );
 		} else if ( bTok && m_pTokenizer->WasTokenSynonym() && !( bQuorum || bQuorumPercent ) )
 		{
-			m_pTokenizer->SetBufferPtr ( m_pLastTokenStart );
+			m_pTokenizer->SetBufferPtr ( sRestart );
 		} else
 		{
 			// got not a very long number followed by a whitespace or special, handle it
@@ -820,24 +827,27 @@ int XQParser_t::GetToken ( YYSTYPE * lvalp )
 		if ( m_bWasBlended )
 		{
 			iSkippedPosBeforeToken = m_pTokenizer->SkipBlended();
-			m_iAtomPos += iSkippedPosBeforeToken;
+			// just add all skipped blended parts except blended head (already added to atomPos)
+			if ( iSkippedPosBeforeToken>1 )
+				m_iAtomPos += iSkippedPosBeforeToken - 1;
 		}
 
 		// tricky stuff
 		// we need to manually check for numbers in certain states (currently, just after proximity or quorum operator)
 		// required because if 0-9 are not in charset_table, or min_word_len is too high,
 		// the tokenizer will *not* return the number as a token!
-		m_pLastTokenStart = m_pTokenizer->GetBufferPtr ();
-		m_pLastTokenEnd = m_pTokenizer->GetTokenEnd();
-		const char * sEnd = m_pTokenizer->GetBufferEnd ();
+		const char * pTokenStart = m_pTokenizer->GetBufferPtr();
+		const char * pLastTokenEnd = m_pTokenizer->GetTokenEnd();
+		const char * sEnd = m_pTokenizer->GetBufferEnd();
+		m_pErrorAt = pTokenStart;
 
-		const char * p = m_pLastTokenStart;
+		const char * p = pTokenStart;
 		while ( p<sEnd && isspace ( *(BYTE*)p ) ) p++; // to avoid CRT assertions on Windows
 
 		if ( m_bCheckNumber )
 		{
 			m_bCheckNumber = false;
-			if ( GetNumber(p) )
+			if ( GetNumber ( p, pTokenStart ) )
 				break;
 		}
 
@@ -858,11 +868,22 @@ int XQParser_t::GetToken ( YYSTYPE * lvalp )
 		m_bWasBlended = m_pTokenizer->TokenIsBlended();
 		m_bEmpty = false;
 
+		int iPrevDeltaPos = 0;
+		if ( m_pPlugin && m_pPlugin->m_fnPushToken )
+			sToken = m_pPlugin->m_fnPushToken ( m_pPluginData, (char*)sToken, &iPrevDeltaPos, m_pTokenizer->GetTokenStart(), m_pTokenizer->GetTokenEnd() - m_pTokenizer->GetTokenStart() );
+
 		m_iPendingNulls = m_pTokenizer->GetOvershortCount() * m_iOvershortStep;
-		m_iAtomPos += 1+m_iPendingNulls;
+		m_iAtomPos += 1 + m_iPendingNulls + iPrevDeltaPos;
+
+		bool bMultiDestHead = false;
+		bool bMultiDest = false;
+		int iDestCount = 0;
+		// do nothing inside phrase
+		if ( !m_pTokenizer->m_bPhrase )
+			bMultiDest = m_pTokenizer->WasTokenMultiformDestination ( bMultiDestHead, iDestCount );
 
 		// handle NEAR (must be case-sensitive, and immediately followed by slash and int)
-		if ( sToken && p && !m_pTokenizer->m_bPhrase && strncmp ( p, "NEAR/", 5 )==0 && isdigit(p[5]) )
+		if ( !bMultiDest && sToken && p && !m_pTokenizer->m_bPhrase && strncmp ( p, "NEAR/", 5 )==0 && isdigit(p[5]) )
 		{
 			// extract that int
 			int iVal = 0;
@@ -879,7 +900,7 @@ int XQParser_t::GetToken ( YYSTYPE * lvalp )
 		}
 
 		// handle SENTENCE
-		if ( sToken && p && !m_pTokenizer->m_bPhrase && !strcasecmp ( sToken, "sentence" ) && !strncmp ( p, "SENTENCE", 8 ) )
+		if ( !bMultiDest && sToken && p && !m_pTokenizer->m_bPhrase && !strcasecmp ( sToken, "sentence" ) && !strncmp ( p, "SENTENCE", 8 ) )
 		{
 			// we just lexed our next token
 			m_iPendingType = TOK_SENTENCE;
@@ -888,7 +909,7 @@ int XQParser_t::GetToken ( YYSTYPE * lvalp )
 		}
 
 		// handle PARAGRAPH
-		if ( sToken && p && !m_pTokenizer->m_bPhrase && !strcasecmp ( sToken, "paragraph" ) && !strncmp ( p, "PARAGRAPH", 9 ) )
+		if ( !bMultiDest && sToken && p && !m_pTokenizer->m_bPhrase && !strcasecmp ( sToken, "paragraph" ) && !strncmp ( p, "PARAGRAPH", 9 ) )
 		{
 			// we just lexed our next token
 			m_iPendingType = TOK_PARAGRAPH;
@@ -897,7 +918,7 @@ int XQParser_t::GetToken ( YYSTYPE * lvalp )
 		}
 
 		// handle MAYBE
-		if ( sToken && p && !m_pTokenizer->m_bPhrase && !strcasecmp ( sToken, "maybe" ) && !strncmp ( p, "MAYBE", 5 ) )
+		if ( !bMultiDest && sToken && p && !m_pTokenizer->m_bPhrase && !strcasecmp ( sToken, "maybe" ) && !strncmp ( p, "MAYBE", 5 ) )
 		{
 			// we just lexed our next token
 			m_iPendingType = TOK_MAYBE;
@@ -906,7 +927,7 @@ int XQParser_t::GetToken ( YYSTYPE * lvalp )
 		}
 
 		// handle ZONE
-		if ( sToken && p && !m_pTokenizer->m_bPhrase && !strncmp ( p, "ZONE:", 5 )
+		if ( !bMultiDest && sToken && p && !m_pTokenizer->m_bPhrase && !strncmp ( p, "ZONE:", 5 )
 			&& ( sphIsAlpha(p[5]) || p[5]=='(' ) )
 		{
 			// ParseZone() will update tokenizer buffer ptr as needed
@@ -922,7 +943,7 @@ int XQParser_t::GetToken ( YYSTYPE * lvalp )
 		}
 
 		// handle ZONESPAN
-		if ( sToken && p && !m_pTokenizer->m_bPhrase && !strncmp ( p, "ZONESPAN:", 9 )
+		if ( !bMultiDest && sToken && p && !m_pTokenizer->m_bPhrase && !strncmp ( p, "ZONESPAN:", 9 )
 			&& ( sphIsAlpha(p[9]) || p[9]=='(' ) )
 		{
 			// ParseZone() will update tokenizer buffer ptr as needed
@@ -939,7 +960,7 @@ int XQParser_t::GetToken ( YYSTYPE * lvalp )
 
 		// count [ * ] at phrase node for qpos shift
 		// FIXME! RLP can return tokens from several buffers, all this pointer arithmetic will lead to crashes
-		if ( m_pTokenizer->m_bPhrase && m_pLastTokenEnd )
+		if ( m_pTokenizer->m_bPhrase && pLastTokenEnd )
 		{
 			if ( strncmp ( sToken, "*", 1 )==0 )
 			{
@@ -948,15 +969,15 @@ int XQParser_t::GetToken ( YYSTYPE * lvalp )
 			{
 				int iSpace = 0;
 				int iStar = 0;
-				const char * sCur = m_pLastTokenEnd;
+				const char * sCur = pLastTokenEnd;
 				const char * sEnd = m_pTokenizer->GetTokenStart();
 				for ( ; sCur<sEnd; sCur++ )
 				{
-					int iCur = sCur - m_pLastTokenEnd;
+					int iCur = sCur - pLastTokenEnd;
 					switch ( *sCur )
 					{
 					case '*':
-						iStar = sCur - m_pLastTokenEnd;
+						iStar = sCur - pLastTokenEnd;
 						break;
 					case ' ':
 						if ( iSpace+2==iCur && iStar+1==iCur ) // match only [ * ] (separate single star) as valid shift operator
@@ -1022,6 +1043,14 @@ int XQParser_t::GetToken ( YYSTYPE * lvalp )
 					continue;
 				if ( sphIsSpace ( m_pTokenizer->GetTokenStart() [ -1 ] ) )
 					continue;
+
+				// right after overshort
+				if ( m_pTokenizer->GetOvershortCount()==1 )
+				{
+					m_iPendingNulls = 0;
+					lvalp->pNode = AddKeyword ( NULL, iSkippedPosBeforeToken );
+					return TOK_KEYWORD;
+				}
 
 				Warning ( "modifiers must be applied to keywords, not operators" );
 
@@ -1090,13 +1119,6 @@ int XQParser_t::GetToken ( YYSTYPE * lvalp )
 				m_iAtomPos--;
 		}
 
-		bool bMultiDestHead = false;
-		bool bMultiDest = false;
-		int iDestCount = 0;
-		// do nothing inside phrase
-		if ( !m_pTokenizer->m_bPhrase )
-			bMultiDest = m_pTokenizer->WasTokenMultiformDestination ( bMultiDestHead, iDestCount );
-
 		if ( bMultiDest && !bMultiDestHead )
 		{
 			assert ( m_dMultiforms.GetLength() );
@@ -1116,9 +1138,6 @@ int XQParser_t::GetToken ( YYSTYPE * lvalp )
 			tMulti.m_iDestStart = m_dDestForms.GetLength();
 			tMulti.m_iDestCount = 0;
 		}
-
-		if ( m_pTokenizer->TokenIsBlended() )
-			m_iAtomPos--;
 
 		if ( !bMultiDest || bMultiDestHead )
 			break;
@@ -1537,27 +1556,30 @@ void XQParser_t::PhraseShiftQpos ( XQNode_t * pNode )
 	const int * pLast = m_dPhraseStar.Begin();
 	const int * pEnd = m_dPhraseStar.Begin() + m_dPhraseStar.GetLength();
 	int iQposShiftStart = *pLast;
-	int iQposShift = 1;
+	int iQposShift = 0;
+	int iLastStarPos = *pLast;
 
 	ARRAY_FOREACH ( iWord, pNode->m_dWords )
 	{
 		XQKeyword_t & tWord = pNode->m_dWords[iWord];
 
+		// fold stars in phrase till current term position
+		while ( pLast<pEnd && *(pLast)<=tWord.m_iAtomPos )
+		{
+			iLastStarPos = *pLast;
+			pLast++;
+			iQposShift++;
+		}
+
 		// star dictionary passes raw star however regular dictionary suppress it
 		// raw star also might be suppressed by min_word_len option
 		// so remove qpos shift from duplicated raw star term
-		if ( tWord.m_sWord.IsEmpty() || tWord.m_sWord=="*" )
+		// however not stopwords that is also term with empty word
+		if ( tWord.m_sWord=="*" || ( tWord.m_sWord.IsEmpty() && tWord.m_iAtomPos==iLastStarPos ) )
 		{
 			pNode->m_dWords.Remove ( iWord-- );
 			iQposShift--;
 			continue;
-		}
-
-		// fold stars in phrase till current term position
-		while ( pLast+1<pEnd && *(pLast+1)<=tWord.m_iAtomPos )
-		{
-			pLast++;
-			iQposShift++;
 		}
 
 		if ( iQposShiftStart<=tWord.m_iAtomPos )
@@ -1594,7 +1616,7 @@ static bool CheckQuorumProximity ( XQNode_t * pNode, CSphString * pError )
 }
 
 
-static void FixupDegenerates ( XQNode_t * pNode )
+static void FixupDegenerates ( XQNode_t * pNode, CSphString & sWarning )
 {
 	if ( !pNode )
 		return;
@@ -1602,12 +1624,15 @@ static void FixupDegenerates ( XQNode_t * pNode )
 	if ( pNode->m_dWords.GetLength()==1 &&
 		( pNode->GetOp()==SPH_QUERY_PHRASE || pNode->GetOp()==SPH_QUERY_PROXIMITY || pNode->GetOp()==SPH_QUERY_QUORUM ) )
 	{
+		if ( pNode->GetOp()==SPH_QUERY_QUORUM && !pNode->m_bPercentOp && pNode->m_iOpArg>1 )
+			sWarning.SetSprintf ( "quorum threshold too high (words=%d, thresh=%d); replacing quorum operator with AND operator", pNode->m_dWords.GetLength(), pNode->m_iOpArg );
+
 		pNode->SetOp ( SPH_QUERY_AND );
 		return;
 	}
 
 	ARRAY_FOREACH ( i, pNode->m_dChildren )
-		FixupDegenerates ( pNode->m_dChildren[i] );
+		FixupDegenerates ( pNode->m_dChildren[i], sWarning );
 }
 
 void XQParser_t::FixupDestForms ()
@@ -1688,7 +1713,7 @@ bool XQParser_t::Parse ( XQQuery_t & tParsed, const char * sQuery, const CSphQue
 	m_pPlugin = NULL;
 	m_pPluginData = NULL;
 
-	if ( pQuery && pQuery->m_sQueryTokenFilterName.cstr() )
+	if ( pQuery && !pQuery->m_sQueryTokenFilterName.IsEmpty() )
 	{
 		CSphString sError;
 		m_pPlugin = static_cast < PluginQueryTokenFilter_c * > ( sphPluginAcquire ( pQuery->m_sQueryTokenFilterLib.cstr(),
@@ -1748,7 +1773,7 @@ bool XQParser_t::Parse ( XQQuery_t & tParsed, const char * sQuery, const CSphQue
 	FixupDestForms ();
 	DeleteNodesWOFields ( m_pRoot );
 	m_pRoot = SweepNulls ( m_pRoot );
-	FixupDegenerates ( m_pRoot );
+	FixupDegenerates ( m_pRoot, m_pParsed->m_sParseWarning );
 	FixupNulls ( m_pRoot );
 
 	if ( !FixupNots ( m_pRoot ) )
@@ -4251,18 +4276,18 @@ void CSphTransformation::Dump ()
 	m_hSimilar.IterateStart();
 	while ( m_hSimilar.IterateNext() )
 	{
-		printf ( "\nnode: hash 0x"UINT64_FMT"\n", m_hSimilar.IterateGetKey() );
+		printf ( "\nnode: hash 0x" UINT64_FMT "\n", m_hSimilar.IterateGetKey() );
 		m_hSimilar.IterateGet().IterateStart();
 		while ( m_hSimilar.IterateGet().IterateNext() )
 		{
 			CSphVector<XQNode_t *> & dNodes = m_hSimilar.IterateGet().IterateGet();
-			printf ( "\tgrand: hash 0x"UINT64_FMT", children %d\n", m_hSimilar.IterateGet().IterateGetKey(), dNodes.GetLength() );
+			printf ( "\tgrand: hash 0x" UINT64_FMT ", children %d\n", m_hSimilar.IterateGet().IterateGetKey(), dNodes.GetLength() );
 
 			printf ( "\tparents:\n" );
 			ARRAY_FOREACH ( i, dNodes )
 			{
 				uint64_t uParentHash = dNodes[i]->GetHash();
-				printf ( "\t\thash 0x"UINT64_FMT"\n", uParentHash );
+				printf ( "\t\thash 0x" UINT64_FMT "\n", uParentHash );
 			}
 		}
 	}

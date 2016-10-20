@@ -1,5 +1,9 @@
 %{
-#include "yysphinxql.h"
+#ifdef CMAKE_GENERATED_GRAMMAR
+	#include "bissphinxql.h"
+#else
+	#include "yysphinxql.h"
+#endif
 
 #if USE_WINDOWS
 #pragma warning(push,1)
@@ -79,6 +83,7 @@ ALPHA				[a-zA-Z_]+
 "GROUPBY"			{ YYSTOREBOUNDS; return TOK_GROUPBY; }
 "GROUP_CONCAT"		{ YYSTOREBOUNDS; return TOK_GROUP_CONCAT; }
 "HAVING"			{ YYSTOREBOUNDS; return TOK_HAVING; }
+"HOSTNAMES"			{ YYSTOREBOUNDS; return TOK_HOSTNAMES; }
 "ID"				{ YYSTOREBOUNDS; return TOK_ID; }
 "IN"				{ YYSTOREBOUNDS; return TOK_IN; }
 "INDEX"				{ YYSTOREBOUNDS; return TOK_INDEX; }
@@ -148,6 +153,7 @@ ALPHA				[a-zA-Z_]+
 "WARNINGS"			{ YYSTOREBOUNDS; return TOK_WARNINGS; }
 "WEIGHT"			{ YYSTOREBOUNDS; return TOK_WEIGHT; }
 "WHERE"				{ YYSTOREBOUNDS; return TOK_WHERE; }
+"WITH"				{ YYSTOREBOUNDS; return TOK_WITH; }
 "WITHIN"			{ YYSTOREBOUNDS; return TOK_WITHIN; }
 
 "!="				{ YYSTOREBOUNDS; return TOK_NE; }

@@ -3,8 +3,8 @@
 //
 
 //
-// Copyright (c) 2001-2015, Andrew Aksyonoff
-// Copyright (c) 2008-2015, Sphinx Technologies Inc
+// Copyright (c) 2001-2016, Andrew Aksyonoff
+// Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -244,11 +244,11 @@ int main ( int argc, char ** argv )
 	int64_t tmShutdown = sphMicroTimer();
 
 #if SPH_ALLOCS_PROFILER
-	printf ( "pre-shutdown allocs=%d, bytes="INT64_FMT"\n", sphAllocsCount(), sphAllocBytes() );
+	printf ( "pre-shutdown allocs=%d, bytes=" INT64_FMT "\n", sphAllocsCount(), sphAllocBytes() );
 #endif
 	SafeDelete ( pIndex );
 #if SPH_ALLOCS_PROFILER
-	printf ( "post-shutdown allocs=%d, bytes="INT64_FMT"\n", sphAllocsCount(), sphAllocBytes() );
+	printf ( "post-shutdown allocs=%d, bytes=" INT64_FMT "\n", sphAllocsCount(), sphAllocBytes() );
 #endif
 
 	int64_t tmEnd = sphMicroTimer();

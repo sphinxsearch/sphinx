@@ -3,8 +3,8 @@
 //
 
 //
-// Copyright (c) 2001-2015, Andrew Aksyonoff
-// Copyright (c) 2008-2015, Sphinx Technologies Inc
+// Copyright (c) 2001-2016, Andrew Aksyonoff
+// Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -86,6 +86,7 @@ class CSphConfigSection;
 void sphRTInit ( const CSphConfigSection & hSearchd, bool bTestMode );
 void sphRTConfigure ( const CSphConfigSection & hSearchd, bool bTestMode );
 bool sphRTSchemaConfigure ( const CSphConfigSection & hIndex, CSphSchema * pSchema, CSphString * pError );
+void sphRTSetTestMode ();
 
 /// deinitialize subsystem
 void sphRTDone ();

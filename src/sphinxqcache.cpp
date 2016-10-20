@@ -3,8 +3,8 @@
 //
 
 //
-// Copyright (c) 2001-2015, Andrew Aksyonoff
-// Copyright (c) 2008-2015, Sphinx Technologies Inc
+// Copyright (c) 2001-2016, Andrew Aksyonoff
+// Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -42,8 +42,8 @@ public:
 								~Qcache_c();
 
 	void						Setup ( int64_t iMaxBytes, int iThreshMsec, int iTtlSec );
-	void						Add ( const CSphQuery & q, QcacheEntry_c * pResult );
-	QcacheEntry_c *				Find ( int64_t iIndexId, const CSphQuery & q );
+	void						Add ( const CSphQuery & q, QcacheEntry_c * pResult, const ISphSchema & tSorterSchema );
+	QcacheEntry_c *				Find ( int64_t iIndexId, const CSphQuery & q, const ISphSchema & tSorterSchema );
 	void						DeleteIndex ( int64_t iIndexId );
 
 private:
@@ -52,6 +52,7 @@ private:
 	void						EnforceLimits ( bool bSizeOnly );
 	void						MruToHead ( int iRes );
 	void						DeleteEntry ( int iEntry );
+	bool						CanCacheQuery ( const CSphQuery & q ) const;
 };
 
 /// ranker that servers cached results
@@ -326,7 +327,39 @@ void Qcache_c::MruToHead ( int iRes )
 	m_iMruHead = iRes;
 }
 
-void Qcache_c::Add ( const CSphQuery & q, QcacheEntry_c * pResult )
+
+static bool CalcFilterHashes ( CSphVector<uint64_t> & dFilters, const CSphQuery & q, const ISphSchema & tSorterSchema )
+{
+	dFilters.Resize(0);
+
+	ARRAY_FOREACH ( i, q.m_dFilters )
+	{
+		const CSphFilterSettings & tFS = q.m_dFilters[i];
+		uint64_t uFilterHash = q.m_dFilters[i].GetHash();
+
+		// need this cast because ISphExpr::Command is not const
+		CSphColumnInfo * pAttr = const_cast<CSphColumnInfo *>(tSorterSchema.GetAttr ( tFS.m_sAttrName.cstr() ));
+		if ( pAttr )
+		{
+			if ( pAttr->m_pExpr.Ptr() )
+			{
+				bool bDisableCaching = false;
+				uFilterHash = pAttr->m_pExpr->GetHash ( tSorterSchema, uFilterHash, bDisableCaching );
+				if ( bDisableCaching )
+					return false;
+			} else
+				uFilterHash = sphCalcLocatorHash ( pAttr->m_tLocator, uFilterHash );
+		}
+
+		dFilters.Add ( uFilterHash );
+	}
+
+	dFilters.Sort();
+	return true;
+}
+
+
+void Qcache_c::Add ( const CSphQuery & q, QcacheEntry_c * pResult, const ISphSchema & tSorterSchema )
 {
 	pResult->Finish();
 
@@ -334,14 +367,15 @@ void Qcache_c::Add ( const CSphQuery & q, QcacheEntry_c * pResult )
 	// do not cache full scans, because we'll get an incorrect empty result set here
 	if ( pResult->m_iElapsedMsec < m_iThreshMsec || pResult->GetSize() > m_iMaxBytes )
 		return;
-	if ( q.m_eMode==SPH_MATCH_FULLSCAN || q.m_sQuery.IsEmpty() )
+
+	if ( !CanCacheQuery(q) )
 		return;
+
+	if ( !CalcFilterHashes ( pResult->m_dFilters, q, tSorterSchema ) )
+		return;	// this query can't be cached because of the nature of expressions in filters
 
 	pResult->AddRef();
 	pResult->m_Key = GetKey ( pResult->m_iIndexId, q );
-	ARRAY_FOREACH ( i, q.m_dFilters )
-		pResult->m_dFilters.Add ( q.m_dFilters[i].GetHash() );
-	pResult->m_dFilters.Sort();
 
 	m_tLock.Lock();
 
@@ -397,18 +431,19 @@ void Qcache_c::Add ( const CSphQuery & q, QcacheEntry_c * pResult )
 	EnforceLimits ( true );
 }
 
-QcacheEntry_c * Qcache_c::Find ( int64_t iIndexId, const CSphQuery & q )
+QcacheEntry_c * Qcache_c::Find ( int64_t iIndexId, const CSphQuery & q, const ISphSchema & tSorterSchema )
 {
 	if ( m_iMaxBytes<=0 )
 		return NULL;
 
+	if ( !CanCacheQuery(q) )
+		return NULL;
+
 	uint64_t k = GetKey ( iIndexId, q );
 
+	bool bFilterHashesCalculated = false;
 	CSphVector<uint64_t> dFilters;
-	ARRAY_FOREACH ( i, q.m_dFilters )
-		dFilters.Add ( q.m_dFilters[i].GetHash() );
-	dFilters.Sort();
-
+	
 	m_tLock.Lock();
 
 	int64_t tmMin = sphMicroTimer() - int64_t(m_iTtlSec)*1000000;
@@ -434,6 +469,17 @@ QcacheEntry_c * Qcache_c::Find ( int64_t iIndexId, const CSphQuery & q )
 			continue;
 
 		// check that filters are compatible (ie. that entry filters are a subset of query filters)
+		if ( !bFilterHashesCalculated )
+		{
+			bFilterHashesCalculated = true;
+
+			if ( !CalcFilterHashes ( dFilters, q, tSorterSchema ) )
+			{
+				m_tLock.Unlock();
+				return NULL;	// this query can't be cached because of the nature of expressions in filters
+			}
+		}
+
 		int j = 0;
 		for ( ; j < e->m_dFilters.GetLength(); j++ )
 			if ( !dFilters.BinarySearch ( e->m_dFilters[j] ) )
@@ -501,6 +547,15 @@ void Qcache_c::DeleteEntry ( int i )
 	// release entry
 	p->Release();
 	m_hData[i] = QCACHE_DEAD_ENTRY;
+}
+
+
+bool Qcache_c::CanCacheQuery ( const CSphQuery & q ) const
+{
+	if ( q.m_eMode==SPH_MATCH_FULLSCAN || q.m_sQuery.IsEmpty() )
+		return false;
+
+	return true;
 }
 
 void Qcache_c::EnforceLimits ( bool bSizeOnly )
@@ -639,14 +694,14 @@ int QcacheRanker_c::GetMatches()
 
 //////////////////////////////////////////////////////////////////////////
 
-void QcacheAdd ( const CSphQuery & q, QcacheEntry_c * pResult )
+void QcacheAdd ( const CSphQuery & q, QcacheEntry_c * pResult, const ISphSchema & tSorterSchema )
 {
-	return g_Qcache.Add ( q, pResult );
+	return g_Qcache.Add ( q, pResult, tSorterSchema );
 }
 
-QcacheEntry_c * QcacheFind ( int64_t iIndexId, const CSphQuery & q )
+QcacheEntry_c * QcacheFind ( int64_t iIndexId, const CSphQuery & q, const ISphSchema & tSorterSchema )
 {
-	return g_Qcache.Find ( iIndexId, q );
+	return g_Qcache.Find ( iIndexId, q, tSorterSchema );
 }
 
 ISphRanker * QcacheRanker ( QcacheEntry_c * pEntry, const ISphQwordSetup & tSetup )

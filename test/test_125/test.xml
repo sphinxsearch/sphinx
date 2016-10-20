@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <test>
 <name>select expressions, functions, operators</name> <!-- all the misc tests -->
+<requires><sphinxql_keep_null/></requires>
 
 <config>
 indexer
@@ -91,6 +92,49 @@ index strings_dist
 	type = distributed
 	agent = <my_address/>:strings
 }
+
+source test1
+{
+	type = mysql
+	<sql_settings/>
+	sql_query = SELECT id, 11 as idd, string_value FROM string_table1
+	sql_attr_uint = idd
+	sql_field_string = string_value
+}
+
+index test1
+{
+	source	= test1
+	path	= <data_path/>/test1
+}
+
+index test1_loc
+{
+	type = distributed
+	local = test1
+}
+
+index test1_dist
+{
+	type = distributed
+	agent = <my_address/>:test1
+}
+
+source test_json
+{
+	type			= mysql
+	<sql_settings/>
+	sql_query		= select * from json_table
+	sql_attr_uint	= gid
+	sql_attr_json	= j
+}
+
+index test_json
+{
+	source			= test_json
+	path			= <data_path/>/test_json
+}
+
 </config>
 
 <db_create>
@@ -126,10 +170,28 @@ CREATE TABLE string_table
 );
 </db_create>
 
+<db_create>
+CREATE TABLE string_table1
+(
+	id INT NOT NULL,
+	string_value VARCHAR(255) NOT NULL
+);
+</db_create>
+<db_create>
+CREATE TABLE json_table (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `gid` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `j` varchar(8192) NOT NULL,
+  PRIMARY KEY (`id`)
+);
+</db_create>
+
 <db_drop>DROP TABLE IF EXISTS test_table;</db_drop>
 <db_drop>DROP TABLE IF EXISTS cmp_table;</db_drop>
 <db_drop>DROP TABLE IF EXISTS string_table;</db_drop>
-
+<db_drop>DROP TABLE IF EXISTS string_table1;</db_drop>
+<db_drop>DROP TABLE IF EXISTS json_table;</db_drop>
 
 <db_insert>
 INSERT INTO test_table ( id, aa, title, mm, kk, f1, f2 ) VALUES
@@ -152,6 +214,21 @@ INSERT INTO string_table VALUES
 (2, 'ASDF'),
 (3, 'qwer'),
 (4, '')
+</db_insert>
+
+<db_insert>
+INSERT INTO string_table1 VALUES
+(1, 'as\'df'),
+(2, 'ASDF'),
+(3, 'as df'),
+(4, '')
+</db_insert>
+
+<db_insert>
+INSERT INTO json_table VALUES
+(1,1,'test one','{"name":"Alice","uid":123}'),
+(2,1,'test two','{"name":"Bob","uid":234,"gid":12}'),
+(3,2,'another doc','{"name":"Charlie","uid":345}')
 </db_insert>
 
 <query_attributes>
@@ -338,6 +415,21 @@ INSERT INTO string_table VALUES
 <sphinxql>select GEODIST(0,0,1,1, {out=m, in=radians} ) FROM dist</sphinxql>
 <sphinxql>select GEODIST(0,0,1,1, {out=m} ) FROM dist</sphinxql>
 <sphinxql>select GEODIST(0,0,1,1, {in=radians} ) FROM dist</sphinxql>
+
+<!-- JDBC, MySQL Connector/J 5.1.36+ multiple sysvars select -->
+<sphinxql>select @@session.auto_increment_increment AS v1, @@character_set_client as v2</sphinxql>
+
+<!-- regression escaped quote cut at distributed index -->
+<sphinxql>SELECT id, IN(string_value,'as\'df') FROM test1_loc order by id asc</sphinxql>
+<sphinxql>SELECT id, IN(string_value,'as\'df') FROM test1_dist order by id asc</sphinxql>
+
+<!-- regression json as string -->
+<sphinxql>SELECT id, j j1, to_string ( j ) FROM test_json order by id asc</sphinxql>
+<sphinxql>SELECT id, j j1, to_string ( j1 ) FROM test_json order by id asc</sphinxql>
+<sphinxql>SELECT id, j.gid j1, to_string ( j.gid ) FROM test_json order by id asc</sphinxql>
+<sphinxql>SELECT id, j.gid j1, to_string ( j1 ) FROM test_json order by id asc</sphinxql>
+<sphinxql>SELECT id, j.uid j1, to_string ( j.uid ) FROM test_json order by id asc</sphinxql>
+<sphinxql>SELECT id, j.uid j1, to_string ( j1 ) FROM test_json order by id asc</sphinxql>
 
 </sphqueries>
 
