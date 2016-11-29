@@ -1220,6 +1220,7 @@ public:
 	virtual bool				GetKeywords ( CSphVector <CSphKeywordInfo> & dKeywords, const char * szQuery, bool bGetStats, CSphString * pError ) const;
 	virtual bool				FillKeywords ( CSphVector <CSphKeywordInfo> & dKeywords ) const;
 	void						AddKeywordStats ( BYTE * sWord, const BYTE * sTokenized, CSphDict * pDict, bool bGetStats, int iQpos, RtQword_t * pQueryWord, CSphVector <CSphKeywordInfo> & dKeywords, const SphChunkGuard_t & tGuard ) const;
+	virtual bool				GetExpansions ( CSphVector <CSphKeywordInfo> & dKeywords, const CSphQuery * pQuery, CSphString * pError );
 
 	void						CopyDocinfo ( CSphMatch & tMatch, const DWORD * pFound ) const;
 	const CSphRowitem *			FindDocinfo ( const RtSegment_t * pSeg, SphDocID_t uDocID ) const;
@@ -6042,12 +6043,24 @@ struct RtExpandedTraits_fn
 	const BYTE * m_sBase;
 };
 
+void sphAddKeyword ( CSphVector <CSphKeywordInfo> * pKeywords, const char * sWord, int iDocs, int iHits )
+{
+	CSphKeywordInfo & tInfo = pKeywords->Add();
+	// maybe 1 byte < 0x20 - magic prefix
+	if ( BYTE(*sWord) < 0x20 )
+		sWord++;
+	tInfo.m_sNormalized = sWord;
+	tInfo.m_iDocs = iDocs;
+	tInfo.m_iHits = iHits;
+}
 
 struct DictEntryRtPayload_t
 {
-	DictEntryRtPayload_t ( bool bPayload, int iSegments )
+	DictEntryRtPayload_t ( bool bPayload, int iSegments, CSphVector <CSphKeywordInfo> * pKeywords )
 	{
 		m_bPayload = bPayload;
+		m_pKeywords = pKeywords;
+
 		if ( bPayload )
 		{
 			m_dWordPayload.Reserve ( 1000 );
@@ -6065,6 +6078,13 @@ struct DictEntryRtPayload_t
 
 	void Add ( const RtWord_t * pWord, int iSegment )
 	{
+		if ( m_pKeywords )
+		{
+			// 1 byte - length
+			sphAddKeyword ( m_pKeywords, (const char *)pWord->m_sWord + 1, pWord->m_uDocs, pWord->m_uHits );
+			return;
+		}
+
 		if ( !m_bPayload || !sphIsExpandedPayload ( pWord->m_uDocs, pWord->m_uHits ) )
 		{
 			RtExpandedEntry_t & tExpand = m_dWordExpand.Add();
@@ -6192,6 +6212,7 @@ struct DictEntryRtPayload_t
 	CSphVector<RtExpandedPayload_t>	m_dWordPayload;
 	CSphVector<BYTE>				m_dWordBuf;
 	CSphVector<Slice_t>				m_dSeg;
+	CSphVector <CSphKeywordInfo> *  m_pKeywords;
 };
 
 
@@ -6201,7 +6222,7 @@ void RtIndex_t::GetPrefixedWords ( const char * sSubstring, int iSubLen, const c
 	int * pWildcard = ( sphIsUTF8 ( sWildcard ) && sphUTF8ToWideChar ( sWildcard, dWildcard, SPH_MAX_WORD_LEN ) ) ? dWildcard : NULL;
 
 	const CSphFixedVector<RtSegment_t*> & dSegments = *((CSphFixedVector<RtSegment_t*> *)tArgs.m_pIndexData);
-	DictEntryRtPayload_t tDict2Payload ( tArgs.m_bPayload, dSegments.GetLength() );
+	DictEntryRtPayload_t tDict2Payload ( tArgs.m_bPayload, dSegments.GetLength(), tArgs.m_pKeywords );
 	const int iSkipMagic = ( BYTE(*sSubstring)<0x20 ); // whether to skip heading magic chars in the prefix, like NONSTEMMED maker
 	ARRAY_FOREACH ( iSeg, dSegments )
 	{
@@ -6310,7 +6331,7 @@ void RtIndex_t::GetInfixedWords ( const char * sSubstring, int iSubLen, const ch
 	const int iSkipMagic = ( tArgs.m_bHasMorphology ? 1 : 0 ); // whether to skip heading magic chars in the prefix, like NONSTEMMED maker
 	const CSphFixedVector<RtSegment_t*> & dSegments = *((CSphFixedVector<RtSegment_t*> *)tArgs.m_pIndexData);
 
-	DictEntryRtPayload_t tDict2Payload ( tArgs.m_bPayload, dSegments.GetLength() );
+	DictEntryRtPayload_t tDict2Payload ( tArgs.m_bPayload, dSegments.GetLength(), tArgs.m_pKeywords );
 	ARRAY_FOREACH ( iSeg, dSegments )
 	{
 		const RtSegment_t * pSeg = dSegments[iSeg];
@@ -7535,6 +7556,77 @@ bool RtIndex_t::FillKeywords ( CSphVector<CSphKeywordInfo> & dKeywords ) const
 	return bGot;
 }
 
+XQNode_t * VLNExpandPrefix ( const CSphIndex * pIndex, XQNode_t * pNode, CSphQueryResultMeta * pResult,
+							 CSphScopedPayload * pPayloads, CSphVector <CSphKeywordInfo> * pKeywords );
+
+bool RtIndex_t::GetExpansions ( CSphVector <CSphKeywordInfo> & dKeywords, const CSphQuery * pQuery, CSphString * pError )
+{
+	// REFACTOR:
+
+	// force ext2 mode for them
+	// FIXME! eliminate this const breakage
+	const_cast<CSphQuery*> ( pQuery )->m_eMode = SPH_MATCH_EXTENDED2;
+
+	SphChunkGuard_t tGuard;
+	GetReaderChunks ( tGuard );
+
+	// wrappers
+	// OPTIMIZE! make a lightweight clone here? and/or remove double clone?
+	CSphScopedPtr<ISphTokenizer> pTokenizer ( m_pTokenizer->Clone ( SPH_CLONE_QUERY ) );
+	sphSetupQueryTokenizer ( pTokenizer.Ptr() );
+
+	CSphScopedPtr<CSphDict> tDictCloned ( NULL );
+	CSphDict * pDict = m_pDict;
+	if ( pDict->HasState() )
+	{
+		tDictCloned = pDict = pDict->Clone();
+	}
+
+	CSphScopedPtr<CSphDict> tDictStar ( NULL );
+	pDict = SetupStarDict ( tDictStar, pDict, pTokenizer.Ptr() );
+
+	CSphScopedPtr<CSphDict> tDictExact ( NULL );
+	pDict = SetupExactDict ( tDictExact, pDict, pTokenizer.Ptr(), true );
+
+	// REFACTOR:
+
+	XQQuery_t tParsed;
+	// FIXME!!! provide segments list instead index to tTermSetup.m_pIndex
+	bool bRes = sphParseExtendedQuery ( tParsed, pQuery->m_sQuery.cstr(), pQuery, pTokenizer.Ptr(), &m_tSchema, pDict, m_tSettings );
+	if ( sphCheckParsedQuery ( bRes, tParsed, pError ) )
+	{
+		CSphQueryResultMeta tResults;
+
+		ARRAY_FOREACH ( iChunk, tGuard.m_dDiskChunks )
+			tParsed.m_pRoot = VLNExpandPrefix ( tGuard.m_dDiskChunks[iChunk], tParsed.m_pRoot, &tResults, NULL, &dKeywords );
+
+		// expanding prefix in word dictionary case
+		CSphScopedPayload tPayloads;
+		if ( m_bKeywordDict && ( m_tSettings.m_iMinPrefixLen>0 || m_tSettings.m_iMinInfixLen>0 ) )
+		{
+			ExpansionContext_t tExpCtx;
+			tExpCtx.m_pWordlist = this;
+			tExpCtx.m_pBuf = NULL;
+
+			//CSphQueryResultMeta tResults;
+			tExpCtx.m_pResult = &tResults;
+
+			tExpCtx.m_iMinPrefixLen = m_tSettings.m_iMinPrefixLen;
+			tExpCtx.m_iMinInfixLen = m_tSettings.m_iMinInfixLen;
+			tExpCtx.m_iExpansionLimit = m_iExpansionLimit;
+			tExpCtx.m_bHasMorphology = m_pDict->HasMorphology();
+			tExpCtx.m_bMergeSingles = true;
+			tExpCtx.m_pPayloads = &tPayloads;
+			tExpCtx.m_pIndexData = &tGuard.m_dRamChunks;
+
+			tExpCtx.m_pKeywords = &dKeywords;
+
+			tParsed.m_pRoot = sphExpandXQNode ( tParsed.m_pRoot, tExpCtx );
+		}
+	}
+
+	return bRes;
+}
 
 static const RtSegment_t * UpdateFindSegment ( const SphChunkGuard_t & tGuard, const CSphRowitem ** ppRow, SphDocID_t uDocID )
 {
