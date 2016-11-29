@@ -1946,6 +1946,8 @@ int main ( int argc, char ** argv )
 				tmRotated = sphMicroTimer();
 			if ( bLastOk )
 				iIndexed++;
+			else
+				iFailed++;
 		}
 	} else
 	{
