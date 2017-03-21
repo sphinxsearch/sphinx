@@ -842,6 +842,7 @@ int main ( int argc, char ** argv )
 		if ( argv[i][0]!='-' ) break;
 		OPT ( "-q", "--quiet" )		{ bQuiet = true; continue; }
 		OPT1 ( "--strip-path" )		{ bStripPath = true; continue; }
+		OPT1 ( "--checkconfig" )	{ eCommand = CMD_CHECKCONFIG; ++i; } // prevent argc != i
 
 		// handle options/commands with 1+ args
 		if ( (i+1)>=argc )			break;
@@ -855,7 +856,6 @@ int main ( int argc, char ** argv )
 		OPT1 ( "--build-infixes" )	{ eCommand = CMD_BUILDINFIXES; sIndex = argv[++i]; }
 		OPT1 ( "--build-skips" )	{ eCommand = CMD_BUILDSKIPS; sIndex = argv[++i]; }
 		OPT1 ( "--morph" )			{ eCommand = CMD_MORPH; sIndex = argv[++i]; }
-		OPT1 ( "--checkconfig" )	{ eCommand = CMD_CHECKCONFIG; ++i; } // prevent argc != i
 		OPT1 ( "--optimize-rt-klists" )
 		{
 			eCommand = CMD_OPTIMIZEKLISTS;
