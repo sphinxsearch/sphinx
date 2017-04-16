@@ -93,7 +93,7 @@ sed -i 's/\r//' api/ruby/lib/sphinx/response.rb
 
 %build
 
-%configure --sysconfdir=/etc/sphinx --with-mysql --with-re2 --with-libstemmer --with-unixodbc --with-iconv --enable-id64 --with-pgsql --with-syslog
+%configure --sysconfdir=/etc/sphinx --with-mysql --with-re2 --with-libstemmer --with-unixodbc --with-iconv --enable-id64 --with-pgsql --with-firebird --with-syslog
 make %{?_smp_mflags}
 
 

@@ -624,6 +624,11 @@ USE_PGSQL_TRUE
 PGSQL_CFLAGS
 PGSQL_LIBS
 pgconfig
+USE_FIREBIRD_FALSE
+USE_FIREBIRD_TRUE
+FIREBIRD_CFLAGS
+FIREBIRD_LIBS
+fbconfig
 USE_MYSQL_FALSE
 USE_MYSQL_TRUE
 MYSQL_CFLAGS
@@ -743,6 +748,10 @@ with_pgsql
 with_static_pgsql
 with_pgsql_includes
 with_pgsql_libs
+with_firebird
+with_static_firebird
+with_firebird_includes
+with_firebird_libs
 enable_id64
 with_libstemmer
 with_libexpat
@@ -1414,6 +1423,11 @@ Optional Packages:
                           no)
   --with-pgsql-includes   path to PostgreSQL header files
   --with-pgsql-libs       path to PostgreSQL libraries
+  --with-firebird             compile with Firebird RDBMS support (default is
+                              disabled)
+  --with-static-firebird      link statically with Firebird RDBMS library (default is no)
+  --with-firebird-includes    path to Firebird RDBMS header files
+  --with-firebird-libs        path to Firebird RDBMS libraries
   --with-libstemmer       compile with libstemmer support (default is
                           disabled)
   --with-libexpat         compile with expat XML library suppport (default is
@@ -7925,6 +7939,458 @@ else
 fi
 
 
+
+# check if we should compile with Firebird support
+
+# Check whether --with-firebird was given.
+if test "${with_firebird+set}" = set; then :
+  withval=$with_firebird; ac_cv_use_firebird=$withval
+else
+  ac_cv_use_firebird=no
+
+fi
+
+# check if we should statically link the Firebird RDBMS library
+
+# Check whether --with-static-firebird was given.
+if test "${with_static_firebird+set}" = set; then :
+  withval=$with_static_firebird; ac_cv_use_static_firebird=$withval
+else
+  ac_cv_use_static_firebird=no
+
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to compile with Firebird RDBMS support" >&5
+$as_echo_n "checking whether to compile with Firebird RDBMS support... " >&6; }
+if test x$ac_cv_use_static_firebird != xno -o x$ac_cv_use_firebird != xno
+then
+	dl_firebird=0
+	if test x$ac_cv_use_static_firebird != xno ; then
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: static" >&5
+$as_echo "static" >&6; }
+
+
+# Check for custom includes path
+if test  -z "$ac_cv_firebird_includes"
+then
+
+# Check whether --with-firebird-includes was given.
+if test "${with_firebird_includes+set}" = set; then :
+  withval=$with_firebird_includes; ac_cv_firebird_includes=$withval
+fi
+
+fi
+if test  -n "$ac_cv_firebird_includes"
+then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking Firebird RDBMS includes" >&5
+$as_echo_n "checking Firebird RDBMS includes... " >&6; }
+if ${ac_cv_firebird_includes+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_cv_firebird_includes=""
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_firebird_includes" >&5
+$as_echo "$ac_cv_firebird_includes" >&6; }
+	FIREBIRD_CFLAGS="-I$ac_cv_firebird_includes"
+fi
+
+# Check for custom library path
+if test  -z "$ac_cv_firebird_libs"
+then
+
+# Check whether --with-firebird-libs was given.
+if test "${with_firebird_libs+set}" = set; then :
+  withval=$with_firebird_libs; ac_cv_firebird_libs=$withval
+fi
+
+fi
+if test  -n "$ac_cv_firebird_libs"
+then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking Firebird libraries" >&5
+$as_echo_n "checking Firebird libraries... " >&6; }
+if ${ac_cv_firebird_libs+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_cv_firebird_libs=""
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_firebird_libs" >&5
+$as_echo "$ac_cv_firebird_libs" >&6; }
+	FIREBIRD_PKGLIBDIR="$ac_cv_firebird_libs"
+	FIREBIRD_LIBS="-L$FIREBIRD_PKGLIBDIR -lfbclient"
+fi
+
+# If some path is missing, try to autodetermine with fb_config
+if test  -z "$ac_cv_firebird_includes" -o -z "$ac_cv_firebird_libs"
+then
+    if test  -z "$fbconfig"
+    then
+        # Extract the first word of "fb_config", so it can be a program name with args.
+set dummy fb_config; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_fbconfig+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $fbconfig in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_fbconfig="$fbconfig" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_fbconfig="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+fbconfig=$ac_cv_path_fbconfig
+if test -n "$fbconfig"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $fbconfig" >&5
+$as_echo "$fbconfig" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+    fi
+    if test  -z "$fbconfig"
+    then
+        as_fn_error $? "fb_config executable not found
+********************************************************************************
+ERROR: cannot find Firebird RDBMS libraries. If you want to compile with Firebird support,
+       you must either specify file locations explicitly using
+       --with-firebird-includes and --with-firebird-libs options, or make sure path to
+       fb_config is listed in your PATH environment variable. If you want to
+       disable Firebird RDBMS support, use --without-firebird option.
+********************************************************************************
+" "$LINENO" 5
+    else
+        if test  -z "$ac_cv_firebird_includes"
+        then
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking Firebird RDBMS C flags" >&5
+$as_echo_n "checking Firebird RDBMS C flags... " >&6; }
+            FIREBIRD_CFLAGS="`${fbconfig} --cflags`"
+            { $as_echo "$as_me:${as_lineno-$LINENO}: result: $FIREBIRD_CFLAGS" >&5
+$as_echo "$FIREBIRD_CFLAGS" >&6; }
+        fi
+        if test  -z "$ac_cv_firebird_libs"
+        then
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking Firebird RDBMS linker flags" >&5
+$as_echo_n "checking Firebird RDBMS linker flags... " >&6; }
+            FIREBIRD_PKGLIBDIR=`${fbconfig} --libs`
+            FIREBIRD_LIBS="$FIREBIRD_PKGLIBDIR"
+            { $as_echo "$as_me:${as_lineno-$LINENO}: result: $FIREBIRD_LIBS" >&5
+$as_echo "$FIREBIRD_LIBS" >&6; }
+        fi
+    fi
+fi
+
+		FIREBIRD_LIBS=`echo $FIREBIRD_LIBS | sed -e "sX-lfbclientX$FIREBIRD_PKGLIBDIR/libfbclient.aXg"`
+	else
+		if test x$sph_usedl == xyes ; then
+			{ $as_echo "$as_me:${as_lineno-$LINENO}: result: runtime dynamic" >&5
+$as_echo "runtime dynamic" >&6; }
+
+
+# Check for custom includes path
+if test  -z "$ac_cv_firebird_includes"
+then
+
+# Check whether --with-firebird-includes was given.
+if test "${with_firebird_includes+set}" = set; then :
+  withval=$with_firebird_includes; ac_cv_firebird_includes=$withval
+fi
+
+fi
+if test  -n "$ac_cv_firebird_includes"
+then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking Firebird RDBMS includes" >&5
+$as_echo_n "checking Firebird RDBMS includes... " >&6; }
+if ${ac_cv_firebird_includes+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_cv_firebird_includes=""
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_firebird_includes" >&5
+$as_echo "$ac_cv_firebird_includes" >&6; }
+	FIREBIRD_CFLAGS="-I$ac_cv_firebird_includes"
+fi
+
+# Check for custom library path
+if test  -z "$ac_cv_firebird_libs"
+then
+
+# Check whether --with-firebird-libs was given.
+if test "${with_firebird_libs+set}" = set; then :
+  withval=$with_firebird_libs; ac_cv_firebird_libs=$withval
+fi
+
+fi
+if test  -n "$ac_cv_firebird_libs"
+then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking Firebird RDBMS libraries" >&5
+$as_echo_n "checking Firebird RDBMS libraries... " >&6; }
+if ${ac_cv_firebird_libs+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_cv_firebird_libs=""
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_firebird_libs" >&5
+$as_echo "$ac_cv_firebird_libs" >&6; }
+	FIREBIRD_PKGLIBDIR="$ac_cv_firebird_libs"
+	FIREBIRD_LIBS="-L$FIREBIRD_PKGLIBDIR -lfbclient"
+fi
+
+# If some path is missing, try to autodetermine with firebird_config
+if test  -z "$ac_cv_firebird_includes" -o -z "$ac_cv_firebird_libs"
+then
+    if test  -z "$fbconfig"
+    then
+        # Extract the first word of "fb_config", so it can be a program name with args.
+set dummy fb_config; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_fbconfig+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $fbconfig in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_fbconfig="$fbconfig" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_fbconfig="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+fbconfig=$ac_cv_path_fbconfig
+if test -n "$fbconfig"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $fbconfig" >&5
+$as_echo "$fbconfig" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+    fi
+    if test  -z "$fbconfig"
+    then
+        as_fn_error $? "fb_config executable not found
+********************************************************************************
+ERROR: cannot find Firebird RDBMS libraries. If you want to compile with Firebird RDBMS support,
+       you must either specify file locations explicitly using
+       --with-firebird-includes and --with-firebird-libs options, or make sure path to
+       fb_config is listed in your PATH environment variable. If you want to
+       disable Firebird RDBMS support, use --without-firebird option.
+********************************************************************************
+" "$LINENO" 5
+    else
+        if test  -z "$ac_cv_firebird_includes"
+        then
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking Firebird RDBMS C flags" >&5
+$as_echo_n "checking Firebird RDBMS C flags... " >&6; }
+            FIREBIRD_CFLAGS="`${fbconfig} --cflags`"
+            { $as_echo "$as_me:${as_lineno-$LINENO}: result: $FIREBIRD_CFLAGS" >&5
+$as_echo "$FIREBIRD_CFLAGS" >&6; }
+        fi
+        if test  -z "$ac_cv_firebird_libs"
+        then
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking Firebird RDBMS linker flags" >&5
+$as_echo_n "checking Firebird RDBMS linker flags... " >&6; }
+            FIREBIRD_PKGLIBDIR=`${fbconfig} --libs`
+            FIREBIRD_LIBS="$FIREBIRD_PKGLIBDIR"
+            { $as_echo "$as_me:${as_lineno-$LINENO}: result: $FIREBIRD_LIBS" >&5
+$as_echo "$FIREBIRD_LIBS" >&6; }
+        fi
+    fi
+fi
+
+			FIREBIRD_LIBS=""
+			dl_firebird=1
+		else
+			{ $as_echo "$as_me:${as_lineno-$LINENO}: result: dynamic" >&5
+$as_echo "dynamic" >&6; }
+
+
+# Check for custom includes path
+if test  -z "$ac_cv_firebird_includes"
+then
+
+# Check whether --with-firebird-includes was given.
+if test "${with_firebird_includes+set}" = set; then :
+  withval=$with_firebird_includes; ac_cv_firebird_includes=$withval
+fi
+
+fi
+if test  -n "$ac_cv_firebird_includes"
+then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking Firebird RDBMS includes" >&5
+$as_echo_n "checking Firebird RDBMS includes... " >&6; }
+if ${ac_cv_firebird_includes+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_cv_firebird_includes=""
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_firebird_includes" >&5
+$as_echo "$ac_cv_firebird_includes" >&6; }
+	FIREBIRD_CFLAGS="-I$ac_cv_firebird_includes"
+fi
+
+# Check for custom library path
+if test  -z "$ac_cv_firebird_libs"
+then
+
+# Check whether --with-firebird-libs was given.
+if test "${with_firebird_libs+set}" = set; then :
+  withval=$with_firebird_libs; ac_cv_firebird_libs=$withval
+fi
+
+fi
+if test  -n "$ac_cv_firebird_libs"
+then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking Firebird RDBMS libraries" >&5
+$as_echo_n "checking Firebird RDBMS libraries... " >&6; }
+if ${ac_cv_firebird_libs+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_cv_firebird_libs=""
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_firebird_libs" >&5
+$as_echo "$ac_cv_firebird_libs" >&6; }
+	FIREBIRD_PKGLIBDIR="$ac_cv_firebird_libs"
+	FIREBIRD_LIBS="-L$FIREBIRD_PKGLIBDIR -lfbclient"
+fi
+
+# If some path is missing, try to autodetermine with firebird_config
+if test  -z "$ac_cv_firebird_includes" -o -z "$ac_cv_firebird_libs"
+then
+    if test  -z "$fbconfig"
+    then
+        # Extract the first word of "fb_config", so it can be a program name with args.
+set dummy fb_config; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_fbconfig+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $fbconfig in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_fbconfig="$fbconfig" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_fbconfig="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+fbconfig=$ac_cv_path_fbconfig
+if test -n "$fbconfig"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $fbconfig" >&5
+$as_echo "$fbconfig" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+    fi
+    if test  -z "$fbconfig"
+    then
+        as_fn_error $? "fb_config executable not found
+********************************************************************************
+ERROR: cannot find Firebird RDBMS libraries. If you want to compile with Firebird RDBMS support,
+       you must either specify file locations explicitly using
+       --with-firebird-includes and --with-firebird-libs options, or make sure path to
+       fb_config is listed in your PATH environment variable. If you want to
+       disable Firebird RDBMS support, use --without-firebird option.
+********************************************************************************
+" "$LINENO" 5
+    else
+        if test  -z "$ac_cv_firebird_includes"
+        then
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking Firebird RDBMS C flags" >&5
+$as_echo_n "checking Firebird RDBMS C flags... " >&6; }
+            FIREBIRD_CFLAGS="`${fbconfig} --cflags`"
+            { $as_echo "$as_me:${as_lineno-$LINENO}: result: $FIREBIRD_CFLAGS" >&5
+$as_echo "$FIREBIRD_CFLAGS" >&6; }
+        fi
+        if test  -z "$ac_cv_firebird_libs"
+        then
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking Firebird RDBMS linker flags" >&5
+$as_echo_n "checking Firebird RDBMS linker flags... " >&6; }
+            FIREBIRD_PKGLIBDIR=`${fbconfig} --libs`
+            FIREBIRD_LIBS="$FIREBIRD_PKGLIBDIR"
+            { $as_echo "$as_me:${as_lineno-$LINENO}: result: $FIREBIRD_LIBS" >&5
+$as_echo "$FIREBIRD_LIBS" >&6; }
+        fi
+    fi
+fi
+
+		fi
+	fi
+
+$as_echo "#define USE_FIREBIRD 1" >>confdefs.h
+
+
+cat >>confdefs.h <<_ACEOF
+#define DL_FIREBIRD $dl_firebird
+_ACEOF
+
+
+
+else
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+ if test x$ac_cv_use_firebird != xno -o x$ac_cv_use_static_firebird != xno ; then
+  USE_FIREBIRD_TRUE=
+  USE_FIREBIRD_FALSE='#'
+else
+  USE_FIREBIRD_TRUE='#'
+  USE_FIREBIRD_FALSE=
+fi
+
+
+
 # add macports include directory
 if (echo $MYSQL_LIBS | grep -q -- -L/opt/local/lib); then
    MYSQL_CFLAGS="$MYSQL_CFLAGS -I/opt/local/include"
@@ -8089,7 +8555,7 @@ fi
 
 
 # we can now set preprocessor flags for both C and C++ compilers
-CPPFLAGS="$CPPFLAGS $MYSQL_CFLAGS $PGSQL_CFLAGS $LIBSTEMMER_CFLAGS"
+CPPFLAGS="$CPPFLAGS $MYSQL_CFLAGS $PGSQL_CFLAGS $FIREBIRD_CFLAGS $LIBSTEMMER_CFLAGS"
 
 
 
@@ -8255,7 +8721,7 @@ fi
 
 
 # we can now set preprocessor flags for both C and C++ compilers
-CPPFLAGS="$CPPFLAGS $MYSQL_CFLAGS $PGSQL_CFLAGS $LIBRE2_CFLAGS"
+CPPFLAGS="$CPPFLAGS $MYSQL_CFLAGS $PGSQL_CFLAGS $FIREBIRD_CFLAGS $LIBRE2_CFLAGS"
 
 
 # Check whether --with-rlp was given.
@@ -9158,6 +9624,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${USE_PGSQL_TRUE}" && test -z "${USE_PGSQL_FALSE}"; then
   as_fn_error $? "conditional \"USE_PGSQL\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${USE_FIREBIRD_TRUE}" && test -z "${USE_FIREBIRD_FALSE}"; then
+  as_fn_error $? "conditional \"USE_FIREBIRD\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${USE_LIBSTEMMER_TRUE}" && test -z "${USE_LIBSTEMMER_FALSE}"; then
