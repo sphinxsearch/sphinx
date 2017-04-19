@@ -288,6 +288,9 @@
 /* RLP library support */
 #undef USE_RLP
 
+/* SCWS library support */
+#undef USE_SCWS
+
 /* define to use POSIX Syslog for logging */
 #undef USE_SYSLOG
 
