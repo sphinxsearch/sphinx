@@ -553,6 +553,28 @@ AM_CONDITIONAL(USE_RLP, test x$ac_cv_use_rlp != xno)
 
 dnl ---
 
+AC_ARG_WITH([scws],
+	AC_HELP_STRING([--with-scws], [compile with scws library support (default is disabled)]),
+	[ac_cv_use_scws=$withval], [ac_cv_use_scws=no]
+)
+
+AC_MSG_CHECKING([whether to compile with scws library support])
+if test x$ac_cv_use_scws != xno; then
+	if test -d $ac_cv_use_scws && test -f $ac_cv_use_scws/include/scws/scws.h; then
+		AC_MSG_RESULT([yes])
+		AC_DEFINE(USE_SCWS, 1, [scws library support])
+	else
+		AC_MSG_ERROR([missing scws sources from libscws])
+	fi
+else
+	AC_MSG_RESULT([no])
+	AC_DEFINE(USE_SCWS, 0, [scws library support])
+fi
+AM_CONDITIONAL(USE_SCWS, test x$ac_cv_use_scws != xno)
+
+
+dnl ---
+
 got_expat=0
 dl_expat=0
 AC_MSG_CHECKING([for libexpat])

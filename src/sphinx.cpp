@@ -2576,6 +2576,7 @@ protected:
 
 
 /// SCWS tokenizer
+#if USE_SCWS
 template < bool IS_QUERY >
 class CSphTokenizer_SCWS : public CSphTokenizerBase2
 {
@@ -2588,11 +2589,12 @@ public:
         virtual int                 GetCodepointLength ( int iCode ) const;
         virtual int                 GetMaxCodepointLength () const { return m_tLC.GetMaxCodepointLength(); }
 
-      
+  
     scws_t s; 
     scws_res_t cur;
-};
 
+};
+#endif
 
 struct CSphNormalForm
 {
@@ -3811,11 +3813,13 @@ ISphTokenizer * sphCreateUTF8NgramTokenizer ()
 {
 	return new CSphTokenizer_UTF8Ngram<false> ();
 }
+
+#if USE_SCWS
 ISphTokenizer * sphCreateUTF8SCWSTokenizer ()
 {
         return new CSphTokenizer_SCWS<false> ();
 }
-
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -4414,8 +4418,13 @@ bool LoadTokenizerSettings ( CSphReader & tReader, CSphTokenizerSettings & tSett
 
 	tSettings.m_iType = tReader.GetByte ();
 
-        if ( tSettings.m_iType!=TOKENIZER_UTF8 && tSettings.m_iType!=TOKENIZER_NGRAM && tSettings.m_iType!=TOKENIZER_SCWS)
-	{
+        if ( 
+                tSettings.m_iType!=TOKENIZER_UTF8 
+                && tSettings.m_iType!=TOKENIZER_NGRAM  
+#if USE_SCWS
+                && tSettings.m_iType!=TOKENIZER_SCWS
+#endif
+        ){
 		sWarning = "can't load an old index with SBCS tokenizer";
 		return false;
 	}
@@ -4746,9 +4755,9 @@ ISphTokenizer * ISphTokenizer::Create ( const CSphTokenizerSettings & tSettings,
 	switch ( tSettings.m_iType )
 	{
 		case TOKENIZER_UTF8:	pTokenizer = sphCreateUTF8Tokenizer (); break;
-
+#if USE_SCWS
 		case TOKENIZER_SCWS:	pTokenizer = sphCreateUTF8SCWSTokenizer (); break;
-                
+#endif               
 		case TOKENIZER_NGRAM:	pTokenizer = sphCreateUTF8NgramTokenizer (); break;
 		default:
 			sError.SetSprintf ( "failed to create tokenizer (unknown charset type '%d')", tSettings.m_iType );
@@ -6445,16 +6454,24 @@ BYTE * CSphTokenizer_UTF8Ngram<IS_QUERY>::GetToken ()
 
 /////////////////////////////////////////////////////////////////////////////
 
+#if USE_SCWS
+
+
+
 template < bool IS_QUERY >
 CSphTokenizer_SCWS<IS_QUERY>::CSphTokenizer_SCWS ()
 {
+
         s = scws_new();
+
 }
 template < bool IS_QUERY >
 CSphTokenizer_SCWS<IS_QUERY>::~CSphTokenizer_SCWS ()
 {
+
         scws_free_result(cur);
         scws_free(s);
+
 }
 
 
@@ -6536,7 +6553,7 @@ int CSphTokenizer_SCWS<IS_QUERY>::GetCodepointLength ( int iCode ) const
         assert ( iBytes>=2 && iBytes<=4 );
         return iBytes;
 }
-
+#endif
 //////////////////////////////////////////////////////////////////////////
 
 CSphMultiformTokenizer::CSphMultiformTokenizer ( ISphTokenizer * pTokenizer, const CSphMultiformContainer * pContainer )

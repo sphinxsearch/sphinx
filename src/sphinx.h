@@ -504,11 +504,11 @@ struct CSphTokenizerSettings
 	CSphString			m_sBlendMode;
         
 
-        
+ #if USE_SCWS       
         CSphString                      m_scwsDict;
         CSphString                      m_scwsRule;
         int                      m_scwsMulti;
-        
+#endif      
 
 	CSphString			m_sIndexingPlugin;	///< this tokenizer wants an external plugin to process its raw output
 
