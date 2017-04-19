@@ -6462,7 +6462,10 @@ template < bool IS_QUERY >
 CSphTokenizer_SCWS<IS_QUERY>::CSphTokenizer_SCWS ()
 {
 
-        s = scws_new();
+	CSphString sTmp;
+	SetCaseFolding ( SPHINX_DEFAULT_UTF8_TABLE, sTmp );
+	m_bHasBlend = false;
+	s = scws_new();
 
 }
 template < bool IS_QUERY >
