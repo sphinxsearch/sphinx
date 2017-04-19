@@ -2575,6 +2575,25 @@ protected:
 };
 
 
+/// SCWS tokenizer
+template < bool IS_QUERY >
+class CSphTokenizer_SCWS : public CSphTokenizerBase2
+{
+public:
+                                                    CSphTokenizer_SCWS ();
+                                                    ~CSphTokenizer_SCWS ();
+        virtual void                SetBuffer ( const BYTE * sBuffer, int iLength );
+        virtual BYTE *              GetToken ();
+        virtual ISphTokenizer *     Clone ( ESphTokenizerClone eMode ) const;
+        virtual int                 GetCodepointLength ( int iCode ) const;
+        virtual int                 GetMaxCodepointLength () const { return m_tLC.GetMaxCodepointLength(); }
+
+      
+    scws_t s; 
+    scws_res_t cur;
+};
+
+
 struct CSphNormalForm
 {
 	CSphString				m_sForm;
@@ -3792,6 +3811,11 @@ ISphTokenizer * sphCreateUTF8NgramTokenizer ()
 {
 	return new CSphTokenizer_UTF8Ngram<false> ();
 }
+ISphTokenizer * sphCreateUTF8SCWSTokenizer ()
+{
+        return new CSphTokenizer_SCWS<false> ();
+}
+
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -4389,7 +4413,8 @@ bool LoadTokenizerSettings ( CSphReader & tReader, CSphTokenizerSettings & tSett
 		return true;
 
 	tSettings.m_iType = tReader.GetByte ();
-	if ( tSettings.m_iType!=TOKENIZER_UTF8 && tSettings.m_iType!=TOKENIZER_NGRAM )
+
+        if ( tSettings.m_iType!=TOKENIZER_UTF8 && tSettings.m_iType!=TOKENIZER_NGRAM && tSettings.m_iType!=TOKENIZER_SCWS)
 	{
 		sWarning = "can't load an old index with SBCS tokenizer";
 		return false;
@@ -4717,10 +4742,13 @@ void ISphTokenizer::Setup ( const CSphTokenizerSettings & tSettings )
 ISphTokenizer * ISphTokenizer::Create ( const CSphTokenizerSettings & tSettings, const CSphEmbeddedFiles * pFiles, CSphString & sError )
 {
 	CSphScopedPtr<ISphTokenizer> pTokenizer ( NULL );
-
+        
 	switch ( tSettings.m_iType )
 	{
 		case TOKENIZER_UTF8:	pTokenizer = sphCreateUTF8Tokenizer (); break;
+
+		case TOKENIZER_SCWS:	pTokenizer = sphCreateUTF8SCWSTokenizer (); break;
+                
 		case TOKENIZER_NGRAM:	pTokenizer = sphCreateUTF8NgramTokenizer (); break;
 		default:
 			sError.SetSprintf ( "failed to create tokenizer (unknown charset type '%d')", tSettings.m_iType );
@@ -6412,6 +6440,101 @@ BYTE * CSphTokenizer_UTF8Ngram<IS_QUERY>::GetToken ()
 	// !COMMIT support other n-gram lengths than 1
 	assert ( m_iNgramLen==1 );
 	return CSphTokenizer_UTF8<IS_QUERY>::GetToken ();
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+
+template < bool IS_QUERY >
+CSphTokenizer_SCWS<IS_QUERY>::CSphTokenizer_SCWS ()
+{
+        s = scws_new();
+}
+template < bool IS_QUERY >
+CSphTokenizer_SCWS<IS_QUERY>::~CSphTokenizer_SCWS ()
+{
+        scws_free_result(cur);
+        scws_free(s);
+}
+
+
+template < bool IS_QUERY >
+void CSphTokenizer_SCWS<IS_QUERY>::SetBuffer ( const BYTE * sBuffer, int iLength )
+{
+        // check that old one is over and that new length is sane
+        assert ( iLength>=0 );
+        
+        if ( !m_tSettings.m_scwsDict.IsEmpty ()  )
+	{ 
+            scws_set_dict(s, m_tSettings.m_scwsDict.cstr (), SCWS_XDICT_TXT | SCWS_XDICT_XDB | SCWS_XDICT_MEM);
+	}
+        if ( !m_tSettings.m_scwsRule.IsEmpty ())
+	{ 
+            scws_set_rule(s, m_tSettings.m_scwsDict.cstr ());
+	}
+        scws_set_charset(s, "utf8");
+        
+        
+        if ( m_tSettings.m_scwsMulti)
+	{ 
+            scws_set_multi(s, m_tSettings.m_scwsMulti << 12);
+	}else{
+            scws_set_multi(s, 0);
+        }
+        m_pBuffer = sBuffer;
+        scws_send_text(s, (char*)m_pBuffer, iLength);
+}
+
+
+template < bool IS_QUERY >
+BYTE * CSphTokenizer_SCWS<IS_QUERY>::GetToken ()
+{
+        if (cur == NULL)
+        {
+            cur = scws_get_result(s);
+            if(cur == NULL){
+                return NULL;
+            }
+        }
+        memcpy(m_sAccum, m_pBuffer+cur->off, cur->len);
+        m_sAccum[cur->len]='\0';
+        m_pCur += cur->off;
+        cur = cur->next;
+        return m_sAccum;
+        
+}
+
+template < bool IS_QUERY >
+ISphTokenizer * CSphTokenizer_SCWS<IS_QUERY>::Clone ( ESphTokenizerClone eMode ) const
+{
+        if ( eMode!=SPH_CLONE_INDEX ) {
+                CSphTokenizer_SCWS<true> *pClone = new CSphTokenizer_SCWS<true>();
+                pClone->CloneBase ( this, eMode );
+                return pClone;
+
+        } else {
+                CSphTokenizer_SCWS<false> *pClone = new CSphTokenizer_SCWS<false>();
+                pClone->CloneBase ( this, eMode );
+                return pClone;
+        }
+}
+
+
+template < bool IS_QUERY >
+int CSphTokenizer_SCWS<IS_QUERY>::GetCodepointLength ( int iCode ) const
+{
+        if ( iCode<128 )
+                return 1;
+
+        int iBytes = 0;
+        while ( iCode & 0x80 )
+        {
+                iBytes++;
+                iCode <<= 1;
+        }
+
+        assert ( iBytes>=2 && iBytes<=4 );
+        return iBytes;
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -66,6 +66,10 @@
 #include <mysql.h>
 #endif
 
+#if USE_SCWS
+#include <scws/scws.h>
+#endif
+
 #if USE_WINDOWS
 typedef __int64				SphOffset_t;
 #define STDOUT_FILENO		fileno(stdout)
@@ -498,6 +502,14 @@ struct CSphTokenizerSettings
 	CSphString			m_sNgramChars;
 	CSphString			m_sBlendChars;
 	CSphString			m_sBlendMode;
+        
+
+        
+        CSphString                      m_scwsDict;
+        CSphString                      m_scwsRule;
+        int                      m_scwsMulti;
+        
+
 	CSphString			m_sIndexingPlugin;	///< this tokenizer wants an external plugin to process its raw output
 
 						CSphTokenizerSettings ();
