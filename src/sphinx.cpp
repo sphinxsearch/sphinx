@@ -6490,6 +6490,7 @@ void CSphTokenizer_SCWS<IS_QUERY>::SetBuffer ( const BYTE * sBuffer, int iLength
             scws_set_rule(s, m_tSettings.m_scwsDict.cstr ());
 	}
         scws_set_charset(s, "utf8");
+		scws_set_ignore(s, true);
         
         
         if ( m_tSettings.m_scwsMulti)
