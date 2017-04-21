@@ -2586,12 +2586,32 @@ public:
         virtual void                SetBuffer ( const BYTE * sBuffer, int iLength );
         virtual BYTE *              GetToken ();
         virtual ISphTokenizer *     Clone ( ESphTokenizerClone eMode ) const;
+		virtual void				Setup ( const CSphTokenizerSettings & tSettings )				{ 
+			CSphTokenizerBase2::Setup ( tSettings ); 
+			if ( !m_tSettings.m_scwsDict.IsEmpty ()  )
+			{ 
+				scws_set_dict(s, m_tSettings.m_scwsDict.cstr (), SCWS_XDICT_TXT | SCWS_XDICT_XDB | SCWS_XDICT_MEM);
+			}
+			if ( !m_tSettings.m_scwsRule.IsEmpty ())
+			{ 
+				scws_set_rule(s, m_tSettings.m_scwsDict.cstr ());
+			}
+			scws_set_charset(s, "utf8");
+			scws_set_ignore(s, true);
+
+
+			if ( m_tSettings.m_scwsMulti)
+			{ 
+				scws_set_multi(s, m_tSettings.m_scwsMulti << 12);
+			}else{
+				scws_set_multi(s, 0);
+			}
+		}
         virtual int                 GetCodepointLength ( int iCode ) const;
         virtual int                 GetMaxCodepointLength () const { return m_tLC.GetMaxCodepointLength(); }
 
-  
-    scws_t s; 
-    scws_res_t cur;
+		scws_t s; 
+		scws_res_t cur;
 
 };
 #endif
@@ -6484,24 +6504,6 @@ void CSphTokenizer_SCWS<IS_QUERY>::SetBuffer ( const BYTE * sBuffer, int iLength
         // check that old one is over and that new length is sane
         assert ( iLength>=0 );
         
-        if ( !m_tSettings.m_scwsDict.IsEmpty ()  )
-	{ 
-            scws_set_dict(s, m_tSettings.m_scwsDict.cstr (), SCWS_XDICT_TXT | SCWS_XDICT_XDB | SCWS_XDICT_MEM);
-	}
-        if ( !m_tSettings.m_scwsRule.IsEmpty ())
-	{ 
-            scws_set_rule(s, m_tSettings.m_scwsDict.cstr ());
-	}
-        scws_set_charset(s, "utf8");
-		scws_set_ignore(s, true);
-        
-        
-        if ( m_tSettings.m_scwsMulti)
-	{ 
-            scws_set_multi(s, m_tSettings.m_scwsMulti << 12);
-	}else{
-            scws_set_multi(s, 0);
-        }
         m_pBuffer = sBuffer;
         scws_send_text(s, (char*)m_pBuffer, iLength);
 }
