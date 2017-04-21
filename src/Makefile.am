@@ -31,7 +31,7 @@ RLP_INC =
 endif
 
 if USE_SCWS
-SCWS_LIBS = -L@ac_cv_use_scws@/lib/ -lscws
+SCWS_LIBS = @ac_cv_use_scws@/lib/libscws.a
 SCWS_INC = -I@ac_cv_use_scws@/include
 else
 SCWS_LIBS =

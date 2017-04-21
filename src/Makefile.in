@@ -238,7 +238,7 @@ BUILT_SOURCES = extract-version
 @USE_RLP_FALSE@RLP_INC = 
 @USE_RLP_TRUE@RLP_INC = -I$(top_srcdir)/rlp/rlp/include -I$(top_srcdir)/rlp/utilities/include -D_REENTRANT
 @USE_SCWS_FALSE@SCWS_LIBS = 
-@USE_SCWS_TRUE@SCWS_LIBS = -L@ac_cv_use_scws@/lib/ -lscws
+@USE_SCWS_TRUE@SCWS_LIBS = @ac_cv_use_scws@/lib/libscws.a
 @USE_SCWS_FALSE@SCWS_INC = 
 @USE_SCWS_TRUE@SCWS_INC = -I@ac_cv_use_scws@/include
 AM_CPPFLAGS = $(LIBRE2_CFLAGS) $(RLP_INC) $(SCWS_INC) -DSYSCONFDIR="\"$(sysconfdir)\"" -DDATADIR="\"$(localstatedir)/data\""
