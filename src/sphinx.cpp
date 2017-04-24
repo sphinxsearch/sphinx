@@ -2590,7 +2590,7 @@ public:
 			CSphTokenizerBase2::Setup ( tSettings ); 
 			if ( !tSettings.m_scwsDict.IsEmpty ()  )
 			{ 
-				scws_set_dict(s, tSettings.m_scwsDict.cstr (), SCWS_XDICT_TXT | SCWS_XDICT_XDB | SCWS_XDICT_MEM);
+				scws_set_dict(s, tSettings.m_scwsDict.cstr (), SCWS_XDICT_TXT | SCWS_XDICT_XDB);
 			}
 			if ( !tSettings.m_scwsRule.IsEmpty ())
 			{ 
