@@ -455,6 +455,7 @@ protected:
 
 	int					m_iChunks;					///< how much chunks are actually allocated
 	int *				m_pData;					///< chunks themselves
+public:
 	int *				m_pChunk [ CHUNK_COUNT ];	///< pointers to non-empty chunks
 };
 

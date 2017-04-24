@@ -2588,30 +2588,31 @@ public:
         virtual ISphTokenizer *     Clone ( ESphTokenizerClone eMode ) const;
 		virtual void				Setup ( const CSphTokenizerSettings & tSettings )				{ 
 			CSphTokenizerBase2::Setup ( tSettings ); 
-			if ( !m_tSettings.m_scwsDict.IsEmpty ()  )
+			if ( !tSettings.m_scwsDict.IsEmpty ()  )
 			{ 
-				scws_set_dict(s, m_tSettings.m_scwsDict.cstr (), SCWS_XDICT_TXT | SCWS_XDICT_XDB | SCWS_XDICT_MEM);
+				scws_set_dict(s, tSettings.m_scwsDict.cstr (), SCWS_XDICT_TXT | SCWS_XDICT_XDB | SCWS_XDICT_MEM);
 			}
-			if ( !m_tSettings.m_scwsRule.IsEmpty ())
+			if ( !tSettings.m_scwsRule.IsEmpty ())
 			{ 
-				scws_set_rule(s, m_tSettings.m_scwsDict.cstr ());
+				scws_set_rule(s, tSettings.m_scwsDict.cstr ());
 			}
 			scws_set_charset(s, "utf8");
 			scws_set_ignore(s, true);
 
 
-			if ( m_tSettings.m_scwsMulti)
+			if ( tSettings.m_scwsMulti)
 			{ 
-				scws_set_multi(s, m_tSettings.m_scwsMulti << 12);
+				scws_set_multi(s, tSettings.m_scwsMulti << 12);
 			}else{
 				scws_set_multi(s, 0);
 			}
 		}
         virtual int                 GetCodepointLength ( int iCode ) const;
         virtual int                 GetMaxCodepointLength () const { return m_tLC.GetMaxCodepointLength(); }
+	const BYTE * m_pText;
 
 		scws_t s; 
-		scws_res_t cur;
+		scws_res_t res,cur;
 
 };
 #endif
@@ -4475,6 +4476,11 @@ bool LoadTokenizerSettings ( CSphReader & tReader, CSphTokenizerSettings & tSett
 		tSettings.m_sBlendChars = tReader.GetString ();
 	if ( uVersion>=24 )
 		tSettings.m_sBlendMode = tReader.GetString();
+#if USE_SCWS
+	tSettings.m_scwsMulti= tReader.GetDword();
+	tSettings.m_scwsDict= tReader.GetString();
+	tSettings.m_scwsRule= tReader.GetString();
+#endif
 
 	return true;
 }
@@ -4504,6 +4510,11 @@ void SaveTokenizerSettings ( CSphWriter & tWriter, ISphTokenizer * pTokenizer, i
 	tWriter.PutString ( tSettings.m_sNgramChars.cstr () );
 	tWriter.PutString ( tSettings.m_sBlendChars.cstr () );
 	tWriter.PutString ( tSettings.m_sBlendMode.cstr () );
+#if USE_SCWS
+	tWriter.PutDword( tSettings.m_scwsMulti);
+	tWriter.PutString ( tSettings.m_scwsDict.cstr()) ;
+	tWriter.PutString ( tSettings.m_scwsRule.cstr());
+#endif
 }
 
 
@@ -6491,10 +6502,7 @@ CSphTokenizer_SCWS<IS_QUERY>::CSphTokenizer_SCWS ()
 template < bool IS_QUERY >
 CSphTokenizer_SCWS<IS_QUERY>::~CSphTokenizer_SCWS ()
 {
-
-        scws_free_result(cur);
         scws_free(s);
-
 }
 
 
@@ -6503,28 +6511,285 @@ void CSphTokenizer_SCWS<IS_QUERY>::SetBuffer ( const BYTE * sBuffer, int iLength
 {
         // check that old one is over and that new length is sane
         assert ( iLength>=0 );
+
+	// set buffer
+	m_pTokenStart = m_pTokenEnd = NULL;
+	m_pBlendStart = m_pBlendEnd = NULL;
+
+	m_pText = m_pBuffer = sBuffer;
+	m_pBufferMax = sBuffer + iLength;
+	m_pCur = sBuffer;
+
+	m_iOvershortCount = 0;
+	m_bBoundary = m_bTokenBoundary = false;
         
-        m_pBuffer = sBuffer;
-        scws_send_text(s, (char*)m_pBuffer, iLength);
+	res = cur = NULL;
+        scws_send_text(s, (char*)m_pText, iLength);
 }
 
 
 template < bool IS_QUERY >
 BYTE * CSphTokenizer_SCWS<IS_QUERY>::GetToken ()
 {
-        if (cur == NULL)
-        {
-            cur = scws_get_result(s);
-            if(cur == NULL){
-                return NULL;
-            }
-        }
-        memcpy(m_sAccum, m_pBuffer+cur->off, cur->len);
-        m_sAccum[cur->len]='\0';
-        m_pCur += cur->off;
-        cur = cur->next;
-        return m_sAccum;
-        
+	m_bWasSpecial = false;
+	m_bBlended = false;
+	m_iOvershortCount = 0;
+	m_bTokenBoundary = false;
+	m_bWasSynonym = false;
+	if( m_bHasBlend)
+	{
+		BYTE * pVar = GetBlendedVariant ();
+		if ( pVar )
+			return pVar;
+		m_bBlendedPart = ( m_pBlendEnd!=NULL );
+	}
+
+	bool bGotNonToken = ( !IS_QUERY || m_bPhrase ); // only do this in query mode, never in indexing mode, never within phrases
+	bool bGotSoft = false; // hey Beavis he said soft huh huhhuh
+
+	m_pTokenStart = NULL;
+	for ( ;; )
+	{
+		// get next codepoint
+		const BYTE * const pCur = m_pCur; // to redo special char, if there's a token already
+
+		if(cur !=NULL){
+			memcpy(m_sAccum, m_pText + cur->off, cur->len);
+			m_sAccum[cur->len]='\0';
+			cur = cur->next;
+			return m_sAccum;
+		}
+		m_pText = m_pCur;
+
+
+		int iCodePoint;
+		int iCode;
+		if ( pCur<m_pBufferMax && *pCur<128 )
+		{
+			iCodePoint = *m_pCur++;
+			iCode = m_tLC.m_pChunk[0][iCodePoint];
+		} else
+		{
+			iCodePoint = GetCodepoint(); // advances m_pCur
+			iCode = m_tLC.ToLower ( iCodePoint );
+		}
+
+		// handle escaping
+		bool bWasEscaped = ( IS_QUERY && iCodePoint=='\\' ); // whether current codepoint was escaped
+		if ( bWasEscaped )
+		{
+			iCodePoint = GetCodepoint();
+			iCode = m_tLC.ToLower ( iCodePoint );
+			if ( !Special2Simple ( iCode ) )
+				iCode = 0;
+		}
+		// handle eof
+		if ( iCode<0 )
+		{
+			FlushAccum ();
+
+			// suddenly, exceptions
+			if ( m_pExc && m_pTokenStart && CheckException ( m_pTokenStart, pCur, IS_QUERY ) )
+				return m_sAccum;
+
+			// skip trailing short word
+			if ( m_iLastTokenLen<m_tSettings.m_iMinWordLen )
+			{
+				if ( !m_bShortTokenFilter || !ShortTokenFilter ( m_sAccum, m_iLastTokenLen ) )
+				{
+					if ( m_iLastTokenLen )
+						m_iOvershortCount++;
+					m_iLastTokenLen = 0;
+
+					if( m_bHasBlend)
+						BlendAdjust ( pCur );
+					return NULL;
+				}
+			}
+
+			// keep token end here as BlendAdjust might change m_pCur
+			m_pTokenEnd = m_pCur;
+			if( m_bHasBlend&& !BlendAdjust ( pCur ) )
+				return NULL;
+			if( m_bHasBlend&& m_bBlended )
+				return GetBlendedVariant();
+
+			// return trailing word
+			return m_sAccum;
+		}
+
+		// handle all the flags..
+		if_const ( IS_QUERY )
+			iCode = CodepointArbitrationQ ( iCode, bWasEscaped, *m_pCur );
+		else if ( m_bDetectSentences )
+			iCode = CodepointArbitrationI ( iCode );
+
+		// handle ignored chars
+		if ( iCode & FLAG_CODEPOINT_IGNORE ){
+			continue;
+		}
+
+		// handle blended characters
+		if( m_bHasBlend&& ( iCode & FLAG_CODEPOINT_BLEND ) )
+		{
+			if ( m_pBlendEnd )
+				iCode = 0;
+			else
+			{
+				m_bBlended = true;
+				m_pBlendStart = m_iAccum ? m_pTokenStart : pCur;
+			}
+		}
+
+		// handle soft-whitespace-only tokens
+		if ( !bGotNonToken && !m_iAccum )
+		{
+			if ( !bGotSoft )
+			{
+				// detect opening soft whitespace
+				if ( ( iCode==0 && !IsWhitespace ( iCodePoint ) && !IsPunctuation ( iCodePoint ) )
+						|| ( ( iCode & FLAG_CODEPOINT_BLEND ) && !m_iAccum ) )
+				{
+					bGotSoft = true;
+				}
+			} else
+			{
+				// detect closing hard whitespace or special
+				// (if there was anything meaningful in the meantime, we must never get past the outer if!)
+				if ( IsWhitespace ( iCodePoint ) || ( iCode & FLAG_CODEPOINT_SPECIAL ) )
+				{
+					m_iOvershortCount++;
+					bGotNonToken = true;
+				}
+			}
+		}
+
+		// handle whitespace and boundary
+		if ( m_bBoundary && ( iCode==0 ) )
+		{
+			m_bTokenBoundary = true;
+			m_iBoundaryOffset = pCur - m_pBuffer - 1;
+		}
+		m_bBoundary = ( iCode & FLAG_CODEPOINT_BOUNDARY )!=0;
+
+		// handle separator (aka, most likely a token!)
+		if ( iCode==0 || m_bBoundary )
+		{
+			FlushAccum ();
+
+			// suddenly, exceptions
+			if ( m_pExc && CheckException ( m_pTokenStart ? m_pTokenStart : pCur, pCur, IS_QUERY ) ){
+				return m_sAccum;
+			}
+
+			if( m_bHasBlend&& !BlendAdjust ( pCur ) ){
+				continue;
+			}
+
+
+			if ( m_iLastTokenLen<m_tSettings.m_iMinWordLen
+					&& !( m_bShortTokenFilter && ShortTokenFilter ( m_sAccum, m_iLastTokenLen ) ) )
+			{
+				if ( m_iLastTokenLen )
+					m_iOvershortCount++;
+				continue;
+			} else
+			{
+				m_pTokenEnd = pCur;
+				if( m_bHasBlend&& m_bBlended ){
+					return GetBlendedVariant();
+				}
+				return m_sAccum;
+			}
+		}
+
+		// handle specials
+		if ( iCode & FLAG_CODEPOINT_SPECIAL )
+		{
+			// skip short words preceding specials
+			if ( m_iAccum<m_tSettings.m_iMinWordLen )
+			{
+				m_sAccum[m_iAccum] = '\0';
+
+				if ( !m_bShortTokenFilter || !ShortTokenFilter ( m_sAccum, m_iAccum ) )
+				{
+					if ( m_iAccum )
+						m_iOvershortCount++;
+
+					FlushAccum ();
+				}
+			}
+
+			if ( m_iAccum==0 )
+			{
+				m_bNonBlended = m_bNonBlended || ( !( iCode & FLAG_CODEPOINT_BLEND ) && !( iCode & FLAG_CODEPOINT_SPECIAL ) );
+				m_bWasSpecial = !( iCode & FLAG_CODEPOINT_NGRAM );
+				m_pTokenStart = pCur;
+				m_pTokenEnd = m_pCur;
+				AccumCodepoint ( iCode & MASK_CODEPOINT ); // handle special as a standalone token
+			} else
+			{
+				m_pCur = pCur; // we need to flush current accum and then redo special char again
+				m_pTokenEnd = pCur;
+			}
+			FlushAccum ();
+
+			// suddenly, exceptions
+			if ( m_pExc && CheckException ( m_pTokenStart, pCur, IS_QUERY ) ){
+				return m_sAccum;
+			}
+			if( m_bHasBlend)
+			{
+				if ( !BlendAdjust ( pCur ) )
+					continue;
+				if ( m_bBlended )
+					return GetBlendedVariant();
+			}
+
+			return m_sAccum;
+		}
+
+		if ( m_iAccum==0 )
+			m_pTokenStart = pCur;
+
+		// tricky bit
+		// heading modifiers must not (!) affected blended status
+		// eg. we want stuff like '=-' (w/o apostrophes) thrown away when pure_blend is on
+
+		if( m_bHasBlend)
+			if_const (!( IS_QUERY && !m_iAccum && sphIsModifier ( iCode & MASK_CODEPOINT ) ) )
+				m_bNonBlended = m_bNonBlended || !( iCode & FLAG_CODEPOINT_BLEND );
+		// just accumulate
+		// manual inlining of utf8 encoder gives us a few extra percent
+		// which is important here, this is a hotspot
+		if ( m_iAccum<SPH_MAX_WORD_LEN && ( m_pAccum-m_sAccum+SPH_MAX_UTF8_BYTES<=(int)sizeof(m_sAccum) ) )
+		{
+			iCode &= MASK_CODEPOINT;
+			m_iAccum++;
+
+			scws_send_text(s, (char*)m_pText, strlen((char*)m_pText));
+			res = (cur = scws_get_result(s));//只读取一个单词
+			if(cur == NULL){
+				FlushAccum();
+				return NULL;
+			}
+
+			memcpy(m_sAccum, pCur+cur->off, cur->len);
+			m_sAccum[cur->len]='\0';
+
+			m_pTokenStart = m_pText + cur->off;
+			m_pCur = m_pText + cur->off + cur->len;
+			m_pTokenEnd = m_pCur;
+
+			cur = cur->next;
+			if(cur == NULL){
+				m_iLastTokenLen = 0;
+				m_iAccum = 0;
+				scws_free_result(res);
+			}
+			return m_sAccum;
+		}
+	}
 }
 
 template < bool IS_QUERY >
@@ -6533,11 +6798,12 @@ ISphTokenizer * CSphTokenizer_SCWS<IS_QUERY>::Clone ( ESphTokenizerClone eMode )
         if ( eMode!=SPH_CLONE_INDEX ) {
                 CSphTokenizer_SCWS<true> *pClone = new CSphTokenizer_SCWS<true>();
                 pClone->CloneBase ( this, eMode );
+		pClone->Setup(m_tSettings);
                 return pClone;
-
         } else {
                 CSphTokenizer_SCWS<false> *pClone = new CSphTokenizer_SCWS<false>();
                 pClone->CloneBase ( this, eMode );
+		pClone->Setup(m_tSettings);
                 return pClone;
         }
 }
