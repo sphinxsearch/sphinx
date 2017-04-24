@@ -2577,6 +2577,9 @@ protected:
 
 /// SCWS tokenizer
 #if USE_SCWS
+scws_t scws_global; 
+int scws_config_set=false;
+
 template < bool IS_QUERY >
 class CSphTokenizer_SCWS : public CSphTokenizerBase2
 {
@@ -2586,34 +2589,36 @@ public:
         virtual void                SetBuffer ( const BYTE * sBuffer, int iLength );
         virtual BYTE *              GetToken ();
         virtual ISphTokenizer *     Clone ( ESphTokenizerClone eMode ) const;
-		virtual void				Setup ( const CSphTokenizerSettings & tSettings )				{ 
-			CSphTokenizerBase2::Setup ( tSettings ); 
+	virtual void		Setup ( const CSphTokenizerSettings & tSettings ){
+		CSphTokenizerBase2::Setup ( tSettings ); 
+		if(scws_config_set==false){
+			scws_config_set=true;
 			if ( !tSettings.m_scwsDict.IsEmpty ()  )
 			{ 
-				scws_set_dict(s, tSettings.m_scwsDict.cstr (), SCWS_XDICT_TXT | SCWS_XDICT_XDB);
+				scws_set_dict(scws_global, tSettings.m_scwsDict.cstr (), SCWS_XDICT_TXT | SCWS_XDICT_XDB | SCWS_XDICT_MEM);
 			}
 			if ( !tSettings.m_scwsRule.IsEmpty ())
 			{ 
-				scws_set_rule(s, tSettings.m_scwsDict.cstr ());
+				scws_set_rule(scws_global, tSettings.m_scwsDict.cstr ());
 			}
-			scws_set_charset(s, "utf8");
-			scws_set_ignore(s, true);
+			scws_set_charset(scws_global, "utf8");
+			scws_set_ignore(scws_global, true);
 
 
 			if ( tSettings.m_scwsMulti)
 			{ 
-				scws_set_multi(s, tSettings.m_scwsMulti << 12);
+				scws_set_multi(scws_global, tSettings.m_scwsMulti << 12);
 			}else{
-				scws_set_multi(s, 0);
+				scws_set_multi(scws_global, 0);
 			}
 		}
+		scws_source = scws_fork(scws_global);
+	}
         virtual int                 GetCodepointLength ( int iCode ) const;
         virtual int                 GetMaxCodepointLength () const { return m_tLC.GetMaxCodepointLength(); }
 	const BYTE * m_pText;
-
-		scws_t s; 
-		scws_res_t res,cur;
-
+	scws_res_t res,cur;
+	scws_t scws_source; 
 };
 #endif
 
@@ -6496,13 +6501,12 @@ CSphTokenizer_SCWS<IS_QUERY>::CSphTokenizer_SCWS ()
 	CSphString sTmp;
 	SetCaseFolding ( SPHINX_DEFAULT_UTF8_TABLE, sTmp );
 	m_bHasBlend = false;
-	s = scws_new();
-
+	if(scws_global==NULL) scws_global = scws_new();
 }
 template < bool IS_QUERY >
 CSphTokenizer_SCWS<IS_QUERY>::~CSphTokenizer_SCWS ()
 {
-        scws_free(s);
+	scws_free(scws_source);
 }
 
 
@@ -6524,7 +6528,7 @@ void CSphTokenizer_SCWS<IS_QUERY>::SetBuffer ( const BYTE * sBuffer, int iLength
 	m_bBoundary = m_bTokenBoundary = false;
         
 	res = cur = NULL;
-        scws_send_text(s, (char*)m_pText, iLength);
+        scws_send_text(scws_source, (char*)m_pText, iLength);
 }
 
 
@@ -6767,8 +6771,8 @@ BYTE * CSphTokenizer_SCWS<IS_QUERY>::GetToken ()
 			iCode &= MASK_CODEPOINT;
 			m_iAccum++;
 
-			scws_send_text(s, (char*)m_pText, strlen((char*)m_pText));
-			res = (cur = scws_get_result(s));//只读取一个单词
+			scws_send_text(scws_source, (char*)m_pText, strlen((char*)m_pText));
+			res = (cur = scws_get_result(scws_source));//只读取一个单词
 			if(cur == NULL){
 				FlushAccum();
 				return NULL;
