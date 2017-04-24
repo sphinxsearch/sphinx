@@ -6560,6 +6560,7 @@ BYTE * CSphTokenizer_SCWS<IS_QUERY>::GetToken ()
 		if(cur !=NULL){
 			memcpy(m_sAccum, m_pText + cur->off, cur->len);
 			m_sAccum[cur->len]='\0';
+			sphColumnToLowercase ( (char *)( m_sAccum ) );
 			cur = cur->next;
 			return m_sAccum;
 		}
@@ -6780,6 +6781,7 @@ BYTE * CSphTokenizer_SCWS<IS_QUERY>::GetToken ()
 
 			memcpy(m_sAccum, pCur+cur->off, cur->len);
 			m_sAccum[cur->len]='\0';
+			sphColumnToLowercase ( (char *)( m_sAccum ) );
 
 			m_pTokenStart = m_pText + cur->off;
 			m_pCur = m_pText + cur->off + cur->len;
