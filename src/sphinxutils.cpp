@@ -591,6 +591,12 @@ static KeyDesc_t g_dKeysIndex[] =
 	{ "rlp_context",			0, NULL },
 	{ "ondisk_attrs",			0, NULL },
 	{ "index_token_filter",		0, NULL },
+#if USE_SCWS
+	{ "scws",		0, NULL },
+	{ "scws_dict",		0, NULL },
+	{ "scws_rule",		0, NULL },
+	{ "scws_multi",		0, NULL },
+#endif
 	{ NULL,						0, NULL }
 };
 
@@ -1274,7 +1280,15 @@ void sphConfTokenizer ( const CSphConfigSection & hIndex, CSphTokenizerSettings 
 		else
 			sphWarning ( "ngram_chars specified, but ngram_len=0; IGNORED" );
 	}
-
+#if USE_SCWS
+        if ( hIndex ( "scws" ) )
+        {
+                tSettings.m_iType = TOKENIZER_SCWS;
+                tSettings.m_scwsDict = hIndex.GetStr ( "scws_dict" );
+                tSettings.m_scwsRule = hIndex.GetStr ( "scws_rule" );
+                tSettings.m_scwsMulti = hIndex.GetInt ( "scws_multi",0 );
+        }
+#endif
 	tSettings.m_sCaseFolding = hIndex.GetStr ( "charset_table" );
 	tSettings.m_iMinWordLen = Max ( hIndex.GetInt ( "min_word_len", 1 ), 1 );
 	tSettings.m_sNgramChars = hIndex.GetStr ( "ngram_chars" );

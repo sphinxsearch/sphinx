@@ -251,7 +251,7 @@ SRC_SPHINX = sphinx.cpp sphinxexcerpt.cpp sphinxquery.cpp \
 	sphinxsearch.cpp sphinxrt.cpp sphinxjson.cpp sphinxudf.c sphinxaot.cpp sphinxplugin.cpp sphinxqcache.cpp \
 	sphinxrlp.cpp
 
-ARFLAGS = crU
+ARFLAGS = cr
 noinst_LIBRARIES = libsphinx.a
 libsphinx_a_SOURCES = $(SRC_SPHINX)
 indexer_SOURCES = indexer.cpp
@@ -265,8 +265,12 @@ BUILT_SOURCES = extract-version
 @USE_RLP_TRUE@RLP_LIBS = -L$(top_srcdir)/rlp/lib/amd64-glibc25-gcc42 -lbtrlpc -lbtrlpcore -lbtutils
 @USE_RLP_FALSE@RLP_INC = 
 @USE_RLP_TRUE@RLP_INC = -I$(top_srcdir)/rlp/rlp/include -I$(top_srcdir)/rlp/utilities/include -D_REENTRANT
-AM_CPPFLAGS = $(LIBRE2_CFLAGS) $(RLP_INC) -DSYSCONFDIR="\"$(sysconfdir)\"" -DDATADIR="\"$(localstatedir)/data\""
-COMMON_LIBS = libsphinx.a $(LIBSTEMMER_LIBS) $(MYSQL_LIBS) $(PGSQL_LIBS) $(LIBRE2_LIBS) $(RLP_LIBS)
+@USE_SCWS_FALSE@SCWS_LIBS = 
+@USE_SCWS_TRUE@SCWS_LIBS = @ac_cv_use_scws@/lib/libscws.a
+@USE_SCWS_FALSE@SCWS_INC = 
+@USE_SCWS_TRUE@SCWS_INC = -I@ac_cv_use_scws@/include
+AM_CPPFLAGS = $(LIBRE2_CFLAGS) $(RLP_INC) $(SCWS_INC) -DSYSCONFDIR="\"$(sysconfdir)\"" -DDATADIR="\"$(localstatedir)/data\""
+COMMON_LIBS = libsphinx.a $(LIBSTEMMER_LIBS) $(MYSQL_LIBS) $(SCWS_LIBS) $(PGSQL_LIBS) $(LIBRE2_LIBS) $(RLP_LIBS) $(SCWS_LIBS)
 LDADD = $(COMMON_LIBS)
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
