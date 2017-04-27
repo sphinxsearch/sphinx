@@ -5296,7 +5296,9 @@ CSphTokenizer_SCWS<IS_QUERY>::CSphTokenizer_SCWS ()
 	CSphString sTmp;
 	SetCaseFolding ( SPHINX_DEFAULT_UTF8_TABLE, sTmp );
 	m_bHasBlend = false;
-	if(scws_global==NULL) scws_global = scws_new();
+	if(scws_global==NULL) {
+		scws_global = scws_new();
+	}
 }
 template < bool IS_QUERY >
 CSphTokenizer_SCWS<IS_QUERY>::~CSphTokenizer_SCWS ()
@@ -5308,8 +5310,8 @@ CSphTokenizer_SCWS<IS_QUERY>::~CSphTokenizer_SCWS ()
 template < bool IS_QUERY >
 void CSphTokenizer_SCWS<IS_QUERY>::SetBuffer ( const BYTE * sBuffer, int iLength )
 {
-        // check that old one is over and that new length is sane
-        assert ( iLength>=0 );
+	// check that old one is over and that new length is sane
+	assert ( iLength>=0 );
 
 	// set buffer
 	m_pTokenStart = m_pTokenEnd = NULL;
@@ -5321,9 +5323,9 @@ void CSphTokenizer_SCWS<IS_QUERY>::SetBuffer ( const BYTE * sBuffer, int iLength
 
 	m_iOvershortCount = 0;
 	m_bBoundary = m_bTokenBoundary = false;
-        
+
 	res = cur = NULL;
-        scws_send_text(scws_source, (char*)m_pText, iLength);
+	scws_send_text(scws_source, (char*)m_pText, iLength);
 }
 
 
@@ -5353,11 +5355,18 @@ BYTE * CSphTokenizer_SCWS<IS_QUERY>::GetToken ()
 		const BYTE * const pCur = m_pCur; // to redo special char, if there's a token already
 
 		if(cur !=NULL){
-			memcpy(m_sAccum, m_pText + cur->off, cur->len);
-			m_sAccum[cur->len]='\0';
-			sphColumnToLowercase ( (char *)( m_sAccum ) );
 			cur = cur->next;
-			return m_sAccum;
+			if(cur != NULL){
+				memcpy(m_sAccum, m_pText + cur->off, cur->len);
+				m_sAccum[cur->len]='\0';
+				sphColumnToLowercase ( (char *)( m_sAccum ) );
+				return m_sAccum;
+			}else{
+				m_iLastTokenLen = 0;
+				m_iAccum = 0;
+				scws_free_result(res);
+			}
+
 		}
 		m_pText = m_pCur;
 
@@ -5582,12 +5591,6 @@ BYTE * CSphTokenizer_SCWS<IS_QUERY>::GetToken ()
 			m_pCur = m_pText + cur->off + cur->len;
 			m_pTokenEnd = m_pCur;
 
-			cur = cur->next;
-			if(cur == NULL){
-				m_iLastTokenLen = 0;
-				m_iAccum = 0;
-				scws_free_result(res);
-			}
 			return m_sAccum;
 		}
 	}
