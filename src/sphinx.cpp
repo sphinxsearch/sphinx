@@ -5345,6 +5345,25 @@ BYTE * CSphTokenizer_SCWS<IS_QUERY>::GetToken ()
 		m_bBlendedPart = ( m_pBlendEnd!=NULL );
 	}
 
+	if(!IS_QUERY){
+		if(cur == NULL){
+			res = (cur = scws_get_result(scws_source));
+			if(cur == NULL){
+				return NULL;
+			}
+		}
+		memcpy(m_sAccum, m_pText + cur->off, cur->len);
+		m_sAccum[cur->len]='\0';
+		sphColumnToLowercase ( (char *)( m_sAccum ) );
+		m_iLastTokenLen = 0;
+		m_iAccum = 0;
+		cur = cur->next;
+		if(cur == NULL){
+			scws_free_result(res);
+		}
+		return m_sAccum;
+	}
+
 	bool bGotNonToken = ( !IS_QUERY || m_bPhrase ); // only do this in query mode, never in indexing mode, never within phrases
 	bool bGotSoft = false; // hey Beavis he said soft huh huhhuh
 
