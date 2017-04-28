@@ -2462,11 +2462,27 @@ public:
 			scws_config_set=true;
 			if ( !tSettings.m_scwsDict.IsEmpty ()  )
 			{ 
-				scws_set_dict(scws_global, tSettings.m_scwsDict.cstr (), SCWS_XDICT_TXT | SCWS_XDICT_XDB | SCWS_XDICT_MEM);
+
+				int mode,ret;
+
+				CSphVector<CSphString> dicts;
+
+				sphSplit ( dicts, tSettings.m_scwsDict.cstr() ," \t,;");
+				ARRAY_FOREACH ( i, dicts)
+				{
+					mode = SCWS_XDICT_MEM | SCWS_XDICT_XDB;
+					if (!dicts[i].Ends(".xdb")){
+						mode |= SCWS_XDICT_TXT;
+					}
+					ret = scws_add_dict(scws_global, dicts[i].cstr (), mode);
+					sphInfo("scws set dict [%s], mode [%d], ret [%d]",dicts[i].cstr (),mode,ret);
+				}
+
 			}
 			if ( !tSettings.m_scwsRule.IsEmpty ())
 			{ 
-				scws_set_rule(scws_global, tSettings.m_scwsDict.cstr ());
+				scws_set_rule(scws_global, tSettings.m_scwsRule.cstr ());
+				sphInfo("scws set rule [%s]",tSettings.m_scwsRule.cstr ());
 			}
 			scws_set_charset(scws_global, "utf8");
 			scws_set_ignore(scws_global, true);
@@ -2475,6 +2491,7 @@ public:
 			if ( tSettings.m_scwsMulti)
 			{ 
 				scws_set_multi(scws_global, tSettings.m_scwsMulti << 12);
+				sphInfo("scws set muliti[%d]",tSettings.m_scwsMulti);
 			}else{
 				scws_set_multi(scws_global, 0);
 			}
