@@ -66,6 +66,10 @@
 #include <mysql.h>
 #endif
 
+#if USE_SCWS
+#include <scws/scws.h>
+#endif
+
 #if USE_WINDOWS
 typedef __int64				SphOffset_t;
 #define STDOUT_FILENO		fileno(stdout)
@@ -451,6 +455,7 @@ protected:
 
 	int					m_iChunks;					///< how much chunks are actually allocated
 	int *				m_pData;					///< chunks themselves
+public:
 	int *				m_pChunk [ CHUNK_COUNT ];	///< pointers to non-empty chunks
 };
 
@@ -498,6 +503,14 @@ struct CSphTokenizerSettings
 	CSphString			m_sNgramChars;
 	CSphString			m_sBlendChars;
 	CSphString			m_sBlendMode;
+        
+
+ #if USE_SCWS       
+        CSphString                      m_scwsDict;
+        CSphString                      m_scwsRule;
+        int                      m_scwsMulti;
+#endif      
+
 	CSphString			m_sIndexingPlugin;	///< this tokenizer wants an external plugin to process its raw output
 
 						CSphTokenizerSettings ();
