@@ -11314,8 +11314,7 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 
 	if ( m_tSchema.m_dFields.GetLength()==0 )
 	{
-		m_sLastError.SetSprintf ( "No fields in schema - will not index" );
-		return 0;
+		sphWarning ( "No fields in schema" );
 	}
 
 	// check docinfo
