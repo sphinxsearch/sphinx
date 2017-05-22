@@ -864,7 +864,7 @@ class SphinxClient
 		if ( count($values) )
 		{
 			foreach ( $values as $value )
-				assert ( is_numeric($value) );
+				assert (  is_string($value) || is_numeric($value) );
 
 			$this->_filters[] = array ( "type"=>SPH_FILTER_VALUES, "attr"=>$attribute, "exclude"=>$exclude, "values"=>$values );
 		}
@@ -875,7 +875,7 @@ class SphinxClient
 	function SetFilterString ( $attribute, $value, $exclude=false )
 	{
 		assert ( is_string($attribute) );
-		assert ( is_string($value) );
+		assert ( is_string($value) || is_numeric($value) );
 		$this->_filters[] = array ( "type"=>SPH_FILTER_STRING, "attr"=>$attribute, "exclude"=>$exclude, "value"=>$value );
 	}	
 	
