@@ -25728,8 +25728,8 @@ const char * SubstituteParams ( const char * sQuery, const char * const * dMacro
 					iLen += strlen ( dValues[i] );
 					break;
 				}
-				if ( i<iMcount )
-					continue;
+			if ( i<iMcount )
+				continue;
 		}
 
 		sCur++;
@@ -25755,8 +25755,8 @@ const char * SubstituteParams ( const char * sQuery, const char * const * dMacro
 					sDst += strlen ( dValues[i] );
 					break;
 				}
-				if ( i<iMcount )
-					continue;
+			if ( i<iMcount )
+				continue;
 		}
 		*sDst++ = *sCur++;
 	}
