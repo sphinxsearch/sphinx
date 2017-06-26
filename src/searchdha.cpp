@@ -2729,7 +2729,7 @@ public:
 
 	bool IterateNextReady () override
 	{
-		m_tIter.Reset()
+		m_tIter.Reset();
 
 		if ( m_iReady<=0 || m_iIter>=m_dEvents.GetLength () )
 			return false;
