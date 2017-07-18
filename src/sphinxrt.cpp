@@ -3235,7 +3235,8 @@ void RtIndex_t::CommitReplayable ( RtSegment_t * pNewSeg, CSphVector<SphDocID_t>
 	// update stats
 	m_tStats.m_iTotalDocuments += iNewDocs - iTotalKilled;
 
-	if ( m_tSchema.GetAttrId_FirstFieldLen()>=0 )
+	// lengths might be empty on delete
+	if ( m_tSchema.GetAttrId_FirstFieldLen()>=0 && dLens.GetLength()>0 )
 		ARRAY_FOREACH ( i, m_tSchema.m_dFields )
 		{
 			m_dFieldLensRam[i] += dLens[i];
