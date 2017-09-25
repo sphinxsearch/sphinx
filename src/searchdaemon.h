@@ -58,6 +58,7 @@
 	#undef EINPROGRESS
 	#undef ECONNRESET
 	#undef ECONNABORTED
+	#undef EAGAIN
 	#define LOCK_EX			0
 	#define LOCK_UN			1
 	#define STDIN_FILENO	fileno(stdin)
@@ -70,6 +71,7 @@
 	#define ECONNRESET		WSAECONNRESET
 	#define ECONNABORTED	WSAECONNABORTED
 	#define ESHUTDOWN		WSAESHUTDOWN
+	#define EAGAIN			WSATRY_AGAIN
 	#define socklen_t		int
 
 	#define ftruncate		_chsize
@@ -102,8 +104,8 @@ int sphSockGetErrno ();
 void sphSockSetErrno ( int );
 int sphSockPeekErrno ();
 int sphSetSockNB ( int );
-bool sphSockEof ( int );
 void sphFDSet ( int fd, fd_set * fdset );
+void sphFDClr ( int fd, fd_set * fdset );
 DWORD sphGetAddress ( const char * sHost, bool bFatal=false );
 
 /////////////////////////////////////////////////////////////////////////////
