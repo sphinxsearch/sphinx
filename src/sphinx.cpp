@@ -11338,6 +11338,7 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 	}
 
 	bool bHaveFieldMVAs = false;
+	bool bOnlyFieldMVAs = true;
 	int iFieldLens = m_tSchema.GetAttrId_FirstFieldLen();
 	CSphVector<int> dMvaIndexes;
 	CSphVector<CSphAttrLocator> dMvaLocators;
@@ -11361,6 +11362,8 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 			case SPH_ATTR_UINT32SET:
 				if ( tCol.m_eSrc==SPH_ATTRSRC_FIELD )
 					bHaveFieldMVAs = true;
+				else
+					bOnlyFieldMVAs = false;
 				dMvaIndexes.Add ( i );
 				dMvaLocators.Add ( tCol.m_tLocator );
 				break;
@@ -11385,6 +11388,8 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 			continue;
 		if ( tCol.m_eSrc==SPH_ATTRSRC_FIELD )
 			bHaveFieldMVAs = true;
+		else
+			bOnlyFieldMVAs = false;
 		dMvaIndexes.Add ( i );
 		dMvaLocators.Add ( tCol.m_tLocator );
 	}
@@ -12120,7 +12125,8 @@ int CSphIndex_VLN::Build ( const CSphVector<CSphSource*> & dSources, int iMemory
 		}
 
 		// this source is over, disconnect and update stats
-		pSource->Disconnect ();
+		if ( bOnlyFieldMVAs )
+			pSource->Disconnect ();
 
 		m_tStats.m_iTotalDocuments += pSource->GetStats().m_iTotalDocuments;
 		m_tStats.m_iTotalBytes += pSource->GetStats().m_iTotalBytes;
