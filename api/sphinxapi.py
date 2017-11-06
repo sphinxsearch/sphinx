@@ -176,11 +176,11 @@ class SphinxClient:
 		self._tokenfilterlibrary = bytearray()						# token_filter plugin library name
 		self._tokenfiltername = bytearray()						# token_filter plugin name
 		self._tokenfilteropts = bytearray()						# token_filter plugin options
-		
+
 		self._error			= ''							# last error message
 		self._warning		= ''							# last warning message
 		self._reqs			= []							# requests array for multi-query
-		
+
 	def __del__ (self):
 		if self._socket:
 			self._socket.close()
@@ -224,7 +224,7 @@ class SphinxClient:
 		assert (isinstance(timeout, float))
 		# set timeout to 0 make connaection non-blocking that is wrong so timeout got clipped to reasonable minimum
 		self._timeout = max ( 0.001, timeout )
-					
+
 	def _Connect (self):
 		"""
 		INTERNAL METHOD, DO NOT CALL. Connects to searchd server.
@@ -333,11 +333,11 @@ class SphinxClient:
 			sent = sock.send ( req[total:] )
 			if sent<=0:
 				break
-				
+
 			total = total + sent
-		
+
 		return total
-		
+
 
 	def SetLimits (self, offset, limit, maxmatches=0, cutoff=0):
 		"""
@@ -395,7 +395,7 @@ class SphinxClient:
 		Bind per-field weights by name; expects (name,field_weight) dictionary as argument.
 		"""
 		assert(isinstance(weights,dict))
-		for key,val in list(weights.items()):
+		for key,val in weights.items():
 			assert(isinstance(key,str))
 			AssertUInt32 ( val )
 		self._fieldweights = weights
@@ -406,7 +406,7 @@ class SphinxClient:
 		Bind per-index weights by name; expects (name,index_weight) dictionary as argument.
 		"""
 		assert(isinstance(weights,dict))
-		for key,val in list(weights.items()):
+		for key,val in weights.items():
 			assert(isinstance(key,str))
 			AssertUInt32(val)
 		self._indexweights = weights
@@ -437,7 +437,7 @@ class SphinxClient:
 
 		self._filters.append ( { 'type':SPH_FILTER_VALUES, 'attr':attribute, 'exclude':exclude, 'values':values } )
 
-		
+
 	def SetFilterString ( self, attribute, value, exclude=0 ):
 		"""
 		Set string filter.
@@ -446,10 +446,10 @@ class SphinxClient:
 		assert(isinstance(attribute, str))
 		assert(isinstance(value, str))
 
-		
+
 		self._filters.append ( { 'type':SPH_FILTER_STRING, 'attr':attribute, 'exclude':exclude, 'value':value } )
 
-		
+
 	def SetFilterStringList ( self, attribute, value, exclude=0 ):
 		"""
 		Set string list filter.
@@ -459,9 +459,9 @@ class SphinxClient:
 
 		for v in value:
 			assert(isinstance(v, str))
-		
+
 		self._filters.append ( { 'type':SPH_FILTER_STRING_LIST, 'attr':attribute, 'exclude':exclude, 'values':value } )
-		
+
 
 	def SetFilterRange (self, attribute, min_, max_, exclude=0 ):
 		"""
@@ -481,7 +481,7 @@ class SphinxClient:
 		assert(isinstance(min_,float))
 		assert(isinstance(max_,float))
 		assert(min_ <= max_)
-		self._filters.append ( {'type':SPH_FILTER_FLOATRANGE, 'attr':attribute, 'exclude':exclude, 'min':min_, 'max':max_} ) 
+		self._filters.append ( {'type':SPH_FILTER_FLOATRANGE, 'attr':attribute, 'exclude':exclude, 'min':min_, 'max':max_} )
 
 
 	def SetGeoAnchor (self, attrlat, attrlong, latitude, longitude):
@@ -537,7 +537,7 @@ class SphinxClient:
 		flags = { "reverse_scan":[0, 1], "sort_method":["pq", "kbuffer"],"max_predicted_time":[0], "boolean_simplify":[True, False], "idf":["normalized", "plain", "tfidf_normalized", "tfidf_unnormalized"], "global_idf":[True, False] }
 		assert ( name in known_names )
 		assert ( value in flags[name] or ( name=="max_predicted_time" and isinstance(value, (int, long)) and value>=0))
-		
+
 		if name=="reverse_scan":
 			self._query_flags = SetBit ( self._query_flags, 0, value==1 )
 		if name=="sort_method":
@@ -574,7 +574,7 @@ class SphinxClient:
 		self._tokenfilterlibrary = str_bytes(library)
 		self._tokenfiltername = str_bytes(name)
 		self._tokenfilteropts = str_bytes(opts)
-		
+
 	def ResetOverrides (self):
 		self._overrides = {}
 
@@ -599,7 +599,7 @@ class SphinxClient:
 	def ResetQueryFlag (self):
 		self._query_flags = SetBit ( 0, 6, True ) # default idf=tfidf_normalized
 		self._predictedtime = 0
-		
+
 	def ResetOuterSelect (self):
 		self._outerorderby = bytearray()
 		self._outeroffset = 0
@@ -655,7 +655,7 @@ class SphinxClient:
 		req.extend(pack('>L',1)) # id64 range marker
 		req.extend(pack('>Q', self._min_id))
 		req.extend(pack('>Q', self._max_id))
-		
+
 		# filters
 		req.extend ( pack ( '>L', len(self._filters) ) )
 		for f in self._filters:
@@ -705,7 +705,7 @@ class SphinxClient:
 
 		# per-index weights
 		req.extend ( pack ('>L',len(self._indexweights)))
-		for indx,weight in list(self._indexweights.items()):
+		for indx,weight in self._indexweights.items():
 			indx = str_bytes(indx)
 			req.extend ( pack ('>L',len(indx)) + indx + pack ('>L',weight))
 
@@ -714,7 +714,7 @@ class SphinxClient:
 
 		# per-field weights
 		req.extend ( pack ('>L',len(self._fieldweights) ) )
-		for field,weight in list(self._fieldweights.items()):
+		for field,weight in self._fieldweights.items():
 			field = str_bytes(field)
 			req.extend ( pack ('>L',len(field)) + field + pack ('>L',weight) )
 
@@ -724,7 +724,7 @@ class SphinxClient:
 
 		# attribute overrides
 		req.extend ( pack('>L', len(self._overrides)) )
-		for v in list(self._overrides.values()):
+		for v in self._overrides.values():
 			name = str_bytes(v['name'])
 			req.extend ( ( pack('>L', len(name)), name ) )
 			req.extend ( pack('>LL', v['type'], len(v['values'])) )
@@ -755,7 +755,7 @@ class SphinxClient:
 		req.extend ( pack('>L',len(self._tokenfilterlibrary)) + self._tokenfilterlibrary )
 		req.extend ( pack('>L',len(self._tokenfiltername)) + self._tokenfiltername )
 		req.extend ( pack('>L',len(self._tokenfilteropts)) + self._tokenfilteropts )
-			
+
 		# send query, get response
 
 		self._reqs.append(req)
@@ -850,7 +850,7 @@ class SphinxClient:
 			p += 4
 			id64 = unpack('>L', response[p:p+4])[0]
 			p += 4
-		
+
 			# read matches
 			result['matches'] = []
 			while count>0 and p<max_:
@@ -923,10 +923,10 @@ class SphinxClient:
 				p += 8
 
 				result['words'].append({'word':word, 'docs':docs, 'hits':hits})
-		
+
 		self._reqs = []
 		return results
-	
+
 
 	def BuildExcerpts (self, docs, index, words, opts=None):
 		"""
@@ -971,7 +971,7 @@ class SphinxClient:
 		if opts.get('allow_empty'):		flags |= 256
 		if opts.get('emit_zones'):		flags |= 512
 		if opts.get('load_files_scattered'):	flags |= 1024
-		
+
 		# mode=0, flags
 		req = bytearray()
 		req.extend(pack('>2L', 0, flags))
@@ -1001,7 +1001,7 @@ class SphinxClient:
 
 		req.extend(pack('>L', int(opts['limit'])))
 		req.extend(pack('>L', int(opts['around'])))
-		
+
 		req.extend(pack('>L', int(opts['limit_passages'])))
 		req.extend(pack('>L', int(opts['limit_words'])))
 		req.extend(pack('>L', int(opts['start_passage_id'])))
@@ -1072,7 +1072,7 @@ class SphinxClient:
 		assert ( isinstance ( values, dict ) )
 		for attr in attrs:
 			assert ( isinstance ( attr, str ) )
-		for docid, entry in list(values.items()):
+		for docid, entry in values.items():
 			AssertUInt32(docid)
 			assert ( isinstance ( entry, list ) )
 			assert ( len(attrs)==len(entry) )
@@ -1101,7 +1101,7 @@ class SphinxClient:
 			req.extend ( pack('>L', mva_attr ) )
 
 		req.extend ( pack('>L',len(values)) )
-		for docid, entry in list(values.items()):
+		for docid, entry in values.items():
 			req.extend ( pack('>Q',docid) )
 			for val in entry:
 				val_len = val
@@ -1240,7 +1240,7 @@ class SphinxClient:
 		if self._socket:
 			self._error = 'already connected'
 			return None
-		
+
 		server = self._Connect()
 		if not server:
 			return None
@@ -1248,7 +1248,7 @@ class SphinxClient:
 		# command, command version = 0, body length = 4, body = 1
 		request = pack ( '>hhII', SEARCHD_COMMAND_PERSIST, 0, 4, 1 )
 		self._Send ( server, request )
-		
+
 		self._socket = server
 		return True
 
@@ -1258,7 +1258,7 @@ class SphinxClient:
 			return
 		self._socket.close()
 		self._socket = None
-	
+
 	def EscapeString(self, string):
 		return re.sub(r"([=\(\)|\-!@~\"&/\\\^\$\=\<])", r"\\\1", string)
 
@@ -1309,7 +1309,7 @@ else:
 def bytes_str(x):
 	assert (isinstance(x, bytearray))
 	return x.decode('utf-8')
-	
+
 #
 # $Id$
 #
