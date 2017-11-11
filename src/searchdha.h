@@ -250,12 +250,20 @@ struct AgentDash_t : AgentStats_t
 {
 	uint64_t		m_dHostStats[ehMaxStat];
 	DWORD			m_uTimestamp;	///< adds the minutes timestamp to AgentStats_t
+
+	AgentDash_t()
+		: m_uTimestamp ( 0 )
+	{
+		Reset();
+	}
+
 	void Reset ()
 	{
 		AgentStats_t::Reset ();
 		for ( int i = 0; i<ehMaxStat; ++i )
 			m_dHostStats[i] = 0;
 	}
+
 	void Add ( const AgentDash_t& rhs )
 	{
 		AgentStats_t::Add ( rhs );
@@ -269,6 +277,7 @@ struct AgentDash_t : AgentStats_t
 			m_dHostStats[ehAverageMsecs] = rhs.m_dHostStats[ehAverageMsecs];
 		m_dHostStats[ehMaxMsecs] = Max ( m_dHostStats[ehMaxMsecs], rhs.m_dHostStats[ehMaxMsecs] );
 		m_dHostStats[ehConnTries] += rhs.m_dHostStats[ehConnTries];
+		m_dHostStats[ehTotalMsecs] += rhs.m_dHostStats[ehTotalMsecs];
 	}
 };
 

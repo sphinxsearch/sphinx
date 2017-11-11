@@ -11565,16 +11565,16 @@ void BuildOneAgentStatus ( VectorLike & dStatus, HostDashboard_t* pDash, const c
 		{
 			for ( int j = 0; j<ehMaxStat+eMaxAgentStat; ++j )
 				// hack. Avoid microseconds in human-readable statistic
-				if ( j==ehTotalMsecs && dStatus.MatchAddVa ( "%s_%dperiods_msecsperqueryy", sPrefix, iPeriods ) )
+				if ( j==(ehTotalMsecs+eMaxAgentStat) && dStatus.MatchAddVa ( "%s_%dperiods_msecsperquery", sPrefix, iPeriods ) )
 				{
-					if ( dDashStat[ehConnTries]>0 )
-						dStatus.Add ().SetSprintf ( FLOAT, (float) ((dDashStat[ehTotalMsecs] / 1000.0)
-																	/ dDashStat[ehConnTries]) );
+					if ( dDashStat[ehConnTries+eMaxAgentStat]>0 )
+						dStatus.Add ().SetSprintf ( FLOAT, (float) ((dDashStat[ehTotalMsecs+eMaxAgentStat] / 1000.0)
+																	/ dDashStat[ehConnTries+eMaxAgentStat]) );
 					else
 						dStatus.Add ( "n/a" );
 				} else if ( dStatus.MatchAddVa ( "%s_%dperiods_%s", sPrefix, iPeriods, sAgentStatsNames[j] ) )
 				{
-					if ( j==ehMaxMsecs || j==ehAverageMsecs )
+					if ( j==ehMaxMsecs+eMaxAgentStat || j==ehAverageMsecs+eMaxAgentStat )
 						dStatus.Add ().SetSprintf ( FLOAT, (float) dDashStat[j] / 1000.0);
 					else
 						dStatus.Add ().SetSprintf ( FMT64, dDashStat[j] );
