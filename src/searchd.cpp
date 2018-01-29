@@ -8257,6 +8257,7 @@ void SearchHandler_c::RunSubset ( int iStart, int iEnd )
 			pLocalSorter = sphCreateQueue ( tQueueSettings );
 
 			uLocalPFFlags = tQueueSettings.m_uPackedFactorFlags;
+			m_dQueries[iStart].m_bZSlist = tQueueSettings.m_bZonespanlist;
 			if ( pExtraSchemaMT )
 				pExtraSchemaMT->Release();
 		}
