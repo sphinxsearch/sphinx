@@ -53,14 +53,24 @@ public:
 #else
 					ha_sphinx ( handlerton * hton, TABLE_ARG * table_arg );
 #endif
-					~ha_sphinx () {}
+#ifndef MARIADB_BASE_VERSION
+					~ha_sphinx (){}
+#else
+                                        ~ha_sphinx ();
+#endif
 
 	const char *	table_type () const		{ return "SPHINX"; }	///< SE name for display purposes
 	const char *	index_type ( uint )		{ return "HASH"; }		///< index type name for display purposes
-	const char **	bas_ext () const;								///< my file extensions
-
+	#ifndef MARIADB_BASE_VERSION
+	const char **	bas_ext () const;
+	#endif
 	#if MYSQL_VERSION_ID>50100
-	ulonglong		table_flags () const	{ return HA_CAN_INDEX_BLOBS; }			///< bitmap of implemented flags (see handler.h for more info)
+	#ifdef MARIADB_BASE_VERSION
+	ulonglong		table_flags () const	{ return HA_CAN_INDEX_BLOBS | 
+                                                                 HA_CAN_TABLE_CONDITION_PUSHDOWN; } ///< bitmap of implemented flags (see handler.h for more info)
+	#else
+	ulonglong               table_flags () const    { return HA_CAN_INDEX_BLOBS;  }
+	#endif
 	#else
 	ulong			table_flags () const	{ return HA_CAN_INDEX_BLOBS; }			///< bitmap of implemented flags (see handler.h for more info)
 	#endif
@@ -77,8 +87,12 @@ public:
 	#else
 	virtual double	scan_time ()	{ return (double)( records+deleted )/20.0 + 10; }				///< called in test_quick_select to determine if indexes should be used
 	#endif
-
-	virtual double	read_time ( ha_rows rows )	{ return (double)rows/20.0 + 1; }					///< index read time estimate
+	#ifdef MARIADB_BASE_VERSION
+        virtual double read_time(uint index, uint ranges, ha_rows rows)
+	{ return ranges + (double)rows/20.0 + 1; }					///< index read time estimate
+	#else
+	virtual double	read_time ( ha_rows rows )	{ return (double)rows/20.0 + 1; }
+	#endif
 
 public:
 	int				open ( const char * name, int mode, uint test_if_locked );
