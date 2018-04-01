@@ -10,12 +10,16 @@
 // CREATE FUNCTION sequence RETURNS INT SONAME 'udfexample.so';
 // CREATE FUNCTION strtoint RETURNS INT SONAME 'udfexample.so';
 // CREATE FUNCTION avgmva RETURNS FLOAT SONAME 'udfexample.so';
+// CREATE FUNCTION asciitolower RETURNS STRING SONAME 'udfexample.so';
+// CREATE PLUGIN square_wc_rank TYPE 'ranker' SONAME 'udfexample.so';
 //
 // Windows
 // cl /MTd /LD udfexample.c
 // CREATE FUNCTION sequence RETURNS INT SONAME 'udfexample.dll';
 // CREATE FUNCTION strtoint RETURNS INT SONAME 'udfexample.dll';
 // CREATE FUNCTION avgmva RETURNS FLOAT SONAME 'udfexample.dll';
+// CREATE FUNCTION asciitolower RETURNS STRING SONAME 'udfexample.dll';
+// CREATE PLUGIN square_wc_rank TYPE 'ranker' SONAME 'udfexample.dll';
 //
 
 #include "sphinxudf.h"
@@ -120,8 +124,9 @@ DLLEXPORT sphinx_int64_t strtoint ( SPH_UDF_INIT * init, SPH_UDF_ARGS * args, ch
 
 	while ( len>0 && *s>='0' && *s<='9' )
 	{
-		res += *s - '0';
+		res = *s - '0' + 10 * res;
 		len--;
+		s++;
 	}
 
 	return res;
@@ -195,8 +200,73 @@ DLLEXPORT double avgmva ( SPH_UDF_INIT * init, SPH_UDF_ARGS * args, char * error
 	return res/n;
 }
 
-// FIXME! add a string function example?
-// FIXME! add a ranker plugin example?
+//////////////////////////////////////////////////////////////////////////
+
+DLLEXPORT int asciitolower_init ( SPH_UDF_INIT * init, SPH_UDF_ARGS * args, char * error_message )
+{
+	if ( args->arg_count!=1 || args->arg_types[0]!=SPH_UDF_TYPE_STRING )
+	{
+		snprintf ( error_message, SPH_UDF_ERROR_LEN, "ASCIITOLOWER() requires 1 string argument" );
+		return 1;
+	}
+
+	return 0;
+}
+
+DLLEXPORT char * asciitolower ( SPH_UDF_INIT * init, SPH_UDF_ARGS * args, char * error_flag )
+{
+	char * in;
+	char * out;
+	int i, len;
+
+	len = args->str_lengths[0];
+	in = args->arg_values[0];
+	out = args->fn_malloc(len + 1);
+	for ( i=0; i<len; i++ )
+	{
+		if ( in[i] >= 'A' && in[i] <= 'Z' )
+			out[i] = in[i] - 'A' + 'a';
+		else
+			out[i] = in[i];
+	}
+	out[len] = '\0';
+
+	return out;
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+DLLEXPORT int square_wc_rank_init ( void ** userdata, SPH_RANKER_INIT * ranker, char * error )
+{
+	*userdata = (void*) malloc ( sizeof(int) );
+	**(int**)userdata = 0;
+
+	return 0;
+}
+
+DLLEXPORT void square_wc_rank_update ( void * userdata, SPH_RANKER_HIT * hit )
+{
+	++*(int*)userdata;
+}
+
+DLLEXPORT int square_wc_rank_finalize ( void * userdata, int match_weight )
+{
+	int word_count;
+
+	word_count = *(int*)userdata;
+	*(int*)userdata = 0;
+	return word_count * word_count;
+}
+
+DLLEXPORT int square_wc_rank_deinit ( void * userdata )
+{
+	if ( userdata )
+	{
+		free ( userdata );
+		userdata = NULL;
+	}
+	return 0;
+}
 
 //
 // $Id$
