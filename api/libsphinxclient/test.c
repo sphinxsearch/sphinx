@@ -16,6 +16,9 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/socket.h>
 
 #if _WIN32
 #include <winsock2.h>
