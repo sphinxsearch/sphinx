@@ -29518,7 +29518,7 @@ CSphSource_BaseSV::ESphParseResult CSphSource_TSV::SplitColumns ( CSphString & s
 		}
 
 		// move to next control symbol
-		while ( pData<pEnd && *pData && *pData!='\t' && *pData!='\r' && *pData!='\n' )
+		while ( pData<pEnd && *pData!='\t' && *pData!='\r' && *pData!='\n' )
 			pData++;
 
 		if ( pData<pEnd )
@@ -29536,7 +29536,7 @@ CSphSource_BaseSV::ESphParseResult CSphSource_TSV::SplitColumns ( CSphString & s
 			if ( bNull )
 			{
 				// null terminated string found
-				m_iDataStart = m_iBufUsed = 0;
+				++pData;
 				break;
 			} else if ( bEOL )
 			{
