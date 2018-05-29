@@ -569,9 +569,6 @@ bool SqlParamsConfigure ( CSphSourceParams_SQL & tParams, const CSphConfigSectio
 {
 	if ( !hSource.Exists("odbc_dsn") ) // in case of odbc source, the host, user, pass and db are not mandatory, since they may be already defined in dsn string.
 	{
-		LOC_CHECK ( hSource, "sql_host", "in source '%s'", sSourceName );
-		LOC_CHECK ( hSource, "sql_user", "in source '%s'", sSourceName );
-		LOC_CHECK ( hSource, "sql_pass", "in source '%s'", sSourceName );
 		LOC_CHECK ( hSource, "sql_db", "in source '%s'", sSourceName );
 	}
 	LOC_CHECK ( hSource, "sql_query", "in source '%s'", sSourceName );
