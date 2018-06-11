@@ -608,6 +608,8 @@ LTLIBOBJS
 CONFDIR
 USE_RLP_FALSE
 USE_RLP_TRUE
+USE_SCWS_FALSE
+USE_SCWS_TRUE
 USE_RE2_FALSE
 USE_RE2_TRUE
 LIBRE2_PATH
@@ -653,6 +655,7 @@ DEPDIR
 OBJEXT
 EXEEXT
 ac_ct_CC
+ac_cv_use_scws
 CPPFLAGS
 LDFLAGS
 CFLAGS
@@ -750,6 +753,7 @@ with_re2
 with_re2_includes
 with_re2_libs
 with_rlp
+with_scws
 with_iconv
 with_unixodbc
 enable_mem_override
@@ -1423,6 +1427,8 @@ Optional Packages:
   --with-re2-includes     path to RE2 header files
   --with-re2-libs         path to RE2 libraries
   --with-rlp              compile with RLP library support (default is
+                          disabled)
+  --with-scws             compile with scws library support (default is
                           disabled)
   --with-iconv            compile with iconv support (default is autodetect)
   --with-unixodbc         compile with UnixODBC support (default is
@@ -8296,6 +8302,44 @@ fi
 
 
 
+# Check whether --with-scws was given.
+if test "${with_scws+set}" = set; then :
+  withval=$with_scws; ac_cv_use_scws=$withval
+else
+  ac_cv_use_scws=no
+
+fi
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to compile with scws library support" >&5
+$as_echo_n "checking whether to compile with scws library support... " >&6; }
+if test x$ac_cv_use_scws != xno; then
+	if test -d $withval && test -f $withval/include/scws/scws.h; then
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+$as_echo "#define USE_SCWS 1" >>confdefs.h
+
+	else
+		as_fn_error $? "missing SCWS sources from libscws" "$LINENO" 5
+	fi
+else
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+$as_echo "#define USE_SCWS 0" >>confdefs.h
+
+fi
+ if test x$ac_cv_use_scws != xno; then
+  USE_SCWS_TRUE=
+  USE_SCWS_FALSE='#'
+else
+  USE_SCWS_TRUE='#'
+  USE_SCWS_FALSE=
+fi
+
+
+
 
 got_expat=0
 dl_expat=0
@@ -9174,6 +9218,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${USE_RLP_TRUE}" && test -z "${USE_RLP_FALSE}"; then
   as_fn_error $? "conditional \"USE_RLP\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${USE_SCWS_TRUE}" && test -z "${USE_SCWS_FALSE}"; then
+  as_fn_error $? "conditional \"USE_SCWS\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 

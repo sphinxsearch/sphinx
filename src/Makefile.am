@@ -31,6 +31,14 @@ RLP_LIBS =
 RLP_INC =
 endif
 
-AM_CPPFLAGS = $(LIBRE2_CFLAGS) $(RLP_INC) -DSYSCONFDIR="\"$(sysconfdir)\"" -DDATADIR="\"$(localstatedir)/data\""
-COMMON_LIBS = libsphinx.a $(LIBSTEMMER_LIBS) $(MYSQL_LIBS) $(PGSQL_LIBS) $(LIBRE2_LIBS) $(RLP_LIBS)
+if USE_SCWS
+SCWS_LIBS = @ac_cv_use_scws@/lib/libscws.a
+SCWS_INC = -I@ac_cv_use_scws@/include
+else
+SCWS_LIBS =
+SCWS_INC =
+endif
+
+AM_CPPFLAGS = $(LIBRE2_CFLAGS) $(RLP_INC) $(SCWS_INC) -DSYSCONFDIR="\"$(sysconfdir)\"" -DDATADIR="\"$(localstatedir)/data\""
+COMMON_LIBS = libsphinx.a $(LIBSTEMMER_LIBS) $(MYSQL_LIBS) $S(CWS_LIBS) $(PGSQL_LIBS) $(LIBRE2_LIBS) $(RLP_LIBS) $(SCWS_LIBS)
 LDADD = $(COMMON_LIBS)

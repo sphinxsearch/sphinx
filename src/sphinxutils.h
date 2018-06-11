@@ -147,6 +147,9 @@ enum
 	// where was TOKENIZER_SBCS=1 once
 	TOKENIZER_UTF8		= 2,
 	TOKENIZER_NGRAM	= 3
+#if USE_SCWS
+	,TOKENIZER_SCWS	= 4
+#endif
 };
 
 /// load config file
