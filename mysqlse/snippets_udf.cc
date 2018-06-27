@@ -17,12 +17,15 @@
 #include <string.h>
 #include <assert.h>
 
-#ifndef __WIN__
+#include <mysql_version.h>
+
+#ifndef _WIN32
+#if MYSQL_VERSION_ID>=50709
+#include <arpa/inet.h>
+#endif
 #include <sys/un.h>
 #include <netdb.h>
 #endif
-
-#include <mysql_version.h>
 
 #if MYSQL_VERSION_ID>=50515
 #include "sql_class.h"
@@ -32,6 +35,13 @@
 #include <mysql/plugin.h>
 #else
 #include "../mysql_priv.h"
+#endif
+
+#ifdef _WIN32
+#if MYSQL_VERSION_ID>=50709
+#define in_addr_t uint32
+#include <winsock2.h>
+#endif
 #endif
 
 #include <mysys_err.h>
@@ -90,7 +100,9 @@ void sphUnalignedWrite ( void * pPtr, const T & tVal )
 
 #define Min(a,b) ((a)<(b)?(a):(b))
 
+#if !defined(_WIN32)
 typedef unsigned int DWORD;
+#endif
 
 inline DWORD sphF2DW ( float f ) { union { float f; uint32 d; } u; u.f = f; return u.d; }
 
@@ -359,7 +371,7 @@ bool CSphUrl::Parse ( const char * sUrl, int iLen )
 int CSphUrl::Connect()
 {
 	struct sockaddr_in sin;
-#ifndef __WIN__
+#ifndef _WIN32
 	struct sockaddr_un saun;
 #endif
 
@@ -426,7 +438,7 @@ int CSphUrl::Connect()
 		}
 	} else
 	{
-#ifndef __WIN__
+#ifndef _WIN32
 		iDomain = AF_UNIX;
 		iSockaddrSize = sizeof(saun);
 		pSockaddr = (struct sockaddr *) &saun;
