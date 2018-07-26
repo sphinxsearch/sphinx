@@ -24,6 +24,10 @@
 #cmakedefine DL_PGSQL ${DL_PGSQL}
 #cmakedefine PGSQL_LIB "${PGSQL_LIB}"
 
+/* Define to 1 if runtime load Firebird RDBMS using dlopen */
+#cmakedefine DL_FIREBIRD ${DL_FIREBIRD}
+#cmakedefine FIREBIRD_LIB "${FIREBIRD_LIB}"
+
 /* Define to 1 if you want runtime load odbc/iodbc using dlopen */
 #cmakedefine DL_UNIXODBC ${DL_UNIXODBC}
 #cmakedefine UNIXODBC_LIB "${UNIXODBC_LIB}"
@@ -123,6 +127,9 @@
 
 /* Define to 1 if you want to compile with PostgreSQL support */
 #cmakedefine USE_PGSQL ${USE_PGSQL}
+
+/* Define to 1 if you want to compile with Firebird RDBMS support */
+#cmakedefine USE_FIREBIRD ${USE_FIREBIRD}
 
 /* re2 library support */
 #cmakedefine USE_RE2 ${USE_RE2}

@@ -437,7 +437,58 @@ then
 else
 	AC_MSG_RESULT([no])
 fi
-AM_CONDITIONAL(USE_PGSQL, test x$ac_cv_use_pgsql != xno -o x$ac_cv_use_satic_pgsql != xno )
+AM_CONDITIONAL(USE_PGSQL, test x$ac_cv_use_pgsql != xno -o x$ac_cv_use_static_pgsql != xno )
+
+# check if we should compile with Firebird RDBMS support
+AC_ARG_WITH([firebird],
+            AC_HELP_STRING([--with-firebird], [compile with Firebird RDBMS support (default is disabled)]),
+            [ac_cv_use_firebird=$withval], [ac_cv_use_firebird=no]
+)
+# check if we should statically link the Firebird RDBMS library
+AC_ARG_WITH([static-firebird], 
+            AC_HELP_STRING([--with-static-firebird], [link statically with Firebird RDBMS library (default is no)]),
+            [ac_cv_use_static_firebird=$withval], [ac_cv_use_static_firebird=no]
+)
+AC_MSG_CHECKING([whether to compile with Firebird RDBMS support])
+if test x$ac_cv_use_static_firebird != xno -o x$ac_cv_use_firebird != xno
+then
+	dl_firebird=0
+	if test x$ac_cv_use_static_firebird != xno ; then
+		AC_MSG_RESULT([static])
+		AC_CHECK_FIREBIRD([$ac_cv_use_static_firebird])
+		FIREBIRD_LIBS=`echo $FIREBIRD_LIBS | sed -e "sX-lfbclientX$FIREBIRD_PKGLIBDIR/libfbclient.aXg"`
+###
+### L_VV Try do it as other DB does:
+### /opt/firebird/bin/fb_config --libs:
+###     -L/opt/firebird/lib -lfbclient
+### file: /opt/firebird/lib/libfbclient.a (".a" file is a static library, while a ".so" file is a shared object (dynamic) library)
+###		PGSQL_LIBS   =`echo $PGSQL_LIBS    | sed -e "sX-lpqX$PGSQL_PKGLIBDIR/libpq.aXg"`
+###		MYSQL_LIBS   =`echo $MYSQL_LIBS    | sed -e "sX-lmysqlclientX\$MYSQL_PKGLIBDIR/libmysqlclient.aXg"`
+###
+### In FIREBIRD_LIBS finally we get the string:
+### -L/opt/firebird/lib /opt/firebird/lib/libfbclient.a
+### The next line give the same result (in it present '\' after 'X' in the middle of the line):
+###		FIREBIRD_LIBS=`echo $FIREBIRD_LIBS | sed -e "sX-lfbclientX\$FIREBIRD_PKGLIBDIR/libfbclient.aXg"`
+###
+	else
+		if test x$sph_usedl == xyes ; then
+			AC_MSG_RESULT([runtime dynamic])
+			AC_CHECK_FIREBIRD([ac_cv_use_firebird])
+			FIREBIRD_LIBS=""
+			dl_firebird=1
+		else
+			AC_MSG_RESULT([dynamic])
+			AC_CHECK_FIREBIRD([ac_cv_use_firebird])
+		fi
+	fi
+    AC_DEFINE(USE_FIREBIRD,1,[Define to 1 if you want to compile with Firebird RDBMS support])
+	AC_DEFINE_UNQUOTED(DL_FIREBIRD,$dl_firebird,[Define to 1 if runtime load Firebird RDBMS using dlopen])
+    AC_SUBST([FIREBIRD_LIBS])
+    AC_SUBST([FIREBIRD_CFLAGS])
+else
+	AC_MSG_RESULT([no])
+fi
+AM_CONDITIONAL(USE_FIREBIRD, test x$ac_cv_use_firebird != xno -o x$ac_cv_use_static_firebird != xno )
 
 # add macports include directory
 if (echo $MYSQL_LIBS | grep -q -- -L/opt/local/lib); then
@@ -493,7 +544,7 @@ AM_CONDITIONAL(USE_INTERNAL_LIBSTEMMER, test x$ac_cv_use_internal_libstemmer != 
 dnl ---
 
 # we can now set preprocessor flags for both C and C++ compilers
-CPPFLAGS="$CPPFLAGS $MYSQL_CFLAGS $PGSQL_CFLAGS $LIBSTEMMER_CFLAGS"
+CPPFLAGS="$CPPFLAGS $MYSQL_CFLAGS $PGSQL_CFLAGS $FIREBIRD_CFLAGS $LIBSTEMMER_CFLAGS"
 
 
 AC_ARG_WITH([libexpat],
@@ -542,7 +593,7 @@ AM_CONDITIONAL(USE_RE2, test x$ac_cv_use_re2 != xno)
 dnl ---
 
 # we can now set preprocessor flags for both C and C++ compilers
-CPPFLAGS="$CPPFLAGS $MYSQL_CFLAGS $PGSQL_CFLAGS $LIBRE2_CFLAGS"
+CPPFLAGS="$CPPFLAGS $MYSQL_CFLAGS $PGSQL_CFLAGS $FIREBIRD_CFLAGS $LIBRE2_CFLAGS"
 
 AC_ARG_WITH([rlp],
 	AC_HELP_STRING([--with-rlp], [compile with RLP library support (default is disabled)]),

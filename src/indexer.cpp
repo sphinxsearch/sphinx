@@ -705,6 +705,28 @@ CSphSource * SpawnSourceMySQL ( const CSphConfigSection & hSource, const char * 
 #endif // USE_MYSQL
 
 
+#if USE_FIREBIRD
+CSphSource * SpawnSourceFBSQL( const CSphConfigSection & hSource, const char * sSourceName, bool bProxy )
+{
+	assert ( hSource["type"]=="firebird" );
+
+	CSphSourceParams_FBSQL tParams;
+	if ( !SqlParamsConfigure ( tParams, hSource, sSourceName ) )
+		return NULL;
+
+	LOC_GETS ( tParams.m_sCharset,	"sql_charset" );
+	LOC_GETS ( tParams.m_sRole,	"sql_role" );
+
+	CSphSource_FBSQL * pSrcFBSQL = CreateSourceWithProxy<CSphSource_FBSQL> ( sSourceName, bProxy );
+	if ( !pSrcFBSQL->Setup ( tParams ) )
+		SafeDelete ( pSrcFBSQL );
+
+	return pSrcFBSQL;
+}
+#endif // USE_FIREBIRD
+
+
+
 #if USE_ODBC
 CSphSource * SpawnSourceODBC ( const CSphConfigSection & hSource, const char * sSourceName, bool bProxy )
 {
@@ -835,6 +857,11 @@ CSphSource * SpawnSource ( const CSphConfigSection & hSource, const char * sSour
 	#if USE_MYSQL
 	if ( hSource["type"]=="mysql" )
 		return SpawnSourceMySQL ( hSource, sSourceName, bBatchedRLP );
+	#endif
+
+	#if USE_FIREBIRD
+	if ( hSource["type"]=="firebird")
+		return SpawnSourceFBSQL( hSource, sSourceName, bBatchedRLP );
 	#endif
 
 	#if USE_ODBC

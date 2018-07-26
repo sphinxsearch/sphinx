@@ -109,6 +109,23 @@ if (WIN32)
 			endif ()
 		endif ()
 	endif ()
+
+	if (HAVE_firebird)
+		option (WITH_FIREBIRD "compile with firebird rdbms support" ON)
+		if (WITH_FIREBIRD)
+			set (USE_FIREBIRD 1)
+			include_directories (${firebird_INCLUDE})
+
+			CMAKE_DEPENDENT_OPTION (DL_FIREBIRD "load firebird rdbms library dynamically" OFF "USE_FIREBIRD" ON)
+			if (DL_FIREBIRD)
+				set (DL_FIREBIRD 1)
+				set (FIREBIRD_LIB fbclient.dll)
+			else( DL_FIREBIRD )
+				list (APPEND EXTRA_LIBRARIES ${firebird_LIB})
+			endif ()
+			install (FILES ${firebird_ROOT}/fbclient.dll DESTINATION bin COMPONENT APPLICATIONS)
+		endif ()
+	endif ()
 	mark_as_advanced(CMAKE_CONFIGURATION_TYPES)
 else (WIN32)
 
@@ -364,6 +381,55 @@ else (WIN32)
 		endif (PostgreSQL_FOUND)
 	endif (WITH_PGSQL)
 
+	# test for FIREBIRD RDBMS
+	message (STATUS "Option WITH_FIREBIRD ${WITH_FIREBIRD}")
+	option (WITH_FIREBIRD "compile with Firebird RDBMS support" OFF)
+	set (WITH_FIREBIRD_INCLUDES "" CACHE PATH "path to Firebird RDBMS header files")
+	set (WITH_FIREBIRD_LIBS "" CACHE PATH "path to Firebird RDBMS library")
+
+	if (WITH_FIREBIRD)
+		if (WITH_FIREBIRD_INCLUDES)
+			set (Firebird_INCLUDE_DIR ${WITH_FIREBIRD_INCLUDES})
+		endif (WITH_FIREBIRD_INCLUDES)
+
+		if (WITH_FIREBIRD_LIBS)
+			set (Firebird_LIBRARIES ${WITH_FIREBIRD_LIBS}/libfbclient.so)
+		endif (WITH_FIREBIRD_LIBS)
+
+		if (NOT (WITH_FIREBIRD_INCLUDES AND WITH_FIREBIRD_LIBS))
+			find_package (Firebird)
+		endif ()
+
+		if (Firebird_FOUND)
+			set (USE_FIREBIRD 1)
+			include_directories (${Firebird_INCLUDE_DIRS})
+
+			CMAKE_DEPENDENT_OPTION (DL_FIREBIRD "load firebird rdbms library dynamically" ON "Firebird_FOUND;HAVE_DL;NOT STATIC_FIREBIRD" OFF)
+			CMAKE_DEPENDENT_OPTION (STATIC_FIREBIRD "link to firebird rdbms library statically" OFF "Firebird_FOUND;NOT DL_FIREBIRD" OFF)
+			if (STATIC_FIREBIRD)
+				message (STATUS "Firebird RDBMS will be linked statically")
+				string (REGEX REPLACE "fbclient" "libfbclient.a" FIREBIRD_LIBRARIES "${FIREBIRD_LIBRARIES}")
+			endif (STATIC_FIREBIRD)
+
+			if (DL_FIREBIRD)
+				message (STATUS "Firebird RDBMS will not be linked (will be loaded at runtime)")
+				set (DL_FIREBIRD 1)
+				GET_FILENAME_COMPONENT (FIREBIRD_LIB ${Firebird_LIBRARY} NAME)
+			else ( DL_FIREBIRD )
+				list (APPEND EXTRA_LIBRARIES ${Firebird_LIBRARIES})
+			endif ()
+		else (Firebird_FOUND)
+			message (SEND_ERROR
+					"********************************************************************************
+					ERROR: cannot find Firebird RDBMS libraries. If you want to compile with Firebird RDBMS support,
+					you must either specify file locations explicitly using
+					-D WITH_FIREBIRD_INCLUDES=... and -D WITH_FIREBIRD_LIBS=... options, or make sure path to
+					fb_config is listed in your PATH environment variable. If you want to
+					disable Firebird RDBMS support, use -D WITH_FIREBIRD=OFF option.
+					********************************************************************************")
+		endif (Firebird_FOUND)
+	endif (WITH_FIREBIRD)
+
 endif (WIN32)
 
 if (NOT CMAKE_BUILD_TYPE MATCHES Debug)
@@ -582,6 +648,9 @@ LIST (APPEND BANNER "WITH_ODBC=${WITH_ODBC}")
 LIST (APPEND BANNER "WITH_PGSQL=${WITH_PGSQL}")
 LIST (APPEND BANNER "WITH_PGSQL_INCLUDES=${WITH_PGSQL_INCLUDES}")
 LIST (APPEND BANNER "WITH_PGSQL_LIBS=${WITH_PGSQL_LIBS}")
+LIST (APPEND BANNER "WITH_FIREBIRD=${WITH_FIREBIRD}")
+LIST (APPEND BANNER "WITH_FIREBIRD_INCLUDES=${WITH_FIREBIRD_INCLUDES}")
+LIST (APPEND BANNER "WITH_FIREBIRD_LIBS=${WITH_FIREBIRD_LIBS}")
 LIST (APPEND BANNER "WITH_RE2=${WITH_RE2}")
 LIST (APPEND BANNER "WITH_RE2_INCLUDES=${WITH_RE2_INCLUDES}")
 LIST (APPEND BANNER "WITH_RE2_LIBS=${WITH_RE2_LIBS}")

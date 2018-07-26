@@ -12,7 +12,7 @@ if (LIBS_BUNDLE)
 
 	# here is the list of the libs we expect to find
 	foreach (req_lib expat iconv mysql pq)
-		file(GLOB list_libs "${LIBS_BUNDLE}/*${req_lib}*" "${LIBS_BUNDLE}/*pgsql*")
+		file(GLOB list_libs "${LIBS_BUNDLE}/*${req_lib}*" "${LIBS_BUNDLE}/*pgsql*" "${LIBS_BUNDLE}/*firebird*")
 		SET (flib FALSE)
 		# select whether we need -x64 or simple lib for our current arch
 		FOREACH (lib ${list_libs})
