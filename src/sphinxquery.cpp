@@ -1118,6 +1118,10 @@ int XQParser_t::GetToken ( YYSTYPE * lvalp )
 			if ( m_bEmptyStopword )
 				m_iAtomPos--;
 		}
+		else
+		{
+			sToken = (const char *)sTmp;
+		}
 
 		if ( bMultiDest && !bMultiDestHead )
 		{
