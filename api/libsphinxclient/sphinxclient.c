@@ -195,6 +195,8 @@ struct st_sphinx_client
 
 	int						sock;			///< open socket for pconns; -1 if none
 	sphinx_bool				persist;
+	int						send_buf_len;  // send buffer length
+	char *					send_buffer;   // send once to improve performance
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -286,6 +288,8 @@ sphinx_client * sphinx_create ( sphinx_bool copy_args )
 
 	client->sock = -1;
 	client->persist = SPH_FALSE;
+	client->send_buf_len = 0;
+	client->send_buffer = NULL;
 	return client;
 }
 
@@ -355,6 +359,8 @@ void sphinx_destroy ( sphinx_client * client )
 
 	if ( client->sock>=0 )
 		sock_close ( client->sock );
+	safe_free ( client->send_buffer );
+	client->send_buf_len = 0;
 
 	free ( client );
 }
@@ -1521,7 +1527,10 @@ static int net_create_inet_sock ( sphinx_client * client )
 {
 	struct hostent * hp;
 	struct sockaddr_in sa;
-	int sock, res, err, optval;
+	int sock, res, err;
+#if defined(SO_NOSIGPIPE)
+	int optval;
+#endif
 
 	hp = gethostbyname ( client->host );
 	if ( !hp )
@@ -1548,8 +1557,8 @@ static int net_create_inet_sock ( sphinx_client * client )
 		return -1;
 	}
 
-	optval = 1;
 #if defined(SO_NOSIGPIPE)
+	optval = 1;
 	if ( setsockopt ( sock, SOL_SOCKET, SO_NOSIGPIPE, (void *)&optval, (socklen_t)sizeof(optval) ) < 0 )
 	{
 		set_error ( client, "setsockopt() failed: %s", sock_error() );
@@ -1578,9 +1587,11 @@ static int net_create_inet_sock ( sphinx_client * client )
 #ifndef _WIN32
 static int net_create_unix_sock ( sphinx_client * client )
 {
-	struct hostent * hp;
 	struct sockaddr_un uaddr;
-	int sock, res, err, optval, len;
+	int sock, res, err, len;
+#if defined(SO_NOSIGPIPE)
+	int optval;
+#endif
 
 	len = strlen ( client->host );
 
@@ -1604,8 +1615,8 @@ static int net_create_unix_sock ( sphinx_client * client )
 		return -1;
 	}
 
-	optval = 1;
 #if defined(SO_NOSIGPIPE)
+	optval = 1;
 	if ( setsockopt ( sock, SOL_SOCKET, SO_NOSIGPIPE, (void *)&optval, (socklen_t)sizeof(optval) ) < 0 )
 	{
 		set_error ( client, "setsockopt() failed: %s", sock_error() );
@@ -1973,11 +1984,50 @@ static void * sphinx_malloc ( int len, sphinx_client * client )
 	return res;
 }
 
+sphinx_bool send_request(sphinx_client* client, int fd) {
+	int i, len, buf_len;
+	char *req;
+
+	len = 8;
+	for ( i=0; i<client->num_reqs; i++ )
+		len += client->req_lens[i];
+
+	buf_len = len + 8;
+	if (client->send_buf_len < buf_len) {
+		req = realloc(client->send_buffer, buf_len);
+		if (!req) {
+			set_error ( client, "fail to realloc send buffer to %d bytes", buf_len);
+			return SPH_FALSE;
+		}
+		client->send_buffer  = req;
+		client->send_buf_len = buf_len;
+	}
+
+	req = client->send_buffer;
+	send_word ( &req, SEARCHD_COMMAND_SEARCH );
+	send_word ( &req, client->ver_search );
+	send_int ( &req, len );
+	send_int ( &req, 0 ); // its a client
+	send_int ( &req, client->num_reqs );
+
+	for ( i=0; i<client->num_reqs; i++ ) {
+		memcpy(req,  client->reqs[i], client->req_lens[i]);
+		req += client->req_lens[i];
+	}
+
+	if(buf_len != req - client->send_buffer) {
+		set_error ( client, "send buffer error, need %d bytes, got %d bytes ", buf_len, req - client->send_buffer);
+		return SPH_FALSE;
+	}
+	if ( !net_write ( fd, client->send_buffer, buf_len, client ) )
+		return SPH_FALSE;
+	return SPH_TRUE;
+}
 
 sphinx_result * sphinx_run_queries ( sphinx_client * client )
 {
 	int i, j, k, l, fd, len, nreqs, id64;
-	char req_header[32], *req, *p, *pmax;
+	char *p, *pmax;
 	sphinx_result * res;
 	union un_attr_value * pval;
 
@@ -1998,23 +2048,7 @@ sphinx_result * sphinx_run_queries ( sphinx_client * client )
 	sphinx_free_results ( client );
 
 	// send query, get response
-	len = 8;
-	for ( i=0; i<client->num_reqs; i++ )
-		len += client->req_lens[i];
-
-	req = req_header;
-	send_word ( &req, SEARCHD_COMMAND_SEARCH );
-	send_word ( &req, client->ver_search );
-	send_int ( &req, len );
-	send_int ( &req, 0 ); // its a client
-	send_int ( &req, client->num_reqs );
-
-	if ( !net_write ( fd, req_header, (int)(req-req_header), client ) )
-		return NULL;
-
-	for ( i=0; i<client->num_reqs; i++ )
-		if ( !net_write ( fd, client->reqs[i], client->req_lens[i], client ) )
-			return NULL;
+	send_request(client, fd);
 
 	net_get_response ( fd, client );
 	if ( !client->response_buf )
