@@ -16,6 +16,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #if _WIN32
 #include <winsock2.h>
@@ -405,7 +406,7 @@ void title ( const char * name )
 	if ( g_smoke || !name )
 		return;
 
-	printf ( "-> % s <-\n\n", name );
+	printf ( "-> %s <-\n\n", name );
 }
 
 int main ( int argc, char ** argv )
