@@ -16,6 +16,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #if _WIN32
 #include <winsock2.h>
@@ -218,7 +219,8 @@ void test_excerpt_spz ( sphinx_client * client )
 
 void test_persist_work ( sphinx_client * client )
 {
-	char * docs[] = { NULL };
+	const char * docs[] = { NULL };
+	char *docs0;
 	const char words[] = "that is";
 	const char * index = "test1";
 	const char filler[] = " no need to worry about ";
@@ -229,13 +231,14 @@ void test_persist_work ( sphinx_client * client )
 
 	// should be in sync with sphinxclient.c MAX_PACKET_LEN
 	i = 8*1024*1024 + 50;
-	docs[0] = malloc ( i );
-	if ( !docs[0] )
+	docs0 = malloc ( i );
+	if ( !docs0 )
 		die ( "malloc failed at test_persist_work" );
+	docs[0] = docs0;
 
-	memcpy ( docs[0], words, sizeof(words)-1 );
-	doc = docs[0] + sizeof(words)-1;
-	while ( ( doc + sizeof(filler) )<docs[0]+i )
+	memcpy ( docs0, words, sizeof(words)-1 );
+	doc = docs0 + sizeof(words)-1;
+	while ( ( doc + sizeof(filler) )<docs0+i )
 	{
 		memcpy ( doc, filler, sizeof(filler)-1 );
 		doc += sizeof(filler)-1;
@@ -264,7 +267,7 @@ void test_persist_work ( sphinx_client * client )
 			opts.html_strip_mode = "none";
 			opts.query_mode = SPH_TRUE;
 
-			*( docs[0]+sizeof(words)+100 ) = '\0';
+			*( docs0+sizeof(words)+100 ) = '\0';
 		}
 
 		printf ( "n=%d,\t", i );
